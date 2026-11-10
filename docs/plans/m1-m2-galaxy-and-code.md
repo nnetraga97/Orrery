@@ -64,6 +64,20 @@ In words: whatever the desktop camera would have shown in the middle of the moni
 
 **Camera writes in the copied code** (all write the virtual camera, so all keep working): `galaxy/constellation.js:81-82`, `constellation-navigation.js:109-110,145-146,163-165`, `execution-ship.js:228-229`, `planet/planet-interaction.js:185`.
 
+### The desktop app's repository is next door
+
+The desktop app this project was copied from, `codebase-viz`, is checked out in the same parent folder as this
+repository (normally `../codebase-viz`; confirm with `ls ..`). You may read it whenever `reference/` does not have
+what you need: how a desktop panel behaves, a file that was not copied, the history of a function.
+
+- **Read only.** Never edit, commit or run installs in that folder.
+- **Nothing here may depend on it.** No import, build step, test or script in this repository may reach into
+  `../codebase-viz`, except the two refresh tools that take its path as an argument (`tools/migrate/copy-code.sh`
+  and `npm run assets`), and only when a task tells you to run them.
+- **Do not copy more code across by hand.** If a task needs a file that is not in `galaxy/` or `reference/`, add it
+  to `tools/migrate/copy-code.sh`, run the script, and say so in the commit.
+- If the folder is not there, carry on: everything the plan requires is already in this repository.
+
 ### Rules
 
 1. **Do not edit files under `galaxy/`**, except `galaxy/viewer/app/static-data.js` and `project-store.ts`. If copied code must change, add an exact find-and-replace to `tools/migrate/apply-patches.mjs`, run it, and say so in the commit.

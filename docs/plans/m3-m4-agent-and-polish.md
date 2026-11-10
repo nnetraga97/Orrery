@@ -37,6 +37,20 @@ Rules 1–7, 9 and 10 of the M1 + M2 plan apply unchanged (branch name `m3-m4`).
 - **E. The conversation history is append-only.** Never edit or drop an earlier assistant message or any block inside one.
 - **F. No typing.** Where the desktop app has a text box, this app has voice, a pinchable choice, or both.
 
+### The desktop app's repository is next door
+
+The desktop app this project was copied from, `codebase-viz`, is checked out in the same parent folder as this
+repository (normally `../codebase-viz`; confirm with `ls ..`). You may read it whenever `reference/` does not have
+what you need: the full desktop chat services under `desktop/`, a panel's styles, a file that was not copied.
+
+- **Read only.** Never edit, commit or run installs in that folder.
+- **Nothing here may depend on it.** No import, build step, test or script in this repository may reach into
+  `../codebase-viz`, except the two refresh tools that take its path as an argument (`tools/migrate/copy-code.sh`
+  and `npm run assets`), and only when a task tells you to run them.
+- **Do not copy more code across by hand.** If a task needs a file that is not in `galaxy/` or `reference/`, add it
+  to `tools/migrate/copy-code.sh`, run the script, and say so in the commit.
+- If the folder is not there, carry on: everything the plan requires is already in this repository.
+
 ### Chat feature parity
 
 Every feature of the desktop chat window, and where it lands. "Same" means the same data and behaviour, drawn on the canvas panel.
