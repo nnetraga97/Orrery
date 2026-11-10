@@ -17,7 +17,10 @@
     "bake": "node tools/bake-dataset.mjs",
     "assets": "node tools/assets/build-assets.mjs",
     "smoke": "node tools/smoke-flat.mjs",
-    "postinstall": "node tools/copy-runtime.mjs"
+    "postinstall": "node tools/copy-runtime.mjs",
+    "test:core": "node --experimental-strip-types --test \"src/core/**/*.test.ts\"",
+    "smoke:xr": "node tools/smoke-page.mjs --page=index.html",
+    "verify": "npm run typecheck && npm run check && npm run test:core && npm run build && npm run smoke && npm run smoke:xr"
   },
   "dependencies": {
     "@iwsdk/core": "1.1.0-rc.2",
