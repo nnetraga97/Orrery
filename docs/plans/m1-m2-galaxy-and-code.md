@@ -184,9 +184,9 @@ Rules: `scale = clamp(anchor.width / (2 · d · tan(fov/2)), minScale, maxScale)
 
 **Files:** Create `src/ports/host.ts`, `src/ports/scene-kit.ts`.
 
-- [ ] **Step 1.** Write `HostPort` and `SceneKitPort` as TypeScript interfaces listing every member in "What the scene code expects" above. Take parameter and return shapes from `reference/desktop-app/viewer/app/host.ts` (the host) and from the object returned at the end of `galaxy/viewer/scene/scene3d.js` (the kit). Use `unknown` rather than `any` where a shape is not needed.
-- [ ] **Step 2. Check.** `npm run typecheck && npm run check`.
-- [ ] **Step 3. Commit:** `Describe the host and scene-kit contracts`
+- [x] **Step 1.** Write `HostPort` and `SceneKitPort` as TypeScript interfaces listing every member in "What the scene code expects" above. Take parameter and return shapes from `reference/desktop-app/viewer/app/host.ts` (the host) and from the object returned at the end of `galaxy/viewer/scene/scene3d.js` (the kit). Use `unknown` rather than `any` where a shape is not needed.
+- [x] **Step 2. Check.** `npm run typecheck && npm run check`.
+- [x] **Step 3. Commit:** `Describe the host and scene-kit contracts`
 
 ### Task 4: The XR scene kit
 
