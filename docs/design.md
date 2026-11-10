@@ -82,19 +82,87 @@ Costs accepted:
 
 ## 4. Architecture
 
+### 4.0 Code structure: ports and adapters around an ECS shell
+
+Four established patterns, each answering one problem this project actually has:
+
+| Problem here | Pattern | What it means in this repository |
+| --- | --- | --- |
+| The framework is a release candidate, the agent providers and the speech service are swappable, and there is no headset to test on | **Ports and adapters** (hexagonal architecture) | Everything outside the app sits behind an interface in `src/ports/`. Each has a real adapter and a recorded fake. A composition root wires them; nothing else names a concrete adapter. |
+| Most logic must be testable without a browser, a GPU or a headset | **Functional core, imperative shell** | Decisions live in `src/core/` as plain functions over plain data: the workspace, edits and diffs, the session's steps, the transcript, replay stepping. IWSDK systems are the thin shell that feeds them input and applies their results. |
+| 21,000 lines of desktop scene code must keep working while the shell around them is replaced | **Anti-corruption layer** and **branch by abstraction** | The copied code is never edited to know about XR. `src/galaxy-bridge/` implements the two contracts it already expects (§4.1). The flat view and the XR app are two implementations behind the same contracts, so either can be checked against the other. |
+| Spatial panels and the 3D world must not fight over state | **One-way data flow with signals and typed commands** | The world is the source of truth. Systems publish small immutable snapshots as signals; panels render them; a pinch sends a typed command back. This is the boundary Meta's IWSDK guide prescribes, and it reuses the signals library IWSDK already ships rather than adding a second store. |
+
+Inside the shell, the code follows IWSDK's entity-component-system conventions:
+components hold data and are declared in system-free modules; systems hold behaviour,
+iterate queries instead of keeping entity lists, allocate nothing per frame, and
+register every subscription for cleanup.
+
 ```
-src/                 new XR app (TypeScript, IWSDK systems)
-  xr/                scene kit, host, interaction, panels          (M1–M2)
-  agent/             browser side of the agent: tools, transcript  (M3)
-  voice/             capture and transcription client             (M3)
-  flat/              flat reference view (mouse, no XR)            (M0, done)
-api/                 serverless functions: agent, transcribe       (M3)
+                    +------------------------- src/index.ts (composition root) --------------------------+
+                    |                                                                                    |
+  hands, voice ---> |  systems/  --calls-->  core/  <--types--  ports/  <--implements--  adapters/ ------+--> agent relay,
+                    |     |  ^                                                                           |    transcription,
+                    |     v  | commands                                                                  |    static datasets,
+                    |   state/ (signals) ---> ui/ (spatial panels)                                       |    local storage
+                    |     |                                                                              |
+                    |     v                                                                              |
+                    |  galaxy-bridge/  --implements host and scene kit-->  galaxy/ (copied scene code)   |
+                    +------------------------------------------------------------------------------------+
+```
+
+```
+src/
+  index.ts           composition root: world, adapters, systems
+  core/              pure logic; imports nothing but itself
+  ports/             interfaces: AgentPort, SpeechPort, DatasetPort, StoragePort, HostPort, SceneKitPort
+  adapters/          one implementation per port, plus recorded fakes
+  state/             projection signals and typed commands
+  galaxy-bridge/     XR host and XR scene kit; the only XR code that imports galaxy/
+  components/        ECS components, one per file (registered in components.ts)
+  systems/           IWSDK systems, kept thin
+  ui/                one controller per panel (markup in public/ui/*.uikitml)
+  flat/              flat reference view (mouse, no XR); a test page
+api/                 serverless relay functions; may share only src/core/
 galaxy/              code copied from codebase-viz (see galaxy/README.md)
 public/assets/       models and maps, built by tools/assets/build-assets.mjs
 public/data/<name>/  baked datasets, built by tools/bake-dataset.mjs
 tools/               migration, baking, asset build, checks, smoke test
 reference/           read-only desktop code for later milestones
 ```
+
+**The dependency rule.** Imports point inward: `adapters`, `systems`, `ui` and the
+bridge may depend on `core` and `ports`; `core` depends on nothing. Stated as checks
+that `npm run check` runs (`tools/check-boundaries.mjs`):
+
+| Rule | Why |
+| --- | --- |
+| `core/` imports only `core/`, and no packages | It must run in plain Node for tests and be shareable with `api/` |
+| `ports/` imports only `core/` and `ports/` | Interfaces must not drag in an implementation |
+| Only `index.ts` (and `flat/`) import `adapters/` | Swapping a provider or a fake is a one-file change |
+| Only `galaxy-bridge/` and `flat/` import `galaxy/` | One seam to the copied code |
+| `galaxy/` imports nothing from `src/`, `api/` or `reference/` | The copy stays re-syncable from codebase-viz |
+| Nothing imports `reference/` | It is reading material |
+| `src/` imports three.js from `@iwsdk/core`, never `three` (except `flat/`) | One copy of three.js in the bundle |
+| `api/` shares only `src/core/` with the app | Server functions cannot pull in browser code |
+
+**A deliberate exception to IWSDK's house rules.** IWSDK's own review checklist flags
+direct `GLTFLoader` use, raw `scene.add()` and hand-rolled raycasting. The copied
+galaxy does all three internally. It is treated as one opaque subtree: attached once
+through `world.createTransformEntity(root)`, with its loaders and child objects left
+alone. The exception stops at the bridge: selection, hover and grabbing enter through
+IWSDK's interaction components on that root, and the bridge maps a hit to a file or a
+town using the picking tables the copied code already maintains.
+
+**Tests follow the layers.** `core/` has unit tests under Node. Each port has a
+contract test run against its real adapter and its fake. The copied code has its
+offline checks and the flat-view smoke test. The XR shell is checked in IWSDK's
+emulator, and finally on the headset.
+
+**Each milestone is a vertical slice** through these layers (a port, its fake, the
+core logic, one system, one panel), so every milestone ends with something that runs.
+
+Sources for this section are listed in §10.
 
 ### 4.1 Two contracts the scene code depends on
 
@@ -114,7 +182,9 @@ ids, the planet inspector (`host.inspector.create`), loading, stage and preferen
 constellation adds to it (`T.land`, `T.leave`, `T.bodyPos`, `T.executionAt`, ...).
 
 `src/flat/flat-host.js` is a complete, working host on plain DOM. It is the template
-for the XR host.
+for the XR host. In M1 both contracts become TypeScript interfaces in `src/ports/`
+(`HostPort`, `SceneKitPort`), written from these measured lists, and the flat host is
+checked against them too.
 
 ### 4.2 Why `scene3d.js` is replaced, not ported
 
@@ -132,7 +202,7 @@ So M1 writes `src/xr/scene-kit.ts`: the same `T` surface, implemented for XR.
 | `T` member | XR implementation |
 | --- | --- |
 | `T.scene` | A `Group` (the galaxy root) parented to a table anchor, scaled to about 0.8 m across |
-| `T.camera` | The XR camera, read-only. Code that writes to it goes through `flyTo` instead |
+| `T.camera` | A read-only stand-in whose position is the head pose expressed in galaxy space. IWSDK's `world.camera.position` is local to the player rig, so the bridge converts with `getWorldPosition()` and the galaxy root's inverse transform. Code that writes the camera goes through `flyTo` instead |
 | `T.controls` | An object with `target` and no-op `update`; grab gestures move the galaxy root |
 | `T.flyTo(p, dist)` | Tweens the galaxy root so `p` arrives in front of the user at a comfortable distance |
 | `T.addLabels` | MSDF text sprites facing the user, capped in number, hidden outside a narrow field of view |
@@ -197,7 +267,9 @@ headset browser                                   our server (Vercel functions)
 - **The person using the app supplies the provider key.** It is entered once on the
   ordinary web page before entering VR (the headset's system keyboard works with
   hands), kept in that browser's local storage, and sent with each request. This is
-  the only typing in the product and it happens outside the immersive session.
+  the only typing in the product and it happens outside the immersive session. Meta's
+  guide recommends exactly this split: ordinary DOM for the browser shell, spatial UI
+  for everything that must work inside the headset.
 - The server is a thin relay: it forwards the request to the chosen provider with the
   caller's key, streams the answer back, and stores nothing. It exists because
   provider APIs are not all callable from a browser page.
@@ -321,3 +393,25 @@ the tutorial, the code panel, hands-only operation.
 4. **Hosting account**, when ready. The first deployment should happen well before
    Nov 17, because it has not been tested.
 5. **Start programme membership** confirmed, since it gates submission.
+6. **Asset provenance sheet.** The rules let the sponsor ask for written proof of
+   ownership or licence for any material. One page listing each asset family, how it
+   was made (which generator, which account or plan) or where it came from, and its
+   licence. Only the owner knows the plan terms behind the generated models.
+
+## 10. Sources
+
+- IWSDK entity-component-system concepts and custom systems:
+  <https://developers.meta.com/horizon/documentation/iwsdk/concepts/ecs/>,
+  <https://developers.meta.com/horizon/documentation/iwsdk/guides/07-custom-systems/>
+- IWSDK guide to pairing DOM UI with the world (signals out, typed commands in, no
+  second store): <https://developers.meta.com/horizon/documentation/iwsdk/guides/17-react-preact-2d-ui/>
+- IWSDK's project guidance and review checklist, installed by its project generator
+  (`AGENTS.md`, `.claude/rules/ecs-api.md`, `.claude/agents/iwsdk-project-code-reviewer.md`).
+- Ports and adapters applied to a browser game, with a composition root:
+  <https://alexop.dev/posts/hexagonal-architecture-vue/>; overview:
+  <https://quality.arc42.org/approaches/hexagonal-architecture>
+- Functional core, imperative shell (from Gary Bernhardt's "Boundaries" talk), as
+  summarised in <https://kyle.au/notes/technology/development/functional-core-imperative-shell-pattern>
+- Branch by abstraction: <https://www.martinfowler.com/bliki/BranchByAbstraction.html>
+- Strangler fig and anti-corruption layer:
+  <https://learn.microsoft.com/en-us/azure/architecture/patterns/strangler-fig>

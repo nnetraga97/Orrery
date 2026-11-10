@@ -2,10 +2,10 @@
 // Loads the built flat reference view in headless Chromium and fails on page errors or missing files.
 // Usage: npm run build && node tools/smoke-flat.mjs [--dataset=sample] [--land=<path>] [--line=<n>] [--settle=<ms>]
 //        [--size=1440x900] [--query=cannon=off] [--out=screenshots/flat.png] [--base=https://host/path/]
-// Without --base it serves dist/ with `vite preview`. With --base it tests an already deployed site.
+// Without --base it serves dist/ itself, on a free local port. With --base it tests an already deployed site.
 // Prints the asset files the page requested, which is the list the app needs under public/assets/.
-import { spawn } from 'node:child_process';
 import fs from 'node:fs';
+import http from 'node:http';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -20,38 +20,60 @@ const dataset = option('dataset', 'sample'),
   [width, height] = option('size', '1440x900').split('x').map(Number),
   out = path.resolve(repo, option('out', 'screenshots/flat.png')),
   settle = Number(option('settle', '6000')),
-  port = 4173 + Math.floor(Math.random() * 500);
+  base = option('base', '');
 
 const require = createRequire(import.meta.url);
 let chromium;
-try {
-  ({ chromium } = require('playwright'));
-} catch {
+for (const name of ['playwright', 'playwright-core']) {
+  try {
+    ({ chromium } = require(name));
+    break;
+  } catch {
+    // Try the next package name.
+  }
+}
+if (!chromium) {
   console.error('Playwright is not installed. Run: npm install --save-dev playwright && npx playwright install chromium');
   process.exit(2);
 }
 
-const base = option('base', '');
-const server = base
-  ? null
-  : spawn(
-      process.execPath,
-      [path.join(repo, 'node_modules/vite/bin/vite.js'), 'preview', '--port', String(port), '--strictPort', '--host', '127.0.0.1'],
-      { cwd: repo, stdio: ['ignore', 'pipe', 'pipe'] },
-    );
-const stop = () => server?.kill('SIGTERM');
-process.on('exit', stop);
-if (server)
-  await new Promise((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error('vite preview did not start in 20 s')), 20000);
-    server.stdout.on('data', chunk => {
-      if (String(chunk).includes(String(port))) {
-        clearTimeout(timer);
-        resolve();
-      }
-    });
-    server.on('exit', code => reject(new Error(`vite preview exited with code ${code}`)));
+// A minimal static file server for dist/, so the test does not depend on the build tool's preview server.
+const TYPES = {
+  '.html': 'text/html; charset=utf-8',
+  '.js': 'text/javascript',
+  '.mjs': 'text/javascript',
+  '.css': 'text/css',
+  '.json': 'application/json',
+  '.wasm': 'application/wasm',
+  '.glb': 'model/gltf-binary',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.webp': 'image/webp',
+  '.svg': 'image/svg+xml',
+  '.mp3': 'audio/mpeg',
+};
+const dist = path.join(repo, 'dist');
+let server = null,
+  origin = base ? base.replace(/\/?$/, '/') : '';
+if (!base) {
+  if (!fs.existsSync(path.join(dist, 'flat.html'))) {
+    console.error('dist/flat.html does not exist. Run: npm run build');
+    process.exit(2);
+  }
+  server = http.createServer((request, response) => {
+    const pathname = decodeURIComponent(new URL(request.url, 'http://localhost').pathname);
+    const file = path.join(dist, pathname.endsWith('/') ? pathname + 'index.html' : pathname);
+    if (!file.startsWith(dist + path.sep) || !fs.statSync(file, { throwIfNoEntry: false })?.isFile()) {
+      response.writeHead(404).end('Not found');
+      return;
+    }
+    response.writeHead(200, { 'Content-Type': TYPES[path.extname(file)] || 'application/octet-stream' });
+    fs.createReadStream(file).pipe(response);
   });
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  origin = `http://127.0.0.1:${server.address().port}/`;
+}
+const stop = () => server?.close();
 
 // CHROMIUM_PATH names a browser binary when Playwright's own download is absent (cloud sessions: /opt/pw-browsers/chromium).
 const executablePath =
@@ -77,7 +99,6 @@ page.on('response', response => {
 
 let failed = false;
 try {
-  const origin = base ? base.replace(/\/?$/, '/') : `http://127.0.0.1:${port}/`;
   const url = `${origin}flat.html?dataset=${encodeURIComponent(dataset)}${land ? `&land=${encodeURIComponent(land)}` : ''}${line ? `&line=${encodeURIComponent(line)}` : ''}${extra ? `&${extra}` : ''}`;
   await page.goto(url, { waitUntil: 'load' });
   await page.waitForFunction(() => window.__flat || window.__flatError, null, { timeout: 60000 });
