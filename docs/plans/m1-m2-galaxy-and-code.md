@@ -332,18 +332,18 @@ A landed planet is an "overlay": an object with `scene`, `camera`, `frame()` ret
 
 **Files:** Create `src/core/code-view.ts` + test, `src/core/scroll.ts` + test, `src/core/layout.ts` + test, `src/panels/draw-code-page.ts`. Modify `src/panels/test-page.ts`, `src/systems/panel-system.ts`. Add the dependency `@fontsource/jetbrains-mono` (an open-licence monospace font) and load its regular and bold `woff2` files with `FontFace` before the first draw.
 
-- [ ] **Step 1. Tests first: `code-view.ts`.**
+- [x] **Step 1. Tests first: `code-view.ts`.**
   `visibleLines(view, options)` takes the `codeView` state, `rows` (35), `columns` (88) and a `scrollTop` line, and returns rows `{ number, segments, highlight: 'none' | 'selected' | 'hovered', truncated }`.
   In `function` mode the range shown is the selected region's lines plus 3 lines of context each side; in `file` mode it is the whole file.
   Lines longer than `columns` are cut and flagged `truncated`.
   `scrollToRange(view, range, rows)` returns the `scrollTop` that puts the range's first line a third of the way down, clamped.
   Tests: function mode bounds; context clipped at file start and end; highlight flags; truncation splits a segment correctly; an empty file gives no rows.
-- [ ] **Step 2. Tests first: `scroll.ts`.** `dragScroll(scrollTop, dyPixels, lineHeight, maxTop)` returns the new clamped `scrollTop`; `pageScroll(scrollTop, direction, rows, maxTop)` moves by `rows − 3`.
-- [ ] **Step 3. Tests first: `layout.ts`.** `panelPlacements(seat)` returns the position, facing and size in metres of `codePage` (right of the table), `agentPanel` (left), `dock` (front edge of the table) and `tutorial` (above the table). Tests: every panel centre is 0.9–1.2 m from the head; within ±32° horizontally and between 20° below and 12° above eye level; no two panels overlap as seen from the head.
-- [ ] **Step 4. Draw.** `drawCodePage(ctx, w, h, rows, meta)` on a 2048×1840 canvas for a 0.86 × 0.77 m panel: a header with the file path and function name; line numbers in a dim gutter; code in the bundled monospace font at 34 px with 50 px line height; colours per token class on a dark background; a soft band behind selected lines and a fainter one behind hovered lines; a `…` mark on truncated lines; footer buttons `Function / Whole file`, `Page up`, `Page down`. It returns hit regions `line:<number>` for every row and one per button.
-- [ ] **Step 5.** `PanelSystem` creates the code page at its placement when `codeView` has lines, hides it otherwise, and redraws only when `codeView`, the scroll position or the hover changes.
-- [ ] **Step 6. Check.** `npm run verify`; `node tools/smoke-page.mjs --page=panels.html --wait="window.__panels?.ready" --out=docs/migration/panels.png`. Open the screenshot at full size: the code is sharp, coloured, and every character of a line such as `public static containsPosition(range: IRange, position: IPosition): boolean {` is readable.
-- [ ] **Step 7. Commit:** `Add the floating code page`
+- [x] **Step 2. Tests first: `scroll.ts`.** `dragScroll(scrollTop, dyPixels, lineHeight, maxTop)` returns the new clamped `scrollTop`; `pageScroll(scrollTop, direction, rows, maxTop)` moves by `rows − 3`.
+- [x] **Step 3. Tests first: `layout.ts`.** `panelPlacements(seat)` returns the position, facing and size in metres of `codePage` (right of the table), `agentPanel` (left), `dock` (front edge of the table) and `tutorial` (above the table). Tests: every panel centre is 0.9–1.2 m from the head; within ±32° horizontally and between 20° below and 12° above eye level; no two panels overlap as seen from the head.
+- [x] **Step 4. Draw.** `drawCodePage(ctx, w, h, rows, meta)` on a 2048×1840 canvas for a 0.86 × 0.77 m panel: a header with the file path and function name; line numbers in a dim gutter; code in the bundled monospace font at 34 px with 50 px line height; colours per token class on a dark background; a soft band behind selected lines and a fainter one behind hovered lines; a `…` mark on truncated lines; footer buttons `Function / Whole file`, `Page up`, `Page down`. It returns hit regions `line:<number>` for every row and one per button.
+- [x] **Step 5.** `PanelSystem` creates the code page at its placement when `codeView` has lines, hides it otherwise, and redraws only when `codeView`, the scroll position or the hover changes.
+- [x] **Step 6. Check.** `npm run verify`; `node tools/smoke-page.mjs --page=panels.html --wait="window.__panels?.ready" --out=docs/migration/panels.png`. Open the screenshot at full size: the code is sharp, coloured, and every character of a line such as `public static containsPosition(range: IRange, position: IPosition): boolean {` is readable.
+- [x] **Step 7. Commit:** `Add the floating code page`
 
 ### Task 15: Linking buildings and lines
 

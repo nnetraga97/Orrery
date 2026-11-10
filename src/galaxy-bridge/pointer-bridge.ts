@@ -12,10 +12,11 @@ import type { XrSceneKit } from './scene-kit.js';
 
 /**
  * The hit volume: the space over the table the model can occupy (room metres, axis-aligned). The overview frames the
- * model off-centre (measured: x -0.47..0.64, y 0.79..1.08, z -1.32..-0.36), and a landed globe sits at the anchor.
+ * model off-centre (measured: x -0.47..0.64, y 0.79..1.08, z -1.32..-0.36), and a landed globe rests on the table
+ * (y 0.84..1.48).
  * Double-sided, so a ray from a hand already inside it still hits.
  */
-export const HIT_VOLUME = { center: [0, 0.95, -0.8] as const, size: [1.5, 0.8, 1.3] as const };
+export const HIT_VOLUME = { center: [0, 1.0, -0.8] as const, size: [1.5, 1.0, 1.3] as const };
 
 interface RayEvent {
   ray: Ray;

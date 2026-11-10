@@ -32,6 +32,10 @@ export const TABLE_ANCHOR: TableAnchor = {
 
 // A landed planet stays a globe this wide on the table (the owner's choice), however close the copied code flies.
 export const LANDED_GLOBE_DIAMETER = 0.64;
+// Where a landed globe's centre sits: resting on the table top (0.83 m), a little further back than the overview so
+// its top stays inside the narrower glasses view for a seated user.
+export const LANDED_CENTER: Vec3 = [0, 0.83 + LANDED_GLOBE_DIAMETER / 2 + 0.01, -0.75];
+const ANCHOR_EASE_SECONDS = 0.6;
 
 export class GalaxySystem extends createSystem({ roots: { required: [GalaxyRoot] } }) {
   host!: XrHost;
@@ -117,15 +121,28 @@ export class GalaxySystem extends createSystem({ roots: { required: [GalaxyRoot]
   }
 
   private focus: Vec3 = [0, 0, 0];
+  // The anchor in use: eased between the table anchor (overview) and the landed globe's centre.
+  private anchor: TableAnchor = { ...TABLE_ANCHOR, position: [...TABLE_ANCHOR.position] as Vec3 };
+  private ease = 0;
+
+  private easeAnchor(delta: number) {
+    const k = Math.min(1, delta / ANCHOR_EASE_SECONDS);
+    this.ease += ((this.landed ? 1 : 0) - this.ease) * k * 4;
+    if (Math.abs((this.landed ? 1 : 0) - this.ease) < 1e-3) this.ease = this.landed ? 1 : 0;
+    const e = this.ease * this.ease * (3 - 2 * this.ease);
+    for (let i = 0; i < 3; i++)
+      this.anchor.position[i] = TABLE_ANCHOR.position[i] + (LANDED_CENTER[i] - TABLE_ANCHOR.position[i]) * e;
+  }
+
   /** While landed: the whole globe on the table, its centre on the anchor, turned as the virtual camera sees it. */
   private landedPose(kit: NonNullable<XrHost['kit']>) {
     const i = kit.pinned;
-    if (i == null || !kit.bodyPos || !kit.bodySize) return tablePose(kit.virtual(), TABLE_ANCHOR);
+    if (i == null || !kit.bodyPos || !kit.bodySize) return tablePose(kit.virtual(), this.anchor);
     const centre = kit.bodyPos(i);
     this.focus[0] = centre.x;
     this.focus[1] = centre.y;
     this.focus[2] = centre.z;
-    return focusedPose(kit.virtual(), TABLE_ANCHOR, this.focus, LANDED_GLOBE_DIAMETER / (2 * kit.bodySize(i)));
+    return focusedPose(kit.virtual(), this.anchor, this.focus, LANDED_GLOBE_DIAMETER / (2 * kit.bodySize(i)));
   }
 
   /** Publishes the phase and the landed file when the view lands or leaves. */
@@ -154,7 +171,8 @@ export class GalaxySystem extends createSystem({ roots: { required: [GalaxyRoot]
     if (!kit || !this.entity) return;
     kit.tick(time * 1000);
     this.publishLanding();
-    const pose = this.landed ? this.landedPose(kit) : tablePose(kit.virtual(), TABLE_ANCHOR);
+    this.easeAnchor(delta);
+    const pose = this.landed ? this.landedPose(kit) : tablePose(kit.virtual(), this.anchor);
     const group = kit.scene;
     group.position.set(pose.position[0], pose.position[1], pose.position[2]);
     group.quaternion.set(pose.orientation[0], pose.orientation[1], pose.orientation[2], pose.orientation[3]);

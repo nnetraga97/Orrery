@@ -23,6 +23,7 @@
     "verify": "npm run typecheck && npm run check && npm run test:core && npm run build && npm run smoke && npm run smoke:xr"
   },
   "dependencies": {
+    "@fontsource/jetbrains-mono": "^5.3.0",
     "@iwsdk/core": "1.1.0-rc.2",
     "@pmndrs/uikit": "^1.0.74",
     "@pmndrs/uikit-horizon": "^1.0.74",
