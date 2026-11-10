@@ -2,7 +2,8 @@
 // One pinch dragged in the air over empty space orbits; two pinches moving apart or together dolly. A pinch that moves
 // less than 2 cm in all is a click, which the pointer bridge already handles. In a browser tab the mouse does the
 // same: drag on empty space orbits, the wheel dollies.
-import { Vector3, createSystem } from '@iwsdk/core';
+import { Hovered, Vector3, createSystem } from '@iwsdk/core';
+import { Panel } from '../components/panel.ts';
 import { dollyFromSpread, orbitFromDrag } from '../core/orbit.ts';
 import { GalaxySystem } from './galaxy-system.ts';
 
@@ -25,7 +26,7 @@ interface HandDrag {
   last: Vector3;
 }
 
-export class ManipulationSystem extends createSystem({}) {
+export class ManipulationSystem extends createSystem({ hoveredPanels: { required: [Panel, Hovered] } }) {
   private hands!: Record<Side, HandDrag>;
   private position!: Vector3;
   private other!: Vector3;
@@ -42,6 +43,11 @@ export class ManipulationSystem extends createSystem({}) {
 
   private get kit() {
     return this.world.getSystem(GalaxySystem)?.host.kit ?? null;
+  }
+
+  /** The ray is over a panel or something the scene picks: the pinch belongs to it, not to the model. */
+  private overTarget() {
+    return !!this.kit?.pointing || this.queries.hoveredPanels.entities.size > 0;
   }
 
   private handPosition(side: Side, out: Vector3) {
@@ -61,7 +67,7 @@ export class ManipulationSystem extends createSystem({}) {
       const drag = this.hands[side];
       if (pad?.getSelectStart()) {
         drag.active = true;
-        drag.onTarget = kit.pointing;
+        drag.onTarget = this.overTarget();
         drag.orbiting = false;
         drag.travel = 0;
         kit.swallowClick(false);
@@ -117,7 +123,7 @@ export class ManipulationSystem extends createSystem({}) {
     const onDown = (e: PointerEvent) => {
       if (e.button !== 0 || this.renderer.xr.isPresenting) return;
       down = true;
-      onTarget = !!this.kit?.pointing;
+      onTarget = this.overTarget();
       moved = 0;
       lastX = e.clientX;
       lastY = e.clientY;

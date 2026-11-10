@@ -16,6 +16,7 @@ import { createXrHost } from '../galaxy-bridge/xr-host.ts';
 import type { XrHost } from '../galaxy-bridge/xr-host.ts';
 import { error, landedPath, loading, phase, selectedPath } from '../state/app-state.ts';
 import { connectCommands, openDataset } from '../state/commands.ts';
+import { headObject } from './head.ts';
 
 // Where the model sits: above the table in front of the seat, pitched 30° down from level so its far edge tilts up
 // toward the user.
@@ -157,8 +158,7 @@ export class GalaxySystem extends createSystem({ roots: { required: [GalaxyRoot]
     group.quaternion.set(pose.orientation[0], pose.orientation[1], pose.orientation[2], pose.orientation[3]);
     group.scale.setScalar(pose.scale);
     this.points?.update(pose.scale, delta);
-    // In a headset the head is the player's head; in a browser tab it is the page camera.
-    const head = this.renderer.xr.isPresenting ? this.player.head : this.camera;
+    const head = headObject(this.renderer, this.player, this.camera);
     head.getWorldPosition(this.head);
     this.gaze.set(0, 0, -1).applyQuaternion(head.getWorldQuaternion(this.headTurn));
     this.labels.update(this.head, this.gaze, pose);

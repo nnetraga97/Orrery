@@ -13,6 +13,7 @@ The reasons, sources and the full dependency table are in `docs/design.md`, sect
 | `galaxy-bridge/` | The only XR code that imports `galaxy/`: the XR host and the XR scene kit. | anything in `src/` except `adapters/`, plus `galaxy/` |
 | `components/` | ECS components, one per file, with no system code. Registered in `components.ts`. | `@iwsdk/core` |
 | `systems/` | IWSDK systems, kept thin: read input, call `core`, publish to `state`, move objects. | everything except `adapters/` and `galaxy/` |
+| `panels/` | Canvas panels (docs/design.md §4.8): a textured rectangle that takes pinches, and one drawing function per panel. `panels.html` draws each on a plain page for screenshots. | `core/`, `ports/`, `state/`, `components/`, `@iwsdk/core` |
 | `ui/` | One controller per spatial panel. Markup lives in `public/ui/*.uikitml`. Reads `state` signals, sends commands. | `core/`, `ports/`, `state/`, `@iwsdk/core` |
 | `flat/` | The flat reference view: a test page, not the product. | `galaxy/`, `three` |
 | `index.ts` | The composition root: creates the world, builds adapters, hands them to systems, registers systems. The only file that names concrete adapters. | everything |

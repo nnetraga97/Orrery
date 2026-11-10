@@ -34,6 +34,7 @@ export function installActions(host, publish) {
       update({ selected: i });
       state.view?.select(i, { fly });
       publish.selected(i == null ? null : state.nodes[i].path);
+      host.windows.context.pin(i == null ? null : fileCard(host, i));
     },
     enterPlanet(i, { line = null, arrival = null, townId = null } = {}) {
       if (i == null || i < 0) return;
@@ -45,6 +46,25 @@ export function installActions(host, publish) {
       state.view?.leave?.();
     },
   });
+}
+
+// The card a selected file shows: what it is, how connected it is, and a way in.
+function fileCard(host, i) {
+  const n = state.nodes[i];
+  const group = host.graph.groupOf(n);
+  return {
+    key: `file:${n.path}`,
+    kind: 'File',
+    title: n.name,
+    sub: n.path,
+    color: host.graph.color(group),
+    text: `${n.rloc.toLocaleString()} lines · imports ${state.out[i].length} · imported by ${state.inc[i].length}\nGroup: ${group}`,
+    actions: [
+      { label: 'Open', primary: true, onClick: () => actions.enterPlanet(i) },
+      { label: 'Deselect', onClick: () => actions.selectFile(null) },
+    ],
+    anchor: host.windows.worldAnchor(() => state.view.bodyPos(i)),
+  };
 }
 
 /** Loads `dataset` and builds its constellation in `host`. Resolves to the view. */

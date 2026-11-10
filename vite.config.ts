@@ -17,7 +17,7 @@ export default defineConfig({
     chunkSizeWarningLimit: 8192,
     sourcemap: process.env.NODE_ENV !== 'production',
     target: 'esnext',
-    rollupOptions: { input: { index: './index.html', flat: './flat.html' } },
+    rollupOptions: { input: { index: './index.html', flat: './flat.html', panels: './panels.html' } },
   },
   esbuild: { target: 'esnext' },
   // @drawcall/uikitml otherwise pulls a second three/@pmndrs/uikit graph
