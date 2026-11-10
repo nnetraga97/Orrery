@@ -86,7 +86,7 @@ export class ManipulationSystem extends createSystem({ hoveredPanels: { required
         this.hands.left.orbiting = this.hands.right.orbiting = false;
       } else {
         // Applied frame by frame, the factors multiply to dollyFromSpread(spread at the second pinch, spread now).
-        kit.dolly(dollyFromSpread(spread, this.spread));
+        kit.dolly(dollyFromSpread(this.spread, spread));
         this.spread = spread;
       }
       this.handPosition('left', this.hands.left.last);

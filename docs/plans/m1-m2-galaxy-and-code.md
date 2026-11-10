@@ -307,10 +307,10 @@ A landed planet is an "overlay": an object with `scene`, `camera`, `frame()` ret
 
 ### Task 12: Part 1 review
 
-- [ ] **Step 1.** Run `npm run verify`. Then with `npm run dev`, in the emulator, do this by hand input only and note each result: enter VR; point at a planet and pinch (it is selected, a card appears); pinch it again (it rises as a globe); pinch and drag (the globe turns); two-hand pinch apart (it grows); select `Home` by calling `__orrery.commands.goHome()` (the overview returns).
-- [ ] **Step 2.** Run the field-of-view check in `.claude/skills/iwsdk-glasses-test/SKILL.md`. The table and both planned panel positions (Task 14) must be inside the narrower view when looking straight ahead and slightly down.
-- [ ] **Step 3.** Record `__orrery.stats()` for the overview and the landed globe in `docs/migration/m1-notes.md` (draw calls and triangles). These are the baseline for the performance work in the next plan.
-- [ ] **Step 4. Commit:** `Record the first XR milestone`
+- [x] **Step 1.** Run `npm run verify`. Then with `npm run dev`, in the emulator, do this by hand input only and note each result: enter VR; point at a planet and pinch (it is selected, a card appears); pinch it again (it rises as a globe); pinch and drag (the globe turns); two-hand pinch apart (it grows); select `Home` by calling `__orrery.commands.goHome()` (the overview returns).
+- [x] **Step 2.** Run the field-of-view check in `.claude/skills/iwsdk-glasses-test/SKILL.md`. The table and both planned panel positions (Task 14) must be inside the narrower view when looking straight ahead and slightly down.
+- [x] **Step 3.** Record `__orrery.stats()` for the overview and the landed globe in `docs/migration/m1-notes.md` (draw calls and triangles). These are the baseline for the performance work in the next plan.
+- [x] **Step 4. Commit:** `Record the first XR milestone`
 
 ---
 
