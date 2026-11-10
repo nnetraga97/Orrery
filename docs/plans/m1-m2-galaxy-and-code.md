@@ -217,9 +217,9 @@ Start from a copy of `galaxy/viewer/scene/scene3d.js` and change it as this tabl
 
 Add: `kit.virtual()` returning `{ position, target, up, fovDegrees }` as plain arrays for `tablePose`; `kit.orbit(dAzimuth, dPolar)`, `kit.dolly(factor)` and `kit.home()` (Task 9 fills them in; create them now as functions that call `interruptNavigation()` first).
 
-- [ ] **Step 1.** Write the file following the table.
-- [ ] **Step 2. Check.** `npm run typecheck && npm run check && npm run build`.
-- [ ] **Step 3. Commit:** `Add the XR scene kit derived from the desktop scene scaffolding`
+- [x] **Step 1.** Write the file following the table.
+- [x] **Step 2. Check.** `npm run typecheck && npm run check && npm run build`.
+- [x] **Step 3. Commit:** `Add the XR scene kit derived from the desktop scene scaffolding`
 
 ### Task 5: The XR host and the galaxy system
 

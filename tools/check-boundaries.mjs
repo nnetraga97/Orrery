@@ -52,6 +52,9 @@ const RULES = [
     from: ['src/'],
     except: ['src/flat/'],
     packages: /^three(\/|$)/,
+    // The XR scene kit takes OrbitControls from three's addons, as the copied scene code does. `three` resolves to the
+    // build IWSDK uses, so this adds no second copy of three.js; @iwsdk/core does not re-export the addon.
+    allowPackages: [{ from: ['src/galaxy-bridge/'], specifier: /^three\/examples\/jsm\// }],
   },
   {
     name: 'server functions share only pure core code with the app',
@@ -97,6 +100,7 @@ for (const root of ROOTS)
           if (rule.forbid && under(target, rule.forbid)) broken = true;
           if (rule.only && !under(target, rule.only)) broken = true;
         } else if (rule.packages && !specifier.startsWith('node:') && rule.packages.test(specifier)) {
+          if (rule.allowPackages?.some(a => under(file, a.from) && a.specifier.test(specifier))) continue;
           broken = true;
         }
         if (broken) violations.push(`${file} imports '${specifier}'\n    rule: ${rule.name}`);
