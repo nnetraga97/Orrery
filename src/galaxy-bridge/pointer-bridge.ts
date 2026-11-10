@@ -30,6 +30,8 @@ export function bridgePointer(world: World, group: Object3D, kit: XrSceneKit): (
   const volume = new Mesh(new BoxGeometry(...HIT_VOLUME.size), material);
   volume.name = 'galaxy-hit-volume';
   volume.position.set(...HIT_VOLUME.center);
+  // Panels (the dock, cards, the code page) sit inside this volume; any panel on the ray wins over the galaxy.
+  (volume as unknown as { pointerEventsOrder: number }).pointerEventsOrder = -1;
   const entity = world.createTransformEntity(volume);
   entity.addComponent(RayInteractable);
 

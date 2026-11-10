@@ -5,6 +5,8 @@ import { visibleLines } from '../core/code-view.ts';
 import type { CodeView, Segment } from '../core/code-view.ts';
 import { loadCodeFont } from './code-font.ts';
 import { CODE_LAYOUT, CODE_PAGE, drawCodePage } from './draw-code-page.ts';
+import { iconPaths } from '../galaxy-bridge/icons.ts';
+import { DOCK, DOCK_BUTTONS, drawDock } from './draw-dock.ts';
 import { INFO_CARD, drawInfoCard } from './draw-info-card.ts';
 import { STATUS_CARD, drawStatusCard } from './draw-status-card.ts';
 
@@ -94,6 +96,8 @@ export async function drawAll() {
       hovered: 'line:11',
     });
   });
+  const icons = Object.fromEntries(DOCK_BUTTONS.map(b => [b.icon, iconPaths(b.icon)]));
+  show('dock', DOCK.widthPx, DOCK.heightPx, (ctx, w, h) => drawDock(ctx, w, h, { hovered: 'agent', on: { code: true }, icons }));
   show('loadingCard', STATUS_CARD.widthPx, STATUS_CARD.heightPx, (ctx, w, h) =>
     drawStatusCard(ctx, w, h, { kind: 'loading', title: 'Opening project', detail: 'editor-core' }),
   );

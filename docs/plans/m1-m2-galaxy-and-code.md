@@ -362,10 +362,10 @@ A landed planet is an "overlay": an object with `scene`, `camera`, `frame()` ret
 
 **Files:** Create `src/panels/draw-dock.ts`, `src/systems/dock-system.ts`.
 
-- [ ] **Step 1. Dock.** A low strip at the front edge of the table with four large buttons with icons and words: `Home`, `Code`, `Agent`, `Help`. Icons come from `UIIcons.shape(name)` in `galaxy/viewer/shared/ui-icons.js`, which returns SVG markup; draw each `<path d="…">` with `new Path2D(d)` scaled from its 24-unit box (import the module through `src/galaxy-bridge/icons.ts`, since only the bridge may import `galaxy/`). `Home` calls `goHome()`; `Code` shows or hides the code page; `Agent` toggles a signal the next plan uses; `Help` restarts the tutorial.
-- [ ] **Step 2. Palm menu.** When the left palm faces the head (the left grip space's palm normal within 40° of the direction to the head, held for 0.3 s) show the same four buttons 8 cm above the palm, pressed with the right hand's ray. Hide it when the palm turns away. If the emulator cannot confirm the palm direction (check with `.claude/skills/iwsdk-grab/SKILL.md` in hand mode), keep the code but leave it switched off behind `state.palmMenu`, and say so in the report: the dock alone is enough.
-- [ ] **Step 3. Check.** `npm run verify`; panels screenshot shows the dock with four labelled icons. In the emulator, select `Home` with a ray: the phase returns to `overview`.
-- [ ] **Step 4. Commit:** `Add the dock and the palm menu`
+- [x] **Step 1. Dock.** A low strip at the front edge of the table with four large buttons with icons and words: `Home`, `Code`, `Agent`, `Help`. Icons come from `UIIcons.shape(name)` in `galaxy/viewer/shared/ui-icons.js`, which returns SVG markup; draw each `<path d="…">` with `new Path2D(d)` scaled from its 24-unit box (import the module through `src/galaxy-bridge/icons.ts`, since only the bridge may import `galaxy/`). `Home` calls `goHome()`; `Code` shows or hides the code page; `Agent` toggles a signal the next plan uses; `Help` restarts the tutorial.
+- [x] **Step 2. Palm menu.** When the left palm faces the head (the left grip space's palm normal within 40° of the direction to the head, held for 0.3 s) show the same four buttons 8 cm above the palm, pressed with the right hand's ray. Hide it when the palm turns away. If the emulator cannot confirm the palm direction (check with `.claude/skills/iwsdk-grab/SKILL.md` in hand mode), keep the code but leave it switched off behind `state.palmMenu`, and say so in the report: the dock alone is enough.
+- [x] **Step 3. Check.** `npm run verify`; panels screenshot shows the dock with four labelled icons. In the emulator, select `Home` with a ray: the phase returns to `overview`.
+- [x] **Step 4. Commit:** `Add the dock and the palm menu`
 
 ### Task 17: Choosing a project
 

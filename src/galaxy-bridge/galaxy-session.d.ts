@@ -52,3 +52,5 @@ export function planetBuildBudget(
 export function languageOf(path: string): { frontEnd?: string; [member: string]: unknown } | null | undefined;
 /** Loads the vendored TypeScript compiler as window.ts (once). */
 export function loadTypeScript(): Promise<unknown>;
+/** The copied icon set: shape(name) is the SVG markup inside a 24-unit viewBox. */
+export const UIIcons: { shape(name: string): string };

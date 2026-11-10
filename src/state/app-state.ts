@@ -27,6 +27,12 @@ export const codeRequest = signal<{ path: string; line: number } | null>(null);
 export const codeScroll = signal(0);
 /** Whether the code page is shown when there is code to show (the dock's Code button). */
 export const codePageOpen = signal(true);
+/** Whether the agent panel is open (the next plan builds it). */
+export const agentOpen = signal(false);
+/** Bumped to restart the tutorial (the dock's Help button). */
+export const tutorialRestarts = signal(0);
+/** Whether the palm menu is enabled (see DockSystem). */
+export const palmMenu = signal(true);
 export const inspectorExtras = signal<Record<string, unknown[]>>({});
 
 export const appState = {
@@ -42,6 +48,9 @@ export const appState = {
   codeScroll,
   codePageOpen,
   codeRequest,
+  agentOpen,
+  tutorialRestarts,
+  palmMenu,
   inspectorExtras,
 };
 export type AppState = typeof appState;
