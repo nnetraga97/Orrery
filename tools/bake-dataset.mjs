@@ -4,7 +4,8 @@
 //   symbols/<id>.json    one shard per analyzed file
 //   symbols-index.json   { "<path>": "<id>.json" } so the browser can find a file's shard
 //   source/<path>        the text of every analyzed file
-//   manifest.json        { name, files, bytes, bakedAt }
+//   manifest.json        { name, files, sizes, bakedAt, and the source repository's remote and commit when it has them }
+//   LICENSE.txt          the project's licence file, when it has one (open-source licences require it to travel with copies)
 // Usage: node tools/bake-dataset.mjs <name> <projectRoot> [scanDir]
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
@@ -69,7 +70,27 @@ try {
       .readdirSync(dir, { withFileTypes: true, recursive: true })
       .filter(entry => entry.isFile())
       .reduce((sum, entry) => sum + fs.statSync(path.join(entry.parentPath, entry.name)).size, 0);
-  const manifest = { name, files: graph.f.length, sourceBytes: bytes, totalBytes: size(out), bakedAt: new Date().toISOString() };
+  // Where the code came from, so a baked dataset can be traced and rebuilt.
+  const git = (...args) => {
+    try {
+      return execFileSync('git', ['-C', root, ...args], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
+    } catch {
+      return null;
+    }
+  };
+  const licence = ['LICENSE.txt', 'LICENSE', 'LICENSE.md', 'License.txt'].find(file => fs.existsSync(path.join(root, file)));
+  if (licence) fs.copyFileSync(path.join(root, licence), path.join(out, 'LICENSE.txt'));
+  const manifest = {
+    name,
+    files: graph.f.length,
+    scanDir,
+    sourceRemote: git('remote', 'get-url', 'origin'),
+    sourceCommit: git('rev-parse', 'HEAD'),
+    licence: licence ? 'LICENSE.txt' : null,
+    sourceBytes: bytes,
+    totalBytes: size(out),
+    bakedAt: new Date().toISOString(),
+  };
   fs.writeFileSync(path.join(out, 'manifest.json'), JSON.stringify(manifest, null, 2) + '\n');
   console.log(`baked ${manifest.files} files into public/data/${name} (${(manifest.totalBytes / 1048576).toFixed(1)} MB)`);
 } finally {

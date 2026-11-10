@@ -1,0 +1,11 @@
+{
+  "name": "editor-core",
+  "files": 229,
+  "scanDir": "src/vs/editor/common",
+  "sourceRemote": "https://github.com/microsoft/vscode",
+  "sourceCommit": "316b9733621a6a20152b6e37bc80d08cb606e5ed",
+  "licence": "LICENSE.txt",
+  "sourceBytes": 2585735,
+  "totalBytes": 68461313,
+  "bakedAt": "2026-11-10T19:36:24.137Z"
+}
