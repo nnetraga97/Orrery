@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <title>Orrery hologram style reference</title>
+    <title>Orrery style reference</title>
     <style>
       html, body { margin: 0; background: #02060d; }
       canvas { display: block; }
@@ -15,10 +15,11 @@
       // draw function: it takes a 2D context and plain numbers, and uses only the tokens below.
       const T = {
         ink: '#06101f', inkAlpha: 0.88, grid: '#1b3b5c', lineDim: '#2f6f9f', line: '#7fd4ff', glow: '#2aa7ff',
-        white: '#eaf6ff', amber: '#ffb21a', alert: '#ff4760', ok: '#3fe0c5',
-        label: '600 15px "Barlow Condensed", "Arial Narrow", sans-serif',
-        body: '400 20px "Barlow", system-ui, sans-serif',
-        mono: '400 19px "JetBrains Mono", ui-monospace, monospace',
+        white: '#eaf6ff', amber: '#ffb21a', alert: '#ff4760', ok: '#3fe0c5', work: '#d97757',
+        label: '600 14px "Barlow Condensed", "Arial Narrow", sans-serif',
+        body: '400 17px "Barlow", system-ui, sans-serif',
+        small: '400 14px "Barlow", system-ui, sans-serif',
+        mono: '400 16px "JetBrains Mono", ui-monospace, monospace',
       };
       const c = document.getElementById('c'), x = c.getContext('2d');
 
@@ -32,156 +33,90 @@
         ctx.restore();
       }
 
-      // A glass panel: a dark backing dense enough to read text on, a hairline frame, and bracketed corners.
-      function glassPanel(ctx, px, py, w, h, title) {
-        ctx.save();
-        ctx.globalAlpha = T.inkAlpha; ctx.fillStyle = T.ink; ctx.fillRect(px, py, w, h); ctx.globalAlpha = 1;
-        const frame = new Path2D(); frame.rect(px + 0.5, py + 0.5, w - 1, h - 1);
-        ctx.strokeStyle = T.lineDim; ctx.globalAlpha = 0.6; ctx.lineWidth = 1; ctx.stroke(frame); ctx.globalAlpha = 1;
-        const k = 18, corners = new Path2D();
-        for (const [cx, cy, sx, sy] of [[px, py, 1, 1], [px + w, py, -1, 1], [px, py + h, 1, -1], [px + w, py + h, -1, -1]]) {
-          corners.moveTo(cx + sx * k, cy); corners.lineTo(cx, cy); corners.lineTo(cx, cy + sy * k);
-        }
-        glowStroke(ctx, corners, T.line, 2);
-        if (title) microLabel(ctx, title, px + 20, py + 30, T.line);
-        ctx.restore();
-      }
-
       // Small capitals with wide spacing: used for every label, never for sentences.
-      function microLabel(ctx, text, lx, ly, color = T.amber) {
+      function microLabel(ctx, text, lx, ly, color = T.line) {
         ctx.save(); ctx.font = T.label; ctx.fillStyle = color; ctx.letterSpacing = '2px';
         ctx.fillText(text.toUpperCase(), lx, ly); ctx.restore();
       }
 
-      // The marker: label, diamond, pointer. Warm for things that need attention, cool for the current focus.
-      function marker(ctx, mx, my, text, kind = 'attention') {
+      // A glass panel: a dark backing dense enough to read text on, a hairline frame, and bracketed corners.
+      function glassPanel(ctx, px, py, w, h, title, hue = T.line) {
         ctx.save();
-        const warm = kind === 'attention';
-        ctx.textAlign = 'center'; microLabel(ctx, text, mx, my - 30, warm ? T.amber : T.line);
-        const d = new Path2D(); d.moveTo(mx, my - 14); d.lineTo(mx + 12, my - 2); d.lineTo(mx, my + 10); d.lineTo(mx - 12, my - 2); d.closePath();
-        ctx.fillStyle = warm ? T.alert : T.ink; ctx.globalAlpha = warm ? 0.9 : 1; ctx.fill(d); ctx.globalAlpha = 1;
-        glowStroke(ctx, d, warm ? T.amber : T.line, 1.5);
-        const p = new Path2D(); p.moveTo(mx - 7, my + 18); p.lineTo(mx + 7, my + 18); p.lineTo(mx, my + 28); p.closePath();
-        ctx.fillStyle = warm ? T.amber : T.line; ctx.fill(p);
+        ctx.globalAlpha = T.inkAlpha; ctx.fillStyle = T.ink; ctx.fillRect(px, py, w, h); ctx.globalAlpha = 1;
+        const frame = new Path2D(); frame.rect(px + 0.5, py + 0.5, w - 1, h - 1);
+        ctx.strokeStyle = hue === T.line ? T.lineDim : hue; ctx.globalAlpha = 0.6; ctx.lineWidth = 1; ctx.stroke(frame); ctx.globalAlpha = 1;
+        const k = 14, corners = new Path2D();
+        for (const [cx, cy, sx, sy] of [[px, py, 1, 1], [px + w, py, -1, 1], [px, py + h, 1, -1], [px + w, py + h, -1, -1]]) {
+          corners.moveTo(cx + sx * k, cy); corners.lineTo(cx, cy); corners.lineTo(cx, cy + sy * k);
+        }
+        glowStroke(ctx, corners, hue, 2);
+        if (title) microLabel(ctx, title, px + 14, py + 24, hue);
+        ctx.restore();
+      }
+
+      // A window: a glass panel with a close mark, and under it a short grab bar. Pinch the bar to move the window.
+      // There is no line from a window to anything. A window that belongs to an object simply floats beside it.
+      function windowPanel(ctx, px, py, w, h, title, hue = T.line) {
+        glassPanel(ctx, px, py, w, h, title, hue);
+        ctx.save();
+        const close = new Path2D(); close.moveTo(px + w - 24, py + 13); close.lineTo(px + w - 14, py + 23); close.moveTo(px + w - 14, py + 13); close.lineTo(px + w - 24, py + 23);
+        glowStroke(ctx, close, T.lineDim, 1.5, 0.6);
+        const bar = new Path2D(); bar.roundRect(px + w / 2 - 34, py + h + 10, 68, 7, 3.5);
+        ctx.globalAlpha = 0.55; ctx.fillStyle = T.line; ctx.fill(bar);
         ctx.restore();
       }
 
       // A button is an outline until it is pointed at; then it fills with light.
-      function button(ctx, bx, by, w, h, text, state = 'idle') {
+      function button(ctx, bx, by, w, h, text, state = 'idle', hue = T.line) {
         ctx.save();
         const path = new Path2D(); path.rect(bx + 0.5, by + 0.5, w - 1, h - 1);
-        if (state !== 'idle') { ctx.globalAlpha = state === 'pressed' ? 0.42 : 0.2; ctx.fillStyle = T.glow; ctx.fill(path); ctx.globalAlpha = 1; }
-        glowStroke(ctx, path, state === 'idle' ? T.lineDim : T.line, 1.5, state === 'idle' ? 0.4 : 1.4);
+        if (state !== 'idle') { ctx.globalAlpha = state === 'pressed' ? 0.42 : 0.2; ctx.fillStyle = hue === T.line ? T.glow : hue; ctx.fill(path); ctx.globalAlpha = 1; }
+        glowStroke(ctx, path, state === 'idle' ? T.lineDim : hue, 1.5, state === 'idle' ? 0.4 : 1.4);
         ctx.textAlign = 'center'; microLabel(ctx, text, bx + w / 2, by + h / 2 + 5, state === 'idle' ? T.line : T.white);
         ctx.restore();
       }
 
-      // A hexagonal tile: translucent, bright-edged, with a line icon. The chosen one is larger and brighter;
-      // the others shrink and fade as they sit further back.
-      function hexTile(ctx, cx, cy, r, text, depth = 0, drawIcon) {
+      // The tab strip: a slim column of icons attached to a window's left edge. The current tab is lit.
+      function tabStrip(ctx, px, py, icons, active) {
         ctx.save();
-        const k = 1 - depth * 0.28, rr = r * k, path = new Path2D();
-        for (let i = 0; i < 6; i++) { const a = Math.PI / 6 + (i * Math.PI) / 3; i ? path.lineTo(cx + rr * Math.cos(a), cy + rr * Math.sin(a)) : path.moveTo(cx + rr * Math.cos(a), cy + rr * Math.sin(a)); }
-        path.closePath();
-        const g = ctx.createLinearGradient(cx, cy - rr, cx, cy + rr); g.addColorStop(0, T.glow); g.addColorStop(1, '#123a66');
-        ctx.globalAlpha = 0.55 - depth * 0.3; ctx.fillStyle = g; ctx.fill(path); ctx.globalAlpha = 1 - depth * 0.45;
-        glowStroke(ctx, path, depth ? T.lineDim : T.white, depth ? 1 : 2, depth ? 0.5 : 1.6);
-        ctx.strokeStyle = T.white; ctx.lineWidth = 2.5 * k; ctx.lineCap = 'round';
-        ctx.translate(cx, cy - rr * 0.12); ctx.scale(rr / 40, rr / 40); drawIcon?.(ctx); ctx.setTransform(1, 0, 0, 1, 0, 0);
-        if (!depth) { ctx.textAlign = 'center'; microLabel(ctx, text, cx, cy + rr * 0.62, T.white); }
-        ctx.restore();
-      }
-
-      // A ring menu: segments around a centre that confirms. The active segment fills with light.
-      function ringMenu(ctx, cx, cy, r, items, active) {
-        ctx.save();
-        const inner = r * 0.52, step = (Math.PI * 2) / items.length, gap = 0.035;
-        items.forEach((text, i) => {
-          const a0 = -Math.PI / 2 + i * step + gap, a1 = a0 + step - gap * 2, seg = new Path2D();
-          seg.arc(cx, cy, r, a0, a1); seg.arc(cx, cy, inner, a1, a0, true); seg.closePath();
-          if (i === active) { ctx.globalAlpha = 0.5; ctx.fillStyle = T.glow; ctx.fill(seg); ctx.globalAlpha = 1; }
-          glowStroke(ctx, seg, i === active ? T.white : T.lineDim, 1.2, i === active ? 1.4 : 0.5);
-          const mid = (a0 + a1) / 2, tr = (r + inner) / 2;
-          ctx.save(); ctx.translate(cx + tr * Math.cos(mid), cy + tr * Math.sin(mid)); ctx.textAlign = 'center';
-          microLabel(ctx, text, 0, 5, i === active ? T.white : T.line); ctx.restore();
+        const w = 44, h = icons.length * 46 + 10, body = new Path2D(); body.roundRect(px, py, w, h, 22);
+        ctx.globalAlpha = T.inkAlpha; ctx.fillStyle = T.ink; ctx.fill(body); ctx.globalAlpha = 1; glowStroke(ctx, body, T.lineDim, 1, 0.5);
+        icons.forEach((draw, i) => {
+          const cx = px + w / 2, cy = py + 28 + i * 46;
+          if (i === active) { const d = new Path2D(); d.arc(cx, cy, 17, 0, Math.PI * 2); ctx.globalAlpha = 0.35; ctx.fillStyle = T.glow; ctx.fill(d); ctx.globalAlpha = 1; }
+          ctx.save(); ctx.translate(cx, cy); ctx.strokeStyle = i === active ? T.white : T.line; ctx.lineWidth = 1.8; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; draw(ctx); ctx.restore();
         });
-        const hub = new Path2D(); hub.arc(cx, cy, inner * 0.62, 0, Math.PI * 2); glowStroke(ctx, hub, T.line, 2);
-        const tick = new Path2D(); tick.moveTo(cx - 12, cy); tick.lineTo(cx - 3, cy + 9); tick.lineTo(cx + 14, cy - 9); glowStroke(ctx, tick, T.white, 2.5);
-        ctx.restore();
-      }
-
-      // A glass card tied to a point on the model by a thin leader line. Cool for information, red for a fault.
-      function leaderCard(ctx, px, py, w, h, title, lines, anchor, fault = false) {
-        ctx.save();
-        const hue = fault ? T.alert : T.line;
-        const lead = new Path2D(); lead.moveTo(anchor[0], anchor[1]); lead.lineTo(anchor[0], py + h + 16); lead.lineTo(px + 24, py + h + 16); lead.lineTo(px + 24, py + h);
-        glowStroke(ctx, lead, hue, 1, 0.8);
-        const dot = new Path2D(); dot.arc(anchor[0], anchor[1], 4, 0, Math.PI * 2); ctx.fillStyle = hue; ctx.fill(dot);
-        const halo = new Path2D(); halo.arc(anchor[0], anchor[1], 11, 0, Math.PI * 2); glowStroke(ctx, halo, hue, 1, 1.2);
-        ctx.globalAlpha = 0.86; ctx.fillStyle = T.ink; ctx.fillRect(px, py, w, h); ctx.globalAlpha = 1;
-        ctx.globalAlpha = fault ? 0.85 : 0.35; ctx.fillStyle = hue; ctx.fillRect(px, py, w, 26); ctx.globalAlpha = 1;
-        const frame = new Path2D(); frame.rect(px + 0.5, py + 0.5, w - 1, h - 1); glowStroke(ctx, frame, hue, 1, 0.7);
-        microLabel(ctx, title, px + 10, py + 18, fault ? T.ink : T.white);
-        ctx.font = '400 16px "Barlow", system-ui, sans-serif'; ctx.fillStyle = T.white;
-        lines.forEach((l, i) => ctx.fillText(l, px + 10, py + 50 + i * 22));
-        ctx.restore();
-      }
-
-      // A glass slab standing on a lit base bar: how a panel is anchored to the table instead of floating free.
-      function slab(ctx, px, py, w, h, title) {
-        glassPanel(ctx, px, py, w, h, title);
-        ctx.save();
-        const bar = new Path2D(); bar.rect(px - 6, py + h, w + 12, 10); ctx.fillStyle = '#0b1c30'; ctx.fill(bar);
-        const strip = new Path2D(); strip.moveTo(px + 14, py + h + 5); strip.lineTo(px + w - 14, py + h + 5); glowStroke(ctx, strip, T.white, 2, 1.8);
-        ctx.restore();
-      }
-
-      // The one decisive action is a large round control with a ring of ticks.
-      function roundAction(ctx, cx, cy, r, text, hue = T.ok) {
-        ctx.save();
-        const disc = new Path2D(); disc.arc(cx, cy, r * 0.74, 0, Math.PI * 2);
-        const g = ctx.createRadialGradient(cx, cy, 4, cx, cy, r * 0.74); g.addColorStop(0, hue); g.addColorStop(1, '#0b2a36');
-        ctx.globalAlpha = 0.7; ctx.fillStyle = g; ctx.fill(disc); ctx.globalAlpha = 1; glowStroke(ctx, disc, hue, 2, 1.6);
-        const ring = new Path2D(); ring.arc(cx, cy, r, 0, Math.PI * 2); glowStroke(ctx, ring, T.lineDim, 1);
-        const ticks = new Path2D();
-        for (let i = 0; i < 60; i++) { const a = (i / 60) * Math.PI * 2, r0 = r * 0.86, r1 = r * (i % 5 ? 0.9 : 0.94); ticks.moveTo(cx + r0 * Math.cos(a), cy + r0 * Math.sin(a)); ticks.lineTo(cx + r1 * Math.cos(a), cy + r1 * Math.sin(a)); }
-        glowStroke(ctx, ticks, T.line, 1, 0.5);
-        ctx.textAlign = 'center'; const [a, b] = text.split('\n'); microLabel(ctx, a, cx, cy - 2, T.white); if (b) microLabel(ctx, b, cx, cy + 18, T.white);
-        ctx.restore();
-      }
-
-      // A step track: a line with ticks, one marker per step, the current one in focus colours.
-      function stepTrack(ctx, px, py, w, steps, current, failingAt) {
-        ctx.save();
-        const base = new Path2D(); base.moveTo(px, py); base.lineTo(px + w, py);
-        for (let i = 0; i <= 40; i++) { const tx = px + (i / 40) * w; base.moveTo(tx, py); base.lineTo(tx, py + (i % 5 ? 5 : 10)); }
-        glowStroke(ctx, base, T.lineDim, 1, 0.6);
-        for (let i = 0; i < steps; i++) {
-          const mx = px + ((i + 0.5) / steps) * w;
-          if (i === current) marker(ctx, mx, py - 34, 'Step ' + String(i + 1).padStart(2, '0'), 'focus');
-          else { const d = new Path2D(); d.moveTo(mx, py - 9); d.lineTo(mx + 6, py - 3); d.lineTo(mx, py + 3); d.lineTo(mx - 6, py - 3); d.closePath(); ctx.fillStyle = i === failingAt ? T.alert : T.ink; ctx.fill(d); glowStroke(ctx, d, i === failingAt ? T.alert : T.lineDim, 1); }
-        }
         ctx.restore();
       }
 
       // ---- the reference sheet ----
-      const bg = x.createRadialGradient(800, 470, 60, 800, 520, 950);
+      const bg = x.createRadialGradient(860, 470, 60, 860, 520, 950);
       bg.addColorStop(0, '#0a1a30'); bg.addColorStop(1, '#02060d'); x.fillStyle = bg; x.fillRect(0, 0, 1600, 1000);
 
-      // The table: ring guides and rim ticks, with the model floating above as orbits and bodies.
-      const rim = new Path2D(); rim.ellipse(800, 640, 330, 96, 0, 0, Math.PI * 2); glowStroke(x, rim, T.white, 2, 1.4);
-      for (const k of [0.34, 0.62, 0.84]) { const g = new Path2D(); g.ellipse(800, 640, 330 * k, 96 * k, 0, 0, Math.PI * 2); glowStroke(x, g, T.grid, 1, 0.8); }
-      const bodies = [[800, 470, 0, 0], [700, 500, 120, 34], [905, 452, 170, 48], [640, 440, 230, 66], [985, 520, 250, 72]];
-      for (const [, , rx, ry] of bodies.slice(1)) { const o = new Path2D(); o.ellipse(800, 480, rx, ry, -0.12, 0, Math.PI * 2); glowStroke(x, o, T.lineDim, 1, 0.7); }
+      // The table and the model: most of the view stays empty.
+      const TX = 900, TY = 660;
+      const rim = new Path2D(); rim.ellipse(TX, TY, 380, 108, 0, 0, Math.PI * 2); glowStroke(x, rim, T.white, 2, 1.4);
+      for (const k of [0.34, 0.62, 0.84]) { const g = new Path2D(); g.ellipse(TX, TY, 380 * k, 108 * k, 0, 0, Math.PI * 2); glowStroke(x, g, T.grid, 1, 0.8); }
+      const bodies = [[TX, 470], [TX - 110, 505], [TX + 120, 452], [TX - 190, 430], [TX + 215, 525]];
+      [[130, 38], [190, 54], [260, 74], [290, 84]].forEach(([rx, ry]) => { const o = new Path2D(); o.ellipse(TX, 482, rx, ry, -0.12, 0, Math.PI * 2); glowStroke(x, o, T.lineDim, 1, 0.7); });
       bodies.forEach(([bx, by], i) => { const b = new Path2D(); b.arc(bx, by, i ? 9 - i : 13, 0, Math.PI * 2); x.fillStyle = i ? '#17385c' : '#000'; x.fill(b); glowStroke(x, b, i ? T.line : T.white, 1.5, 1.5); });
-      marker(x, 905, 418, 'range.ts', 'focus');
-      leaderCard(x, 1010, 330, 250, 96, 'core/range.ts', ['Range · 27 functions', 'imported by 61 files'], [905, 452]);
-      leaderCard(x, 380, 300, 250, 96, 'Fault · line 97', ['End edge excluded', 'containsPosition'], [640, 440], true);
 
-      // Code page as a slab.
-      slab(x, 1030, 470, 520, 430, 'core/range.ts · containsPosition');
+      // The selected file: a label and a diamond, nothing more.
+      x.save(); x.textAlign = 'center'; microLabel(x, 'range.ts', TX + 120, 408); x.restore();
+      const dia = new Path2D(); dia.moveTo(TX + 120, 418); dia.lineTo(TX + 129, 427); dia.lineTo(TX + 120, 436); dia.lineTo(TX + 111, 427); dia.closePath(); glowStroke(x, dia, T.line, 1.5);
+
+      // The fault: a red dot on the model and a small card floating beside it. No line joins them.
+      const dot = new Path2D(); dot.arc(TX - 190, 430, 4, 0, Math.PI * 2); x.fillStyle = T.alert; x.fill(dot);
+      const halo = new Path2D(); halo.arc(TX - 190, 430, 12, 0, Math.PI * 2); glowStroke(x, halo, T.alert, 1, 1.3);
+      windowPanel(x, TX - 330, 318, 210, 78, 'Fault · line 97', T.alert);
+      x.font = T.small; x.fillStyle = T.white; x.fillText('End edge excluded', TX - 316, 366); x.fillStyle = T.line; x.fillText('containsPosition', TX - 316, 384);
+
+      // The code card: about twelve lines, shown only while a function is picked or the agent points at code.
+      const CX = 1180, CY = 250, CW = 390, CH = 300;
+      windowPanel(x, CX, CY, CW, CH, 'range.ts · containsPosition');
       const code = [
-        ['90', [['public static ', T.line], ['containsPosition', T.white], ['(range, position) {', T.line]]],
+        ['90', [['static ', T.line], ['containsPosition', T.white], ['(range, position) {', T.line]]],
+        ['91', [['  if ', T.line], ['(position.lineNumber < range.start', T.white]]],
         ['93', [['    return ', T.line], ['false', T.ok], [';', T.white]]],
         ['94', [['  }', T.white]]],
         ['97', [['  if ', T.line], ['(position.column >= range.endColumn) {', T.white]]],
@@ -190,36 +125,59 @@
         ['100', [['  return ', T.line], ['true', T.ok], [';', T.white]]],
       ];
       x.font = T.mono;
-      x.save(); x.beginPath(); x.rect(1031, 490, 518, 300); x.clip(); // text never leaves its panel
+      x.save(); x.beginPath(); x.rect(CX + 1, CY + 34, CW - 2, CH - 86); x.clip(); // text never leaves its card
       code.forEach(([n, runs], i) => {
-        const y = 540 + i * 34;
-        if (n === '97') { x.save(); x.globalAlpha = 0.18; x.fillStyle = T.alert; x.fillRect(1031, y - 23, 518, 32); x.globalAlpha = 1; x.fillStyle = T.alert; x.fillRect(1031, y - 23, 3, 32); x.restore(); }
-        x.fillStyle = T.lineDim; x.textAlign = 'right'; x.fillText(n, 1082, y); x.textAlign = 'left';
-        let cx = 1100; for (const [text, color] of runs) { x.fillStyle = color; x.fillText(text, cx, y); cx += x.measureText(text).width; }
+        const y = CY + 58 + i * 25;
+        if (n === '97') { x.save(); x.globalAlpha = 0.18; x.fillStyle = T.alert; x.fillRect(CX + 1, y - 17, CW - 2, 24); x.globalAlpha = 1; x.fillStyle = T.alert; x.fillRect(CX + 1, y - 17, 3, 24); x.restore(); }
+        x.fillStyle = T.lineDim; x.textAlign = 'right'; x.fillText(n, CX + 42, y); x.textAlign = 'left';
+        let cx = CX + 54; for (const [text, color] of runs) { x.fillStyle = color; x.fillText(text, cx, y); cx += x.measureText(text).width; }
       });
       x.restore();
-      button(x, 1050, 828, 150, 48, 'Function', 'hover'); button(x, 1214, 828, 150, 48, 'Whole file'); button(x, 1380, 828, 150, 48, 'Page down');
+      // During a replay the same card carries three small controls. Otherwise only "More".
+      button(x, CX + 12, CY + CH - 44, 64, 32, 'Back'); button(x, CX + 84, CY + CH - 44, 64, 32, 'Step', 'hover'); button(x, CX + 156, CY + CH - 44, 64, 32, 'Play');
+      button(x, CX + CW - 84, CY + CH - 44, 72, 32, 'More');
+      x.save(); x.textAlign = 'right'; microLabel(x, '3 / 7', CX + CW - 98, CY + CH - 23, T.lineDim); x.restore();
 
-      // Agent panel as a slab, with the decisive action as a round control.
-      slab(x, 50, 470, 500, 430, 'Agent');
+      // The chat: one narrow window in the shape of the desktop chat box.
+      const AX = 96, AY = 150, AW = 340, AH = 640;
+      windowPanel(x, AX, AY, AW, AH, 'Agent · Fix the range check');
+      const rule = new Path2D(); rule.moveTo(AX + 1, AY + 36); rule.lineTo(AX + AW - 1, AY + 36); x.strokeStyle = T.grid; x.lineWidth = 1; x.stroke(rule);
+      // A user message: a right-aligned outlined bubble.
+      const bub = new Path2D(); bub.roundRect(AX + 96, AY + 52, AW - 110, 58, [12, 12, 3, 12]); x.globalAlpha = 0.5; x.fillStyle = '#10243d'; x.fill(bub); x.globalAlpha = 1; x.strokeStyle = T.lineDim; x.stroke(bub);
+      x.font = T.body; x.fillStyle = T.white; x.fillText('Find why the end of a', AX + 108, AY + 76); x.fillText('selection is left out.', AX + 108, AY + 98);
+      // An action group, collapsed, with its summary and a chevron.
+      x.font = T.small; x.fillStyle = T.line; x.fillText('›  Read range.ts, searched 2 times', AX + 14, AY + 142);
+      // Agent text.
       x.font = T.body; x.fillStyle = T.white;
-      ['The end edge is excluded by mistake.', 'Line 97 compares with >= where the', 'comment says the edge counts as inside.'].forEach((l, i) => x.fillText(l, 74, 540 + i * 30));
-      x.save(); x.translate(86, 664); x.rotate(0.5); x.font = '28px sans-serif'; x.fillStyle = '#d97757'; x.textAlign = 'center'; x.fillText('✳', 0, 9); x.restore();
-      x.font = T.body; x.fillStyle = T.line; x.fillText('Reading…  12s', 112, 672);
-      roundAction(x, 150, 800, 78, 'Accept\nfix'); button(x, 260, 776, 150, 48, 'Decline'); button(x, 424, 776, 104, 48, 'Review');
+      ['The end edge is excluded by mistake.', 'Line 97 uses >= where the comment', 'says the edge counts as inside.'].forEach((l, i) => x.fillText(l, AX + 14, AY + 176 + i * 24));
+      // An action row for the proposed edit.
+      x.font = T.small; x.fillStyle = T.line; x.fillText('✎  Edited range.ts', AX + 14, AY + 262); x.fillStyle = T.ok; x.fillText('+1', AX + 150, AY + 262); x.fillStyle = T.alert; x.fillText('−1', AX + 176, AY + 262);
+      // An approval card, with ordinary buttons.
+      glassPanel(x, AX + 12, AY + 284, AW - 24, 132, 'Approve file changes');
+      x.font = T.mono; x.save(); x.beginPath(); x.rect(AX + 13, AY + 316, AW - 26, 52); x.clip();
+      x.globalAlpha = 0.16; x.fillStyle = T.alert; x.fillRect(AX + 13, AY + 318, AW - 26, 22); x.fillStyle = T.ok; x.fillRect(AX + 13, AY + 342, AW - 26, 22); x.globalAlpha = 1;
+      x.fillStyle = T.white; x.fillText('- position.column >= range.end', AX + 22, AY + 334); x.fillText('+ position.column > range.endC', AX + 22, AY + 358); x.restore();
+      button(x, AX + 24, AY + 376, 130, 30, 'Decline'); button(x, AX + 166, AY + 376, 150, 30, 'Approve once', 'hover', T.ok);
+      // The working line.
+      x.save(); x.translate(AX + 24, AY + 446); x.rotate(0.5); x.font = '20px sans-serif'; x.fillStyle = T.work; x.textAlign = 'center'; x.fillText('✳', 0, 7); x.restore();
+      x.font = T.small; x.fillStyle = T.line; x.fillText('Waiting for your response', AX + 44, AY + 451);
+      // The composer: suggestions, then one row with the microphone.
+      const chips = ['Explain the fix', 'Show me the function'];
+      let chipX = AX + 12; x.font = T.small;
+      chips.forEach(t => { const w = x.measureText(t).width + 22; const p = new Path2D(); p.roundRect(chipX, AY + AH - 104, w, 28, 14); x.strokeStyle = T.lineDim; x.stroke(p); x.fillStyle = T.line; x.fillText(t, chipX + 11, AY + AH - 85); chipX += w + 8; });
+      const comp = new Path2D(); comp.roundRect(AX + 12, AY + AH - 62, AW - 24, 48, 24); x.globalAlpha = 0.6; x.fillStyle = '#0b1a2e'; x.fill(comp); x.globalAlpha = 1; glowStroke(x, comp, T.lineDim, 1, 0.5);
+      x.font = T.body; x.fillStyle = T.lineDim; x.fillText('Hold the microphone and talk', AX + 30, AY + AH - 32);
+      const mic = new Path2D(); mic.arc(AX + AW - 38, AY + AH - 38, 18, 0, Math.PI * 2); x.globalAlpha = 0.4; x.fillStyle = T.glow; x.fill(mic); x.globalAlpha = 1; glowStroke(x, mic, T.line, 1.5, 1.4);
+      const micIcon = new Path2D(); micIcon.roundRect(AX + AW - 42, AY + AH - 50, 8, 15, 4); micIcon.moveTo(AX + AW - 46, AY + AH - 40); micIcon.arc(AX + AW - 38, AY + AH - 40, 8, Math.PI, 0, true); micIcon.moveTo(AX + AW - 38, AY + AH - 32); micIcon.lineTo(AX + AW - 38, AY + AH - 27);
+      x.strokeStyle = T.white; x.lineWidth = 1.6; x.stroke(micIcon);
 
-      // Ring menu, hex tiles and the step track.
-      ringMenu(x, 800, 860, 110, ['Home', 'Code', 'Agent', 'Replay', 'Help', 'More'], 1);
-      const icons = [
-        c2 => { c2.beginPath(); c2.arc(0, -4, 12, 0, 7); c2.moveTo(-18, 20); c2.quadraticCurveTo(0, 2, 18, 20); c2.stroke(); },
-        c2 => { c2.beginPath(); c2.moveTo(-14, -12); c2.lineTo(-22, 0); c2.lineTo(-14, 12); c2.moveTo(14, -12); c2.lineTo(22, 0); c2.lineTo(14, 12); c2.moveTo(5, -16); c2.lineTo(-5, 16); c2.stroke(); },
-        c2 => { c2.beginPath(); c2.rect(-16, -14, 32, 24); c2.moveTo(-8, 18); c2.lineTo(8, 18); c2.stroke(); },
-      ];
-      hexTile(x, 250, 130, 78, 'Editor core', 0, icons[1]); hexTile(x, 392, 96, 78, '', 1, icons[2]); hexTile(x, 392, 196, 78, '', 1, icons[0]); hexTile(x, 500, 150, 78, '', 2, icons[2]);
-      microLabel(x, 'Choose a project', 172, 40, T.line);
-      microLabel(x, 'Replay · fails at step 04', 700, 60, T.line);
-      stepTrack(x, 700, 150, 520, 7, 2, 3);
-      microLabel(x, 'Table and model', 700, 250, T.line);
+      // The tab strip on the chat window's left edge: Home, Chat, Replay, Settings.
+      tabStrip(x, AX - 56, AY + 40, [
+        c2 => { c2.beginPath(); c2.moveTo(-9, 0); c2.lineTo(0, -9); c2.lineTo(9, 0); c2.moveTo(-6, -1); c2.lineTo(-6, 8); c2.lineTo(6, 8); c2.lineTo(6, -1); c2.stroke(); },
+        c2 => { c2.beginPath(); c2.roundRect(-10, -8, 20, 14, 4); c2.moveTo(-4, 6); c2.lineTo(-7, 11); c2.lineTo(1, 6); c2.stroke(); },
+        c2 => { c2.beginPath(); c2.moveTo(-5, -8); c2.lineTo(8, 0); c2.lineTo(-5, 8); c2.closePath(); c2.stroke(); },
+        c2 => { c2.beginPath(); c2.arc(0, 0, 4, 0, 7); for (let i = 0; i < 8; i++) { const a = (i / 8) * 6.283; c2.moveTo(7 * Math.cos(a), 7 * Math.sin(a)); c2.lineTo(10 * Math.cos(a), 10 * Math.sin(a)); } c2.stroke(); },
+      ], 1);
       window.__mock = true;
     </script>
   </body>
