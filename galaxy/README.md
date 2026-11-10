@@ -36,6 +36,9 @@ unchanged.
 2. Two ship rigs keyed by car brand names are renamed (`arc`, `arrow`).
    `tools/assets/build-assets.mjs` publishes the matching model files under the same
    names.
+3. `viewer/galaxy/constellation.js` uses `host.sceneKit(camPos, options)` when the host
+   provides one, and `scene3D` otherwise. The XR app's host supplies the XR scene kit
+   (`src/galaxy-bridge/scene-kit.js`); the flat view does not, so it is unchanged.
 
 ## Updating from codebase-viz
 

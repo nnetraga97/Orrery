@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // The only edits made to files copied from codebase-viz: they swap the desktop app's loopback project API for the
-// baked static files (galaxy/viewer/app/static-data.js). Each edit replaces one exact piece of text. Running this
+// baked static files (galaxy/viewer/app/static-data.js), and let a host supply its own scene kit. Each edit replaces
+// one exact piece of text. Running this
 // twice is safe; it fails loudly if the copied code no longer contains the text it expects.
 // Usage: node tools/migrate/apply-patches.mjs   (tools/migrate/copy-code.sh runs it for you)
 import fs from 'node:fs';
@@ -10,6 +11,14 @@ import { fileURLToPath } from 'node:url';
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 
 const PATCHES = [
+  {
+    file: 'galaxy/viewer/galaxy/constellation.js',
+    why: 'a host may supply its own scene kit (the XR app; see src/galaxy-bridge/scene-kit.js)',
+    find: `  const T = scene3D([0, 120, 160], { space: true }, host);`,
+    replace: `  const T = host.sceneKit
+    ? host.sceneKit([0, 120, 160], { space: true })
+    : scene3D([0, 120, 160], { space: true }, host);`,
+  },
   {
     file: 'galaxy/viewer/app/graph.ts',
     why: 'the graph file is a static file',
