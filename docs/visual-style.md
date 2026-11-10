@@ -16,6 +16,8 @@ The model floating in front of you is the subject. Everything else is small and 
 when it is not needed.
 
 - **No table.** The model floats in the air at chest height. Nothing sits under it.
+- **A landed planet is a globe 0.64 m across.** It does not grow when you zoom. Its
+  towns are picked whole; a building is too small to pick.
 - **One standing window: the chat.** It is narrow and sits to the left of the model.
 - **Code is not a standing window.** A small code card appears only while a function is
   picked or the agent points at code, and goes away afterwards.

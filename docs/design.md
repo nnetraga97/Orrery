@@ -404,6 +404,7 @@ These replace the matching rows above and in §5. Details per task are in
 | Chat | The desktop chat box's shape, 0.40 m wide, in the new theme, with ordinary Approve and Decline buttons |
 | Charts | None anywhere |
 | Table | Removed. The model floats in the air at an invisible anchor, larger and more central; a dark floor with a faint grid gives the room a horizon |
+| Landed planet | A globe 0.64 m across that does not grow when zoomed (the owner's choice while building). Its buildings are millimetres across, so the model and the code are linked by function: a town on one side, its lines on the other |
 
 ## 5. Desktop UI to VR
 
