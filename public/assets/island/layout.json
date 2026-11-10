@@ -1,0 +1,1665 @@
+{
+  "about": "Sky island placements surveyed against island-base.glb. Blender Z-up; angles and radii relative to centre. Explicit tier, foundation height and shell footprint keep buildings off the walls and stairs. Rebuild architecture.glb with scripts/island-architecture.py after moving lots or transport routes.",
+  "base": "assets/island/island-base.glb",
+  "parts": "assets/island/parts.glb",
+  "sheets": "assets/island/meshy/",
+  "centre": [
+    0.002,
+    -0.039
+  ],
+  "tiers": {
+    "rim": 0.4,
+    "terrace": 0.585,
+    "crown": 0.77
+  },
+  "crownRadius": 0.44,
+  "track": {
+    "r": 0.858,
+    "centre": [
+      0,
+      0.045
+    ],
+    "z": 0.428
+  },
+  "wakeCascade": 0.4,
+  "sleepSeconds": 6,
+  "gears": [
+    {
+      "angle": 90,
+      "r": 0.4566,
+      "z": 0.675,
+      "size": 0.06,
+      "dir": 1
+    },
+    {
+      "angle": 197,
+      "r": 0.3888,
+      "z": 0.675,
+      "size": 0.06,
+      "dir": -1
+    },
+    {
+      "angle": 278,
+      "r": 0.3213,
+      "z": 0.675,
+      "size": 0.06,
+      "dir": 1
+    },
+    {
+      "angle": 355,
+      "r": 0.3744,
+      "z": 0.675,
+      "size": 0.06,
+      "dir": -1
+    },
+    {
+      "angle": 205,
+      "r": 0.568,
+      "z": 0.49,
+      "size": 0.07,
+      "dir": 1
+    },
+    {
+      "angle": 250,
+      "r": 0.5469,
+      "z": 0.49,
+      "size": 0.07,
+      "dir": -1
+    }
+  ],
+  "propellers": [
+    {
+      "at": [
+        -0.78996,
+        -0.34939,
+        -0.07565
+      ],
+      "radius": 0.05464
+    },
+    {
+      "at": [
+        -0.03848,
+        -0.866,
+        -0.07561
+      ],
+      "radius": 0.05464
+    },
+    {
+      "at": [
+        0.77694,
+        -0.34083,
+        -0.07452
+      ],
+      "radius": 0.05534
+    },
+    {
+      "at": [
+        0.77403,
+        0.35106,
+        -0.07265
+      ],
+      "radius": 0.05564
+    },
+    {
+      "at": [
+        -0.77293,
+        0.34386,
+        -0.08382
+      ],
+      "radius": 0.05363
+    }
+  ],
+  "channels": [
+    {
+      "angle": 60,
+      "r": 0.39,
+      "z": [
+        0.6,
+        0.77
+      ],
+      "path": [
+        [
+          0.4816,
+          0.6
+        ],
+        [
+          0.4747,
+          0.6212
+        ],
+        [
+          0.4753,
+          0.6425
+        ],
+        [
+          0.476,
+          0.6637
+        ],
+        [
+          0.4767,
+          0.685
+        ],
+        [
+          0.4775,
+          0.7063
+        ],
+        [
+          0.4783,
+          0.7275
+        ],
+        [
+          0.4827,
+          0.7488
+        ],
+        [
+          0.4607,
+          0.77
+        ]
+      ]
+    },
+    {
+      "angle": 120,
+      "r": 0.39,
+      "z": [
+        0.6,
+        0.77
+      ],
+      "path": [
+        [
+          0.4425,
+          0.6
+        ],
+        [
+          0.4671,
+          0.6212
+        ],
+        [
+          0.459,
+          0.6425
+        ],
+        [
+          0.4571,
+          0.6637
+        ],
+        [
+          0.4574,
+          0.685
+        ],
+        [
+          0.4585,
+          0.7063
+        ],
+        [
+          0.4596,
+          0.7275
+        ],
+        [
+          0.4771,
+          0.7488
+        ],
+        [
+          0.4435,
+          0.77
+        ]
+      ]
+    },
+    {
+      "angle": 150,
+      "r": 0.39,
+      "z": [
+        0.6,
+        0.77
+      ],
+      "path": [
+        [
+          0.4735,
+          0.6
+        ],
+        [
+          0.4735,
+          0.6212
+        ],
+        [
+          0.4735,
+          0.6425
+        ],
+        [
+          0.472,
+          0.6637
+        ],
+        [
+          0.4376,
+          0.685
+        ],
+        [
+          0.4381,
+          0.7063
+        ],
+        [
+          0.4387,
+          0.7275
+        ],
+        [
+          0.4535,
+          0.7488
+        ],
+        [
+          0.4375,
+          0.77
+        ]
+      ]
+    },
+    {
+      "angle": 255,
+      "r": 0.39,
+      "z": [
+        0.6,
+        0.77
+      ],
+      "path": [
+        [
+          0.3703,
+          0.6
+        ],
+        [
+          0.35,
+          0.6212
+        ],
+        [
+          0.3502,
+          0.6425
+        ],
+        [
+          0.3503,
+          0.6637
+        ],
+        [
+          0.3505,
+          0.685
+        ],
+        [
+          0.3503,
+          0.7063
+        ],
+        [
+          0.3504,
+          0.7275
+        ],
+        [
+          0.3546,
+          0.7488
+        ],
+        [
+          0.3428,
+          0.77
+        ]
+      ]
+    },
+    {
+      "angle": 300,
+      "r": 0.39,
+      "z": [
+        0.6,
+        0.77
+      ],
+      "path": [
+        [
+          0.3685,
+          0.6
+        ],
+        [
+          0.3485,
+          0.6212
+        ],
+        [
+          0.3479,
+          0.6425
+        ],
+        [
+          0.3476,
+          0.6637
+        ],
+        [
+          0.3476,
+          0.685
+        ],
+        [
+          0.3513,
+          0.7063
+        ],
+        [
+          0.3552,
+          0.7275
+        ],
+        [
+          0.3619,
+          0.7488
+        ],
+        [
+          0.3325,
+          0.77
+        ]
+      ]
+    },
+    {
+      "angle": 340,
+      "r": 0.39,
+      "z": [
+        0.6,
+        0.77
+      ],
+      "path": [
+        [
+          0.4174,
+          0.6
+        ],
+        [
+          0.4114,
+          0.6212
+        ],
+        [
+          0.4145,
+          0.6425
+        ],
+        [
+          0.4098,
+          0.6637
+        ],
+        [
+          0.4108,
+          0.685
+        ],
+        [
+          0.4073,
+          0.7063
+        ],
+        [
+          0.3938,
+          0.7275
+        ],
+        [
+          0.3938,
+          0.7488
+        ],
+        [
+          0.3938,
+          0.77
+        ]
+      ]
+    },
+    {
+      "angle": 97,
+      "r": 0.62,
+      "z": [
+        0.41,
+        0.585
+      ],
+      "path": [
+        [
+          0.6931,
+          0.41
+        ],
+        [
+          0.6931,
+          0.4319
+        ],
+        [
+          0.6731,
+          0.4537
+        ],
+        [
+          0.6705,
+          0.4756
+        ],
+        [
+          0.6702,
+          0.4975
+        ],
+        [
+          0.67,
+          0.5194
+        ],
+        [
+          0.6709,
+          0.5413
+        ],
+        [
+          0.6931,
+          0.5631
+        ],
+        [
+          0.6931,
+          0.585
+        ]
+      ]
+    },
+    {
+      "angle": 107,
+      "r": 0.62,
+      "z": [
+        0.41,
+        0.585
+      ],
+      "path": [
+        [
+          0.6988,
+          0.41
+        ],
+        [
+          0.6965,
+          0.4319
+        ],
+        [
+          0.6941,
+          0.4537
+        ],
+        [
+          0.6921,
+          0.4756
+        ],
+        [
+          0.6929,
+          0.4975
+        ],
+        [
+          0.695,
+          0.5194
+        ],
+        [
+          0.697,
+          0.5413
+        ],
+        [
+          0.6987,
+          0.5631
+        ],
+        [
+          0.6817,
+          0.585
+        ]
+      ]
+    },
+    {
+      "angle": 155,
+      "r": 0.62,
+      "z": [
+        0.41,
+        0.585
+      ],
+      "path": [
+        [
+          0.6564,
+          0.41
+        ],
+        [
+          0.6682,
+          0.4319
+        ],
+        [
+          0.6682,
+          0.4537
+        ],
+        [
+          0.6682,
+          0.4756
+        ],
+        [
+          0.6453,
+          0.4975
+        ],
+        [
+          0.6469,
+          0.5194
+        ],
+        [
+          0.6479,
+          0.5413
+        ],
+        [
+          0.6482,
+          0.5631
+        ],
+        [
+          0.6402,
+          0.585
+        ]
+      ]
+    },
+    {
+      "angle": 180,
+      "r": 0.62,
+      "z": [
+        0.41,
+        0.585
+      ],
+      "path": [
+        [
+          0.6232,
+          0.41
+        ],
+        [
+          0.6592,
+          0.4319
+        ],
+        [
+          0.6592,
+          0.4537
+        ],
+        [
+          0.6592,
+          0.4756
+        ],
+        [
+          0.6592,
+          0.4975
+        ],
+        [
+          0.6333,
+          0.5194
+        ],
+        [
+          0.6351,
+          0.5413
+        ],
+        [
+          0.6392,
+          0.5631
+        ],
+        [
+          0.6232,
+          0.585
+        ]
+      ]
+    },
+    {
+      "angle": 240,
+      "r": 0.62,
+      "z": [
+        0.41,
+        0.585
+      ],
+      "path": [
+        [
+          0.562,
+          0.41
+        ],
+        [
+          0.563,
+          0.4319
+        ],
+        [
+          0.5556,
+          0.4537
+        ],
+        [
+          0.5594,
+          0.4756
+        ],
+        [
+          0.5559,
+          0.4975
+        ],
+        [
+          0.5643,
+          0.5194
+        ],
+        [
+          0.5633,
+          0.5413
+        ],
+        [
+          0.5648,
+          0.5631
+        ],
+        [
+          0.546,
+          0.585
+        ]
+      ]
+    },
+    {
+      "angle": 270,
+      "r": 0.62,
+      "z": [
+        0.41,
+        0.585
+      ],
+      "path": [
+        [
+          0.6022,
+          0.41
+        ],
+        [
+          0.6022,
+          0.4319
+        ],
+        [
+          0.5949,
+          0.4537
+        ],
+        [
+          0.5842,
+          0.4756
+        ],
+        [
+          0.5822,
+          0.4975
+        ],
+        [
+          0.5662,
+          0.5194
+        ],
+        [
+          0.5662,
+          0.5413
+        ],
+        [
+          0.5662,
+          0.5631
+        ],
+        [
+          0.5662,
+          0.585
+        ]
+      ]
+    },
+    {
+      "angle": 335,
+      "r": 0.62,
+      "z": [
+        0.41,
+        0.585
+      ],
+      "path": [
+        [
+          0.6186,
+          0.41
+        ],
+        [
+          0.6186,
+          0.4319
+        ],
+        [
+          0.5994,
+          0.4537
+        ],
+        [
+          0.599,
+          0.4756
+        ],
+        [
+          0.5985,
+          0.4975
+        ],
+        [
+          0.5981,
+          0.5194
+        ],
+        [
+          0.5977,
+          0.5413
+        ],
+        [
+          0.5986,
+          0.5631
+        ],
+        [
+          0.585,
+          0.585
+        ]
+      ]
+    }
+  ],
+  "waterfall": {
+    "angle": 180,
+    "r": 0.891,
+    "z": [
+      0.421,
+      -0.57
+    ],
+    "width": 0.052
+  },
+  "funicular": {
+    "from": {
+      "angle": 299,
+      "r": 0.756,
+      "z": 0.428
+    },
+    "to": {
+      "angle": 310,
+      "r": 0.57,
+      "z": 0.615
+    }
+  },
+  "airships": [
+    {
+      "dock": {
+        "angle": 61,
+        "r": 1.005,
+        "z": 0.505
+      },
+      "orbit": {
+        "r": 1.25,
+        "z": 1.04,
+        "speed": 0.05
+      },
+      "berth": {
+        "r": 0.99,
+        "z": 0.434,
+        "length": 0.175,
+        "width": 0.058
+      }
+    },
+    {
+      "dock": {
+        "angle": 72,
+        "r": 1.005,
+        "z": 0.505
+      },
+      "orbit": {
+        "r": 1.45,
+        "z": 1.04,
+        "speed": -0.04
+      },
+      "berth": {
+        "r": 0.99,
+        "z": 0.434,
+        "length": 0.175,
+        "width": 0.058
+      }
+    }
+  ],
+  "landmarks": [
+    {
+      "id": "observatory",
+      "mesh": "landmarks-a#observatory",
+      "angle": 30,
+      "r": 0.53,
+      "size": 0.152,
+      "height": 0.16,
+      "parts": [
+        {
+          "part": "Observatory_Dome",
+          "at": [
+            0,
+            0,
+            1
+          ],
+          "motion": {
+            "kind": "spin",
+            "idle": 0,
+            "awake": 0.06
+          },
+          "scale": 0.7917
+        },
+        {
+          "part": "Telescope",
+          "at": [
+            0,
+            0,
+            1.05
+          ],
+          "motion": {
+            "kind": "swing",
+            "axis": "x",
+            "idle": 0,
+            "awake": 0.35,
+            "speed": 0.08
+          },
+          "scale": 0.7917
+        }
+      ],
+      "tier": "terrace",
+      "z": 0.603,
+      "footprint": [
+        0.164,
+        0.1635
+      ]
+    },
+    {
+      "id": "clock",
+      "mesh": "landmarks-a#clock",
+      "angle": 75,
+      "r": 0.55,
+      "size": 0.105,
+      "height": 0.26,
+      "parts": [
+        {
+          "part": "Bell",
+          "at": [
+            0,
+            0,
+            0.9
+          ],
+          "motion": {
+            "kind": "bell"
+          },
+          "scale": 0.8203
+        },
+        {
+          "part": "Beacon",
+          "at": [
+            0,
+            0,
+            1.08
+          ],
+          "motion": {
+            "kind": "beacon"
+          },
+          "scale": 0.8203
+        }
+      ],
+      "tier": "terrace",
+      "z": 0.603,
+      "footprint": [
+        0.117,
+        0.1149
+      ]
+    },
+    {
+      "id": "library",
+      "mesh": "landmarks-a#library",
+      "angle": 128,
+      "r": 0.59,
+      "size": 0.126,
+      "height": 0.22,
+      "windows": "floors",
+      "tier": "terrace",
+      "z": 0.603,
+      "footprint": [
+        0.138,
+        0.135
+      ]
+    },
+    {
+      "id": "forge",
+      "mesh": "landmarks-b#forge",
+      "angle": 165,
+      "r": 0.53,
+      "size": 0.142,
+      "height": 0.1,
+      "parts": [
+        {
+          "part": "Forge_Hammer",
+          "at": [
+            0,
+            -0.55,
+            0.55
+          ],
+          "motion": {
+            "kind": "hammer"
+          },
+          "scale": 0.8068
+        }
+      ],
+      "tier": "terrace",
+      "z": 0.603,
+      "footprint": [
+        0.1409,
+        0.156
+      ]
+    },
+    {
+      "id": "greenhouse",
+      "mesh": "landmarks-c#greenhouse",
+      "angle": 243,
+      "r": 0.5,
+      "size": 0.156,
+      "height": 0.09,
+      "glow": "grow",
+      "tier": "terrace",
+      "z": 0.603,
+      "footprint": [
+        0.168,
+        0.1156
+      ]
+    },
+    {
+      "id": "radio",
+      "mesh": "landmarks-c#radio",
+      "angle": 262,
+      "r": 0.51,
+      "size": 0.096,
+      "height": 0.24,
+      "parts": [
+        {
+          "part": "Radio_Dish",
+          "at": [
+            0,
+            0,
+            1.0
+          ],
+          "motion": {
+            "kind": "spin",
+            "idle": 0,
+            "awake": 0.12,
+            "sweep": 1.2
+          },
+          "scale": 0.75
+        }
+      ],
+      "tier": "terrace",
+      "z": 0.603,
+      "footprint": [
+        0.0929,
+        0.11
+      ]
+    },
+    {
+      "id": "water-tower",
+      "mesh": "landmarks-a#water-tower",
+      "angle": 335,
+      "r": 0.53,
+      "size": 0.112,
+      "height": 0.18,
+      "tier": "terrace",
+      "z": 0.603,
+      "footprint": [
+        0.1193,
+        0.126
+      ]
+    },
+    {
+      "id": "windmill",
+      "mesh": "landmarks-b#windmill",
+      "angle": 45,
+      "r": 0.79,
+      "size": 0.088,
+      "height": 0.15,
+      "parts": [
+        {
+          "part": "Windmill_Sails",
+          "at": [
+            0,
+            -0.6,
+            0.8
+          ],
+          "face": "out",
+          "motion": {
+            "kind": "spin",
+            "idle": 0.05,
+            "awake": 0.5
+          },
+          "scale": 0.6111
+        }
+      ],
+      "tier": "rim",
+      "z": 0.418,
+      "footprint": [
+        0.0997,
+        0.102
+      ]
+    },
+    {
+      "id": "dovecote",
+      "mesh": "landmarks-b#dovecote",
+      "angle": 120,
+      "r": 0.8,
+      "size": 0.09,
+      "height": 0.13,
+      "birds": true,
+      "tier": "rim",
+      "z": 0.418,
+      "footprint": [
+        0.102,
+        0.1006
+      ]
+    },
+    {
+      "id": "water-mill",
+      "mesh": "landmarks-b#water-mill",
+      "angle": 165,
+      "r": 0.776,
+      "size": 0.112,
+      "height": 0.1,
+      "parts": [
+        {
+          "part": "Water_Wheel",
+          "at": [
+            0.4,
+            -0.05,
+            0.42
+          ],
+          "face": "side",
+          "motion": {
+            "kind": "spin",
+            "idle": 0.08,
+            "awake": 0.45
+          },
+          "scale": 0.7
+        }
+      ],
+      "tier": "rim",
+      "z": 0.418,
+      "footprint": [
+        0.124,
+        0.1135
+      ]
+    },
+    {
+      "id": "market",
+      "mesh": "landmarks-c#market",
+      "angle": 270,
+      "r": 0.71,
+      "size": 0.152,
+      "height": 0.06,
+      "parts": [
+        {
+          "part": "Awning",
+          "at": [
+            -0.25,
+            -0.3,
+            0.95
+          ],
+          "motion": {
+            "kind": "unroll"
+          },
+          "scale": 0.5938
+        },
+        {
+          "part": "Awning",
+          "at": [
+            0.25,
+            -0.3,
+            0.95
+          ],
+          "motion": {
+            "kind": "unroll",
+            "delay": 0.15
+          },
+          "scale": 0.5938
+        }
+      ],
+      "tier": "rim",
+      "z": 0.418,
+      "footprint": [
+        0.164,
+        0.0599
+      ]
+    },
+    {
+      "id": "funicular-station",
+      "mesh": "landmarks-c#funicular-station",
+      "angle": 310,
+      "r": 0.73,
+      "size": 0.094,
+      "height": 0.08,
+      "tier": "rim",
+      "z": 0.418,
+      "footprint": [
+        0.081,
+        0.108
+      ]
+    }
+  ],
+  "houses": {
+    "lots": [
+      {
+        "id": "house-0",
+        "angle": 8,
+        "r": 0.76,
+        "size": 0.074,
+        "mesh": "../trellis/houses-1#Piece_0",
+        "motion": "smoke",
+        "tier": "rim",
+        "z": 0.418,
+        "footprint": [
+          0.079,
+          0.088
+        ]
+      },
+      {
+        "id": "house-1",
+        "angle": 20,
+        "r": 0.77,
+        "size": 0.079,
+        "mesh": "../trellis/houses-2#Piece_0",
+        "motion": "shutters",
+        "tier": "rim",
+        "z": 0.418,
+        "footprint": [
+          0.091,
+          0.0896
+        ]
+      },
+      {
+        "id": "house-3",
+        "angle": 58,
+        "r": 0.81,
+        "size": 0.074,
+        "mesh": "../trellis/houses-2#Piece_1",
+        "motion": "lantern",
+        "tier": "rim",
+        "z": 0.418,
+        "footprint": [
+          0.0815,
+          0.088
+        ]
+      },
+      {
+        "id": "house-4",
+        "angle": 70,
+        "r": 0.75,
+        "size": 0.079,
+        "mesh": "../trellis/houses-1#Piece_3",
+        "motion": "drone",
+        "tier": "rim",
+        "z": 0.418,
+        "footprint": [
+          0.091,
+          0.0898
+        ]
+      },
+      {
+        "id": "house-5",
+        "angle": 82,
+        "r": 0.81,
+        "size": 0.084,
+        "mesh": "../trellis/houses-2#Piece_2",
+        "motion": "laundry",
+        "tier": "rim",
+        "z": 0.418,
+        "footprint": [
+          0.096,
+          0.0919
+        ]
+      },
+      {
+        "id": "house-6",
+        "angle": 98,
+        "r": 0.77,
+        "size": 0.074,
+        "mesh": "../trellis/houses-1#Piece_4",
+        "motion": "door",
+        "tier": "rim",
+        "z": 0.418,
+        "footprint": [
+          0.086,
+          0.0741
+        ]
+      },
+      {
+        "id": "house-7",
+        "angle": 108,
+        "r": 0.8,
+        "size": 0.079,
+        "mesh": "../trellis/houses-2#Piece_3",
+        "motion": "sprinkler",
+        "tier": "rim",
+        "z": 0.418,
+        "footprint": [
+          0.0882,
+          0.093
+        ]
+      },
+      {
+        "id": "house-8",
+        "angle": 138,
+        "r": 0.81,
+        "size": 0.084,
+        "mesh": "../trellis/houses-1#Piece_5",
+        "motion": "smoke",
+        "tier": "rim",
+        "z": 0.418,
+        "footprint": [
+          0.096,
+          0.0942
+        ]
+      },
+      {
+        "id": "house-10",
+        "angle": 195,
+        "r": 0.75,
+        "size": 0.079,
+        "mesh": "../trellis/houses-1#Piece_6",
+        "motion": "fan",
+        "tier": "rim",
+        "z": 0.418,
+        "footprint": [
+          0.091,
+          0.0866
+        ]
+      },
+      {
+        "id": "house-11",
+        "angle": 208,
+        "r": 0.75,
+        "size": 0.084,
+        "mesh": "../trellis/houses-2#Piece_5",
+        "motion": "lantern",
+        "tier": "rim",
+        "z": 0.418,
+        "footprint": [
+          0.096,
+          0.0751
+        ]
+      },
+      {
+        "id": "house-12",
+        "angle": 220,
+        "r": 0.75,
+        "size": 0.074,
+        "mesh": "../trellis/houses-1#Piece_7",
+        "motion": "drone",
+        "tier": "rim",
+        "z": 0.418,
+        "footprint": [
+          0.0836,
+          0.088
+        ]
+      },
+      {
+        "id": "house-13",
+        "angle": 233,
+        "r": 0.744,
+        "size": 0.079,
+        "mesh": "../trellis/houses-2#Piece_6",
+        "motion": "laundry",
+        "tier": "rim",
+        "z": 0.418,
+        "footprint": [
+          0.091,
+          0.0841
+        ]
+      },
+      {
+        "id": "house-14",
+        "angle": 246,
+        "r": 0.73,
+        "size": 0.084,
+        "mesh": "../trellis/houses-1#Piece_8",
+        "motion": "door",
+        "tier": "rim",
+        "z": 0.418,
+        "footprint": [
+          0.096,
+          0.0938
+        ]
+      },
+      {
+        "id": "house-16",
+        "angle": 318,
+        "r": 0.75,
+        "size": 0.079,
+        "mesh": "../trellis/houses-1#Piece_9",
+        "motion": "smoke",
+        "tier": "rim",
+        "z": 0.418,
+        "footprint": [
+          0.0833,
+          0.093
+        ]
+      },
+      {
+        "id": "house-17",
+        "angle": 326,
+        "r": 0.75,
+        "size": 0.084,
+        "mesh": "../trellis/houses-2#Piece_8",
+        "motion": "shutters",
+        "tier": "rim",
+        "z": 0.418,
+        "footprint": [
+          0.096,
+          0.0909
+        ]
+      },
+      {
+        "id": "house-18",
+        "angle": 340,
+        "r": 0.76,
+        "size": 0.074,
+        "mesh": "../trellis/houses-1#Piece_10",
+        "motion": "fan",
+        "tier": "rim",
+        "z": 0.418,
+        "footprint": [
+          0.086,
+          0.088
+        ]
+      },
+      {
+        "id": "house-19",
+        "angle": 356,
+        "r": 0.77,
+        "size": 0.079,
+        "mesh": "../trellis/houses-2#Piece_9",
+        "motion": "lantern",
+        "tier": "rim",
+        "z": 0.418,
+        "footprint": [
+          0.091,
+          0.0913
+        ]
+      },
+      {
+        "id": "terrace-cartographer",
+        "name": "Cartographer\u2019s House",
+        "angle": 0,
+        "r": 0.54,
+        "size": 0.0952,
+        "mesh": "../trellis/houses-2#Piece_0",
+        "motion": "shutters",
+        "tier": "terrace",
+        "z": 0.603,
+        "footprint": [
+          0.1098,
+          0.1081
+        ]
+      },
+      {
+        "id": "terrace-keeper",
+        "name": "Clockkeeper\u2019s House",
+        "angle": 99,
+        "r": 0.59,
+        "size": 0.0952,
+        "mesh": "../trellis/houses-1#Piece_4",
+        "motion": "lantern",
+        "tier": "terrace",
+        "z": 0.603,
+        "footprint": [
+          0.1098,
+          0.0944
+        ]
+      },
+      {
+        "id": "terrace-binder",
+        "name": "Bookbinder\u2019s House",
+        "angle": 112,
+        "r": 0.59,
+        "size": 0.0773,
+        "mesh": "../trellis/houses-2#Piece_3",
+        "motion": "door",
+        "tier": "terrace",
+        "z": 0.603,
+        "footprint": [
+          0.0879,
+          0.093
+        ]
+      },
+      {
+        "id": "terrace-smith",
+        "name": "Smith\u2019s Cottage",
+        "angle": 187,
+        "r": 0.53,
+        "size": 0.0952,
+        "mesh": "../trellis/houses-1#Piece_6",
+        "motion": "fan",
+        "tier": "terrace",
+        "z": 0.603,
+        "footprint": [
+          0.1098,
+          0.1046
+        ]
+      },
+      {
+        "id": "terrace-gardener",
+        "name": "Gardener\u2019s House",
+        "angle": 205,
+        "r": 0.46,
+        "size": 0.0952,
+        "mesh": "../trellis/houses-1#Piece_7",
+        "motion": "smoke",
+        "tier": "terrace",
+        "z": 0.603,
+        "footprint": [
+          0.1067,
+          0.1122
+        ]
+      },
+      {
+        "id": "terrace-seed",
+        "name": "Seed House",
+        "angle": 217,
+        "r": 0.53,
+        "size": 0.0773,
+        "mesh": "../trellis/houses-2#Piece_6",
+        "motion": "shutters",
+        "tier": "terrace",
+        "z": 0.603,
+        "footprint": [
+          0.0907,
+          0.0842
+        ]
+      },
+      {
+        "id": "terrace-engineer",
+        "name": "Engineer\u2019s House",
+        "angle": 287,
+        "r": 0.49,
+        "size": 0.0952,
+        "mesh": "../trellis/houses-1#Piece_10",
+        "motion": "fan",
+        "tier": "terrace",
+        "z": 0.603,
+        "footprint": [
+          0.1098,
+          0.1122
+        ]
+      },
+      {
+        "id": "terrace-potter",
+        "name": "Potter\u2019s Workshop",
+        "angle": 14,
+        "r": 0.54,
+        "size": 0.078,
+        "mesh": "../trellis/houses-1#Piece_4",
+        "motion": "lantern",
+        "tier": "terrace",
+        "z": 0.603,
+        "footprint": [
+          0.09,
+          0.09
+        ]
+      },
+      {
+        "id": "terrace-chandler",
+        "name": "Chandler\u2019s Shop",
+        "angle": 87,
+        "r": 0.57,
+        "size": 0.075,
+        "mesh": "../trellis/houses-2#Piece_3",
+        "motion": "door",
+        "tier": "terrace",
+        "z": 0.603,
+        "footprint": [
+          0.087,
+          0.087
+        ]
+      },
+      {
+        "id": "terrace-mason",
+        "name": "Mason\u2019s Workshop",
+        "angle": 153,
+        "r": 0.565,
+        "size": 0.07,
+        "mesh": "../trellis/houses-1#Piece_6",
+        "motion": "fan",
+        "tier": "terrace",
+        "z": 0.603,
+        "footprint": [
+          0.082,
+          0.082
+        ]
+      },
+      {
+        "id": "terrace-herbalist",
+        "name": "Herbalist\u2019s House",
+        "angle": 228,
+        "r": 0.565,
+        "size": 0.078,
+        "mesh": "../trellis/houses-1#Piece_7",
+        "motion": "smoke",
+        "tier": "terrace",
+        "z": 0.603,
+        "footprint": [
+          0.09,
+          0.09
+        ]
+      },
+      {
+        "id": "terrace-instrument",
+        "name": "Instrument Maker",
+        "angle": 274,
+        "r": 0.515,
+        "size": 0.067,
+        "mesh": "../trellis/houses-2#Piece_6",
+        "motion": "shutters",
+        "tier": "terrace",
+        "z": 0.603,
+        "footprint": [
+          0.079,
+          0.079
+        ]
+      },
+      {
+        "id": "terrace-courier",
+        "name": "Courier\u2019s House",
+        "angle": 298,
+        "r": 0.505,
+        "size": 0.06,
+        "mesh": "../trellis/houses-1#Piece_10",
+        "motion": "lantern",
+        "tier": "terrace",
+        "z": 0.603,
+        "footprint": [
+          0.072,
+          0.072
+        ]
+      },
+      {
+        "id": "terrace-cooper",
+        "name": "Cooper\u2019s Workshop",
+        "angle": 324,
+        "r": 0.535,
+        "size": 0.064,
+        "mesh": "../trellis/houses-2#Piece_0",
+        "motion": "door",
+        "tier": "terrace",
+        "z": 0.603,
+        "footprint": [
+          0.076,
+          0.076
+        ]
+      },
+      {
+        "id": "terrace-weaver",
+        "name": "Weaver\u2019s House",
+        "angle": 348,
+        "r": 0.55,
+        "size": 0.074,
+        "mesh": "../trellis/houses-1#Piece_4",
+        "motion": "shutters",
+        "tier": "terrace",
+        "z": 0.603,
+        "footprint": [
+          0.086,
+          0.086
+        ]
+      }
+    ]
+  },
+  "architecture": "assets/island/architecture.glb",
+  "plaza": {
+    "offset": [-0.012, 0.067],
+    "radius": 0.312,
+    "inner": 0.135,
+    "z": 0.791,
+    "gauge": {
+      "r": 0.225,
+      "width": 0.0032,
+      "z": 0.7925
+    }
+  },
+  "flight": {
+    "seconds": 3.5,
+    "clearance": 1.08
+  },
+  "gardens": [
+    {
+      "angle": 14,
+      "r": 0.475,
+      "z": 0.603,
+      "width": 0.06,
+      "depth": 0.025
+    },
+    {
+      "angle": 88,
+      "r": 0.502,
+      "z": 0.603,
+      "width": 0.045,
+      "depth": 0.025
+    },
+    {
+      "angle": 103,
+      "r": 0.522,
+      "z": 0.603,
+      "width": 0.055,
+      "depth": 0.025
+    },
+    {
+      "angle": 175,
+      "r": 0.455,
+      "z": 0.603,
+      "width": 0.055,
+      "depth": 0.025
+    },
+    {
+      "angle": 219,
+      "r": 0.457,
+      "z": 0.603,
+      "width": 0.057,
+      "depth": 0.025
+    },
+    {
+      "angle": 270,
+      "r": 0.432,
+      "z": 0.603,
+      "width": 0.045,
+      "depth": 0.025
+    },
+    {
+      "angle": 288,
+      "r": 0.413,
+      "z": 0.603,
+      "width": 0.057,
+      "depth": 0.025
+    },
+    {
+      "angle": 342,
+      "r": 0.459,
+      "z": 0.603,
+      "width": 0.045,
+      "depth": 0.025
+    }
+  ],
+  "arcades": [
+    {
+      "angle": 0,
+      "r": 0.468,
+      "z": 0.603,
+      "width": 0.065,
+      "depth": 0.027
+    },
+    {
+      "angle": 188,
+      "r": 0.452,
+      "z": 0.603,
+      "width": 0.066,
+      "depth": 0.027
+    },
+    {
+      "angle": 245,
+      "r": 0.412,
+      "z": 0.603,
+      "width": 0.078,
+      "depth": 0.027
+    },
+    {
+      "angle": 348,
+      "r": 0.477,
+      "z": 0.603,
+      "width": 0.05,
+      "depth": 0.027
+    }
+  ]
+}

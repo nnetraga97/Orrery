@@ -1,0 +1,1380 @@
+{
+  "sourceProject": "Perilune",
+  "sources": [
+    {
+      "id": "jpl-venus-mariner10-representative-clouds",
+      "url": "https://maps.jpl.nasa.gov/tmaps/venus.html",
+      "author": "NASA/JPL-Caltech; David Seal; Mariner 10 imaging team",
+      "license": "JPL",
+      "licenseUrl": "https://www.nasa.gov/nasa-brand-center/images-and-media/",
+      "attribution": "NASA/JPL representative Venus cloud texture derived from Mariner 10 visible imagery",
+      "checksumSha256": "d21fc5198a6607a6d061e92179d9aca41a65a71dc2977dcac61667da4c54a64f",
+      "localPath": "sources/jpl-venus-clouds/ven0mss2.tif",
+      "authoringOnly": true,
+      "sourceDimensions": [
+        1440,
+        720
+      ],
+      "transformations": [
+        "verified JPL-hosted TIFF decode",
+        "no claim of time-resolved or body-fixed cloud geography",
+        "Lanczos3 tier resampling in the compiler image pipeline",
+        "BasisLZ KTX2 and WebP fallback encoding"
+      ],
+      "bodies": [
+        "venus"
+      ],
+      "channels": [
+        "albedo"
+      ],
+      "review": {
+        "thirdPartyContent": false,
+        "commercialUseReviewed": true,
+        "modificationReviewed": true,
+        "endorsementSafe": true,
+        "termsSnapshot": "https://www.nasa.gov/nasa-brand-center/images-and-media/"
+      },
+      "datum": "representative Venus cloud deck; no body-fixed geodetic authority",
+      "verticalDatum": "not-applicable",
+      "projection": "equirectangular representative cloud texture",
+      "axisOrder": "longitude,latitude",
+      "longitudeDirection": "east-positive",
+      "seamLongitudeDegrees": -180,
+      "uvOrigin": "north-west",
+      "valueScale": 1,
+      "valueOffset": 0,
+      "noDataValue": null,
+      "validRange": [
+        0,
+        255
+      ],
+      "observation": "Representative static cloud texture cloned from a single Mariner 10 visible-frequency observation; not a time-resolved global measurement.",
+      "productKind": "composited",
+      "derivedRecipe": "venus-cloud-deck-albedo-v1",
+      "bodyReferenceFrameVersion": "representative-cloud-pattern-no-geodetic-authority"
+    },
+    {
+      "id": "nasa-black-marble-earth-2016",
+      "url": "https://eoimages.gsfc.nasa.gov/images/imagerecords/144000/144898/BlackMarble_2016_3km_geo.tif",
+      "author": "NASA Earth Observatory; Joshua Stevens; Suomi NPP VIIRS and Miguel Roman",
+      "license": "NASA",
+      "licenseUrl": "https://www.nasa.gov/nasa-brand-center/images-and-media/",
+      "attribution": "NASA Earth at Night Black Marble 2016 color map",
+      "checksumSha256": "e915ef2a20d84e2a59e1547d3ad564463ad4bcf22bfa02e0e0b8ed1cd722e9c0",
+      "localPath": "sources/nasa-black-marble-2016/BlackMarble_2016_3km_geo.tif",
+      "authoringOnly": true,
+      "sourceDimensions": [
+        13500,
+        6750
+      ],
+      "transformations": [
+        "bounded dark-floor removal",
+        "linear-light tier resampling",
+        "night-side emissive packaging"
+      ],
+      "bodies": [
+        "earth"
+      ],
+      "channels": [
+        "emissive"
+      ],
+      "review": {
+        "thirdPartyContent": false,
+        "commercialUseReviewed": true,
+        "modificationReviewed": true,
+        "endorsementSafe": true,
+        "termsSnapshot": "https://www.nasa.gov/nasa-brand-center/images-and-media/"
+      },
+      "datum": "WGS84 spherical presentation; source datum retained during authoring",
+      "projection": "EPSG:4326 plate-carree",
+      "axisOrder": "longitude,latitude",
+      "longitudeDirection": "east-positive",
+      "seamLongitudeDegrees": -180,
+      "uvOrigin": "north-west",
+      "bodyReferenceFrameVersion": "iau-naif-j2000-v1",
+      "verticalDatum": "not-applicable",
+      "valueScale": 1,
+      "valueOffset": 0,
+      "noDataValue": null,
+      "validRange": [
+        0,
+        255
+      ],
+      "observation": "2016 cloud-free annual composite",
+      "productKind": "composited",
+      "derivedRecipe": "earth-source-pack-v1"
+    },
+    {
+      "id": "nasa-blue-marble-clouds-2002",
+      "url": "https://eoimages.gsfc.nasa.gov/images/imagerecords/57000/57747/cloud_combined_8192.tif",
+      "author": "NASA Goddard Space Flight Center; Reto Stockli",
+      "license": "NASA",
+      "licenseUrl": "https://www.nasa.gov/nasa-brand-center/images-and-media/",
+      "attribution": "NASA Blue Marble separate cloud composite",
+      "checksumSha256": "d137775d8966ab8d443fd5126dc6e7ad72072bc1ed50555c5818d221735daf0f",
+      "localPath": "sources/nasa-blue-marble-clouds/cloud_combined_8192.tif",
+      "authoringOnly": true,
+      "sourceDimensions": [
+        8192,
+        4096
+      ],
+      "transformations": [
+        "luminance extraction",
+        "coverage and optical-density derivation",
+        "area-aware tier resampling"
+      ],
+      "bodies": [
+        "earth"
+      ],
+      "channels": [
+        "clouds"
+      ],
+      "review": {
+        "thirdPartyContent": false,
+        "commercialUseReviewed": true,
+        "modificationReviewed": true,
+        "endorsementSafe": true,
+        "termsSnapshot": "https://www.nasa.gov/nasa-brand-center/images-and-media/"
+      },
+      "datum": "WGS84 spherical presentation; source datum retained during authoring",
+      "projection": "EPSG:4326 plate-carree",
+      "axisOrder": "longitude,latitude",
+      "longitudeDirection": "east-positive",
+      "seamLongitudeDegrees": -180,
+      "uvOrigin": "north-west",
+      "bodyReferenceFrameVersion": "iau-naif-j2000-v1",
+      "verticalDatum": "not-applicable",
+      "valueScale": 1,
+      "valueOffset": 0,
+      "noDataValue": null,
+      "validRange": [
+        0,
+        255
+      ],
+      "observation": "2001 multi-day visible and thermal composite",
+      "productKind": "composited",
+      "derivedRecipe": "earth-source-pack-v1"
+    },
+    {
+      "id": "nasa-bmng-earth-2004-07",
+      "url": "https://assets.science.nasa.gov/content/dam/science/esd/eo/images/bmng/bmng-base/july/world.200407.3x21600x10800.jpg",
+      "author": "NASA Earth Observatory; Reto Stockli, Robert Simmon, and MODIS teams",
+      "license": "NASA",
+      "licenseUrl": "https://www.nasa.gov/nasa-brand-center/images-and-media/",
+      "attribution": "NASA Blue Marble Next Generation, July 2004 natural-color composite",
+      "checksumSha256": "dea8b4dc8a4f93f5f8bce0c8c85a508a178e7901e9ed8e6bf86e6ce7ef6d61e2",
+      "localPath": "sources/nasa-bmng-earth/world.200407.3x21600x10800.jpg",
+      "authoringOnly": true,
+      "sourceDimensions": [
+        21600,
+        10800
+      ],
+      "transformations": [
+        "linear-light Lanczos3 tier resampling",
+        "BasisLZ KTX2 and WebP fallback encoding"
+      ],
+      "bodies": [
+        "earth"
+      ],
+      "channels": [
+        "albedo"
+      ],
+      "review": {
+        "thirdPartyContent": false,
+        "commercialUseReviewed": true,
+        "modificationReviewed": true,
+        "endorsementSafe": true,
+        "termsSnapshot": "https://www.nasa.gov/nasa-brand-center/images-and-media/"
+      },
+      "datum": "WGS84 spherical presentation; source datum retained during authoring",
+      "projection": "EPSG:4326 plate-carree",
+      "axisOrder": "longitude,latitude",
+      "longitudeDirection": "east-positive",
+      "seamLongitudeDegrees": -180,
+      "uvOrigin": "north-west",
+      "bodyReferenceFrameVersion": "iau-naif-j2000-v1",
+      "verticalDatum": "not-applicable",
+      "valueScale": 1,
+      "valueOffset": 0,
+      "noDataValue": null,
+      "validRange": [
+        0,
+        255
+      ],
+      "observation": "2004-07 monthly composite",
+      "productKind": "composited",
+      "derivedRecipe": "earth-source-pack-v1"
+    },
+    {
+      "id": "nasa-cassini-jupiter-pia07782-natural-appearance",
+      "url": "https://www.jpl.nasa.gov/images/pia07782-cassinis-best-maps-of-jupiter-cylindrical-map/",
+      "author": "NASA/JPL-Caltech/Space Science Institute; Cassini Imaging Team",
+      "license": "NASA",
+      "licenseUrl": "https://www.nasa.gov/nasa-brand-center/images-and-media/",
+      "attribution": "NASA/JPL-Caltech/SSI Cassini Jupiter cylindrical map PIA07782",
+      "checksumSha256": "e70ed78b7c4a40bac39a3bc6abbe4754d7c077f7994c4643d30a1c2fd2739c64",
+      "localPath": "sources/nasa-cassini-jupiter/jupiter-pia07782-canonical-4096x2048.png",
+      "authoringOnly": true,
+      "sourceDimensions": [
+        4096,
+        2048
+      ],
+      "transformations": [
+        "verified NASA-hosted PIA07782 JPEG decode",
+        "deterministic Lanczos3 resize to canonical 4096x2048 RGB",
+        "no recoloring or invented cloud structure",
+        "Lanczos3 tier resampling in the compiler image pipeline",
+        "BasisLZ KTX2 and WebP fallback encoding"
+      ],
+      "bodies": [
+        "jupiter"
+      ],
+      "channels": [
+        "albedo"
+      ],
+      "review": {
+        "thirdPartyContent": false,
+        "commercialUseReviewed": true,
+        "modificationReviewed": true,
+        "endorsementSafe": true,
+        "termsSnapshot": "https://www.nasa.gov/nasa-brand-center/images-and-media/"
+      },
+      "datum": "Jupiter cloud-top reference ellipsoid",
+      "verticalDatum": "not-applicable",
+      "projection": "simple cylindrical planetocentric latitude",
+      "axisOrder": "longitude,latitude",
+      "longitudeDirection": "east-positive",
+      "seamLongitudeDegrees": -180,
+      "uvOrigin": "north-west",
+      "valueScale": 1,
+      "valueOffset": 0,
+      "noDataValue": null,
+      "validRange": [
+        0,
+        255
+      ],
+      "observation": "Cassini two-filter global cloud mosaic from 2000-12-11 through 2000-12-12; colors are close to human-eye appearance, not strict true color or a current cloud map",
+      "productKind": "composited",
+      "derivedRecipe": "jupiter-cloud-top-albedo-v1",
+      "bodyReferenceFrameVersion": "iau-naif-j2000-v1"
+    },
+    {
+      "id": "nasa-lola-moon-height",
+      "url": "https://svs.gsfc.nasa.gov/vis/a000000/a004700/a004720/ldem_16_uint.tif",
+      "author": "NASA Scientific Visualization Studio and LOLA",
+      "license": "NASA",
+      "licenseUrl": "https://www.nasa.gov/nasa-brand-center/images-and-media/",
+      "attribution": "NASA LOLA; used to derive Earth's Moon normals and material response",
+      "checksumSha256": "45a2b32d56e81ed30db07fead8abc842b249b6511219d9ca2c53f81bc2dc5d62",
+      "localPath": "sources/nasa-lro-palla/ldem_16_uint.tif",
+      "authoringOnly": true,
+      "sourceDimensions": [
+        5760,
+        2880
+      ],
+      "transformations": [
+        "0.5 metre unsigned LOLA elevation decode",
+        "single-valued pole stabilization",
+        "east/north tangent-slope derivation",
+        "lossless RG packaging"
+      ],
+      "bodies": [
+        "moon"
+      ],
+      "channels": [
+        "normal",
+        "heightMacro"
+      ],
+      "review": {
+        "thirdPartyContent": false,
+        "commercialUseReviewed": true,
+        "modificationReviewed": true,
+        "endorsementSafe": true,
+        "termsSnapshot": "https://www.nasa.gov/nasa-brand-center/images-and-media/"
+      },
+      "datum": "Moon mean-Earth/polar-axis body-fixed sphere",
+      "verticalDatum": "LOLA reference sphere; 0.5 metre unsigned encoding with 10 km offset",
+      "projection": "simple cylindrical equirectangular",
+      "axisOrder": "longitude,latitude",
+      "longitudeDirection": "east-positive",
+      "seamLongitudeDegrees": -180,
+      "uvOrigin": "north-west",
+      "valueScale": 0.5,
+      "valueOffset": -10000,
+      "noDataValue": null,
+      "validRange": [
+        -10000,
+        10000
+      ],
+      "observation": "NASA SVS CGI Moon Kit release 4720 LOLA height",
+      "productKind": "modeled",
+      "derivedRecipe": "moon-source-pack-v1",
+      "bodyReferenceFrameVersion": "iau-naif-j2000-v1"
+    },
+    {
+      "id": "nasa-lro-moon-color-2025-4k",
+      "url": "https://svs.gsfc.nasa.gov/vis/a000000/a004700/a004720/lroc_color_16bit_srgb_4k.tif",
+      "author": "NASA Scientific Visualization Studio and LRO",
+      "license": "NASA",
+      "licenseUrl": "https://www.nasa.gov/nasa-brand-center/images-and-media/",
+      "attribution": "NASA SVS CGI Moon Kit 2025 LROC color map",
+      "checksumSha256": "9731fa8af425b6c2f88f277ecca82bf8c603f3743894f64ed7b25c5bfefa22ff",
+      "localPath": "sources/nasa-lro-moon-2025/lroc_color_16bit_srgb_4k.tif",
+      "authoringOnly": true,
+      "sourceDimensions": [
+        4096,
+        2048
+      ],
+      "transformations": [
+        "16-bit sRGB decode",
+        "Lanczos3 tier resampling",
+        "RGB8 fallback and BasisLZ KTX2 encoding"
+      ],
+      "bodies": [
+        "moon"
+      ],
+      "channels": [
+        "albedo"
+      ],
+      "review": {
+        "thirdPartyContent": false,
+        "commercialUseReviewed": true,
+        "modificationReviewed": true,
+        "endorsementSafe": true,
+        "termsSnapshot": "https://www.nasa.gov/nasa-brand-center/images-and-media/"
+      },
+      "datum": "Moon mean-Earth/polar-axis body-fixed sphere",
+      "verticalDatum": "not-applicable",
+      "projection": "simple cylindrical equirectangular",
+      "axisOrder": "longitude,latitude",
+      "longitudeDirection": "east-positive",
+      "seamLongitudeDegrees": -180,
+      "uvOrigin": "north-west",
+      "valueScale": 1,
+      "valueOffset": 0,
+      "noDataValue": null,
+      "validRange": [
+        0,
+        65535
+      ],
+      "observation": "NASA SVS CGI Moon Kit 2025 color product",
+      "productKind": "composited",
+      "derivedRecipe": "moon-source-pack-v1",
+      "bodyReferenceFrameVersion": "iau-naif-j2000-v1"
+    },
+    {
+      "id": "nasa-marstrek-viking-mdim21-global-232m",
+      "url": "https://trek.nasa.gov/tiles/apidoc/trekAPI.html?body=mars",
+      "author": "NASA Solar System Treks; USGS Astrogeology Science Center; Viking Orbiter teams",
+      "license": "Public-Domain",
+      "licenseUrl": "https://astrogeology.usgs.gov/search/map/mars_viking_colorized_global_mosaic_232m",
+      "attribution": "NASA Mars Trek and USGS Viking MDIM 2.1 global color mosaic",
+      "checksumSha256": "7a7052337cbaab69412e196cdca636a014c197c7c26c1e232696cb61b0a2464e",
+      "localPath": "sources/nasa-marstrek-viking/mars-viking-global-4096x2048.png",
+      "authoringOnly": true,
+      "sourceDimensions": [
+        4096,
+        2048
+      ],
+      "transformations": [
+        "deterministic NASA Mars Trek WMTS matrix-3 tile assembly",
+        "Lanczos3 tier resampling in the compiler image pipeline",
+        "BasisLZ KTX2 and WebP fallback encoding"
+      ],
+      "bodies": [
+        "mars"
+      ],
+      "channels": [
+        "albedo"
+      ],
+      "datum": "IAU Mars 2000 reference sphere",
+      "verticalDatum": "not-applicable",
+      "projection": "equirectangular planetocentric latitude",
+      "axisOrder": "longitude,latitude",
+      "longitudeDirection": "east-positive",
+      "seamLongitudeDegrees": -180,
+      "uvOrigin": "north-west",
+      "valueScale": 1,
+      "valueOffset": 0,
+      "noDataValue": null,
+      "validRange": [
+        0,
+        255
+      ],
+      "observation": "Viking MDIM 2.1 global color mosaic",
+      "productKind": "composited",
+      "derivedRecipe": "mars-compact-albedo-v1",
+      "bodyReferenceFrameVersion": "iau-naif-j2000-v1"
+    },
+    {
+      "id": "nasa-messenger-mercury-pia17386-enhanced-color",
+      "url": "https://science.nasa.gov/photojournal/enhanced-color-mercury-map/",
+      "author": "NASA MESSENGER MDIS; Johns Hopkins University APL; Carnegie Institution of Washington",
+      "license": "NASA",
+      "licenseUrl": "https://www.nasa.gov/nasa-brand-center/images-and-media/",
+      "attribution": "NASA/JHUAPL/Carnegie MESSENGER enhanced-color Mercury map PIA17386",
+      "checksumSha256": "e6ad55dfc837c8349e4747514f1ed4f7f4978e8041befc614795cb087867f459",
+      "localPath": "sources/nasa-messenger-mercury/mercury-pia17386-canonical-4096x2048.png",
+      "authoringOnly": true,
+      "sourceDimensions": [
+        4096,
+        2048
+      ],
+      "transformations": [
+        "verified NASA-hosted PIA17386 JPEG decode",
+        "exact half-width scanline rotation from 0-degree to -180-degree longitude seam",
+        "bounded polar no-observation fill from adjacent observed pixels",
+        "90-percent warm Rec.709 luminance with 10-percent enhanced-source chroma",
+        "deterministic canonical RGB PNG encoding",
+        "Lanczos3 tier resampling in the compiler image pipeline",
+        "BasisLZ KTX2 and WebP fallback encoding"
+      ],
+      "bodies": [
+        "mercury"
+      ],
+      "channels": [
+        "albedo"
+      ],
+      "review": {
+        "thirdPartyContent": false,
+        "commercialUseReviewed": true,
+        "modificationReviewed": true,
+        "endorsementSafe": true,
+        "termsSnapshot": "https://www.nasa.gov/nasa-brand-center/images-and-media/"
+      },
+      "datum": "IAU Mercury 2000 reference sphere",
+      "verticalDatum": "not-applicable",
+      "projection": "simple cylindrical planetocentric latitude",
+      "axisOrder": "longitude,latitude",
+      "longitudeDirection": "east-positive",
+      "seamLongitudeDegrees": -180,
+      "uvOrigin": "north-west",
+      "valueScale": 1,
+      "valueOffset": 0,
+      "noDataValue": null,
+      "validRange": [
+        0,
+        255
+      ],
+      "observation": "restrained visual albedo derived from MESSENGER MDIS enhanced-color global map PIA17386",
+      "productKind": "composited",
+      "derivedRecipe": "mercury-compact-albedo-v1",
+      "bodyReferenceFrameVersion": "iau-naif-j2000-v1"
+    },
+    {
+      "id": "noaa-etopo-2022-earth-bedrock-60s",
+      "url": "https://www.ngdc.noaa.gov/mgg/global/relief/ETOPO2022/data/60s/60s_bed_elev_gtif/ETOPO_2022_v1_60s_N90W180_bed.tif",
+      "author": "NOAA National Centers for Environmental Information",
+      "license": "Public-Domain",
+      "licenseUrl": "https://www.ncei.noaa.gov/products/etopo-global-relief-model",
+      "attribution": "NOAA NCEI ETOPO 2022 bedrock global relief model",
+      "checksumSha256": "a2cc72f8a4292dee928f439069457cdefc1fba319876807c626edce40258ba7a",
+      "localPath": "sources/noaa-etopo-2022/ETOPO_2022_v1_60s_N90W180_bed.tif",
+      "authoringOnly": true,
+      "sourceDimensions": [
+        21600,
+        10800
+      ],
+      "transformations": [
+        "Float32 metre decode",
+        "grounded-ice thickness and mask derivation"
+      ],
+      "bodies": [
+        "earth"
+      ],
+      "channels": [
+        "material"
+      ],
+      "datum": "WGS84 spherical presentation; source datum retained during authoring",
+      "projection": "EPSG:4326 plate-carree",
+      "axisOrder": "longitude,latitude",
+      "longitudeDirection": "east-positive",
+      "seamLongitudeDegrees": -180,
+      "uvOrigin": "north-west",
+      "bodyReferenceFrameVersion": "iau-naif-j2000-v1",
+      "verticalDatum": "EGM2008 geoid",
+      "valueScale": 1,
+      "valueOffset": 0,
+      "noDataValue": null,
+      "validRange": [
+        -11000,
+        9000
+      ],
+      "observation": "ETOPO 2022 v1",
+      "productKind": "modeled",
+      "derivedRecipe": "earth-source-pack-v1"
+    },
+    {
+      "id": "noaa-etopo-2022-earth-surface-60s",
+      "url": "https://www.ngdc.noaa.gov/mgg/global/relief/ETOPO2022/data/60s/60s_surface_elev_gtif/ETOPO_2022_v1_60s_N90W180_surface.tif",
+      "author": "NOAA National Centers for Environmental Information",
+      "license": "Public-Domain",
+      "licenseUrl": "https://www.ncei.noaa.gov/products/etopo-global-relief-model",
+      "attribution": "NOAA NCEI ETOPO 2022 ice-surface global relief model",
+      "checksumSha256": "9d27d4b8ea8e76977e2988bca667d7c8fa68b927355feffcddd6b4875a7fd08e",
+      "localPath": "sources/noaa-etopo-2022/ETOPO_2022_v1_60s_N90W180_surface.tif",
+      "authoringOnly": true,
+      "sourceDimensions": [
+        21600,
+        10800
+      ],
+      "transformations": [
+        "Float32 metre decode",
+        "spherical macro-normal derivation",
+        "ocean mask derivation",
+        "signed height RG encoding"
+      ],
+      "bodies": [
+        "earth"
+      ],
+      "channels": [
+        "normal",
+        "material",
+        "heightMacro"
+      ],
+      "datum": "WGS84 spherical presentation; source datum retained during authoring",
+      "projection": "EPSG:4326 plate-carree",
+      "axisOrder": "longitude,latitude",
+      "longitudeDirection": "east-positive",
+      "seamLongitudeDegrees": -180,
+      "uvOrigin": "north-west",
+      "bodyReferenceFrameVersion": "iau-naif-j2000-v1",
+      "verticalDatum": "EGM2008 geoid",
+      "valueScale": 1,
+      "valueOffset": 0,
+      "noDataValue": null,
+      "validRange": [
+        -11000,
+        9000
+      ],
+      "observation": "ETOPO 2022 v1",
+      "productKind": "modeled",
+      "derivedRecipe": "earth-source-pack-v1"
+    },
+    {
+      "id": "noaa-gshhg-2-3-7-full",
+      "url": "https://www.soest.hawaii.edu/pwessel/gshhg/gshhg-shp-2.3.7.zip",
+      "author": "Paul Wessel and Walter H. F. Smith; NOAA distribution",
+      "license": "LGPL-3.0",
+      "licenseUrl": "https://www.soest.hawaii.edu/pwessel/gshhg/",
+      "attribution": "GSHHG 2.3.7 full-resolution shoreline hierarchy",
+      "checksumSha256": "8dbbe7e071e77e9e75f2d639239099ebca8d5c16d6a07df8169729d49f15cf41",
+      "localPath": "sources/noaa-gshhg-2.3.7/gshhg-shp-2.3.7.zip",
+      "authoringOnly": true,
+      "sourceDimensions": [
+        360,
+        180
+      ],
+      "transformations": [
+        "ESRI polygon decode",
+        "sample-center categorical rasterization",
+        "exact-code R8 packaging without mipmaps"
+      ],
+      "bodies": [
+        "earth"
+      ],
+      "channels": [
+        "surfaceClass",
+        "surfaceClassRegional"
+      ],
+      "datum": "WGS84 spherical presentation; source datum retained during authoring",
+      "projection": "EPSG:4326 plate-carree",
+      "axisOrder": "longitude,latitude",
+      "longitudeDirection": "east-positive",
+      "seamLongitudeDegrees": -180,
+      "uvOrigin": "north-west",
+      "bodyReferenceFrameVersion": "iau-naif-j2000-v1",
+      "verticalDatum": "not-applicable",
+      "valueScale": 1,
+      "valueOffset": 0,
+      "noDataValue": null,
+      "validRange": [
+        0,
+        6
+      ],
+      "observation": "GSHHG release 2.3.7 (2017)",
+      "productKind": "measured",
+      "derivedRecipe": "earth-surface-class-v1"
+    },
+    {
+      "id": "polyhaven-dirt-diff-1k",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/dirt/dirt_diff_1k.jpg",
+      "author": "Charlotte Baglioni",
+      "license": "CC0-1.0",
+      "licenseUrl": "https://docs.polyhaven.com/en/faq",
+      "attribution": "Poly Haven dirt diff; soil local PBR response",
+      "checksumSha256": "6ce6ca7e28ed046f7f93fa60dcb29f8cf42cd5a539adc5676675acccfa34efd3",
+      "localPath": "sources/polyhaven-local/dirt_diff_1k.jpg",
+      "authoringOnly": true,
+      "sourceDimensions": [
+        1024,
+        1024
+      ],
+      "transformations": [
+        "1K source pin",
+        "diffuse luminance normalization without biome recoloring",
+        "OpenGL tangent normal preservation",
+        "roughness packing",
+        "2 metre body-fixed triplanar atlas sampling",
+        "displacement channel explicitly excluded"
+      ],
+      "bodies": [
+        "earth"
+      ],
+      "channels": [
+        "localDetail"
+      ],
+      "datum": "local photoscan tangent plane",
+      "verticalDatum": "not-applicable; displacement excluded",
+      "projection": "local tangent-plane tile",
+      "axisOrder": "longitude,latitude",
+      "longitudeDirection": "east-positive",
+      "seamLongitudeDegrees": -180,
+      "uvOrigin": "north-west",
+      "valueScale": 1,
+      "valueOffset": 0,
+      "noDataValue": null,
+      "validRange": [
+        0,
+        255
+      ],
+      "observation": "Poly Haven 1K photographic material release",
+      "productKind": "measured",
+      "derivedRecipe": "local-pbr-atlas-v1",
+      "bodyReferenceFrameVersion": "iau-naif-j2000-v1"
+    },
+    {
+      "id": "polyhaven-dirt-nor_gl-1k",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/dirt/dirt_nor_gl_1k.jpg",
+      "author": "Charlotte Baglioni",
+      "license": "CC0-1.0",
+      "licenseUrl": "https://docs.polyhaven.com/en/faq",
+      "attribution": "Poly Haven dirt nor_gl; soil local PBR response",
+      "checksumSha256": "5a5f97d920fdcdf352b350b95558bf48bb306be1fe61a47418aadc60b7deb0ce",
+      "localPath": "sources/polyhaven-local/dirt_nor_gl_1k.jpg",
+      "authoringOnly": true,
+      "sourceDimensions": [
+        1024,
+        1024
+      ],
+      "transformations": [
+        "1K source pin",
+        "diffuse luminance normalization without biome recoloring",
+        "OpenGL tangent normal preservation",
+        "roughness packing",
+        "2 metre body-fixed triplanar atlas sampling",
+        "displacement channel explicitly excluded"
+      ],
+      "bodies": [
+        "earth"
+      ],
+      "channels": [
+        "localDetail"
+      ],
+      "datum": "local photoscan tangent plane",
+      "verticalDatum": "not-applicable; displacement excluded",
+      "projection": "local tangent-plane tile",
+      "axisOrder": "longitude,latitude",
+      "longitudeDirection": "east-positive",
+      "seamLongitudeDegrees": -180,
+      "uvOrigin": "north-west",
+      "valueScale": 1,
+      "valueOffset": 0,
+      "noDataValue": null,
+      "validRange": [
+        0,
+        255
+      ],
+      "observation": "Poly Haven 1K photographic material release",
+      "productKind": "measured",
+      "derivedRecipe": "local-pbr-atlas-v1",
+      "bodyReferenceFrameVersion": "iau-naif-j2000-v1"
+    },
+    {
+      "id": "polyhaven-dirt-rough-1k",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/dirt/dirt_rough_1k.jpg",
+      "author": "Charlotte Baglioni",
+      "license": "CC0-1.0",
+      "licenseUrl": "https://docs.polyhaven.com/en/faq",
+      "attribution": "Poly Haven dirt rough; soil local PBR response",
+      "checksumSha256": "eff62d5ae7bf0c46b84173bc46f07528dd164aa39f5d550c93a805b36f54b704",
+      "localPath": "sources/polyhaven-local/dirt_rough_1k.jpg",
+      "authoringOnly": true,
+      "sourceDimensions": [
+        1024,
+        1024
+      ],
+      "transformations": [
+        "1K source pin",
+        "diffuse luminance normalization without biome recoloring",
+        "OpenGL tangent normal preservation",
+        "roughness packing",
+        "2 metre body-fixed triplanar atlas sampling",
+        "displacement channel explicitly excluded"
+      ],
+      "bodies": [
+        "earth"
+      ],
+      "channels": [
+        "localDetail"
+      ],
+      "datum": "local photoscan tangent plane",
+      "verticalDatum": "not-applicable; displacement excluded",
+      "projection": "local tangent-plane tile",
+      "axisOrder": "longitude,latitude",
+      "longitudeDirection": "east-positive",
+      "seamLongitudeDegrees": -180,
+      "uvOrigin": "north-west",
+      "valueScale": 1,
+      "valueOffset": 0,
+      "noDataValue": null,
+      "validRange": [
+        0,
+        255
+      ],
+      "observation": "Poly Haven 1K photographic material release",
+      "productKind": "measured",
+      "derivedRecipe": "local-pbr-atlas-v1",
+      "bodyReferenceFrameVersion": "iau-naif-j2000-v1"
+    },
+    {
+      "id": "polyhaven-moon_meteor_02-diff-1k",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/moon_meteor_02/moon_meteor_02_diff_1k.jpg",
+      "author": "Greg Zaal, Jenelle van Heerden, Rico Cilliers",
+      "license": "CC0-1.0",
+      "licenseUrl": "https://docs.polyhaven.com/en/faq",
+      "attribution": "Poly Haven moon_meteor_02 diff; regolith local PBR response",
+      "checksumSha256": "e8a82991f96aacc0f1f705cedebf35a50282856f2640627444ba499097a7aaee",
+      "localPath": "sources/polyhaven-local/moon_meteor_02_diff_1k.jpg",
+      "authoringOnly": true,
+      "sourceDimensions": [
+        1024,
+        1024
+      ],
+      "transformations": [
+        "1K source pin",
+        "diffuse luminance normalization without biome recoloring",
+        "OpenGL tangent normal preservation",
+        "roughness packing",
+        "2 metre body-fixed triplanar atlas sampling",
+        "displacement channel explicitly excluded"
+      ],
+      "bodies": [
+        "moon"
+      ],
+      "channels": [
+        "localDetail"
+      ],
+      "datum": "local photoscan tangent plane",
+      "verticalDatum": "not-applicable; displacement excluded",
+      "projection": "local tangent-plane tile",
+      "axisOrder": "longitude,latitude",
+      "longitudeDirection": "east-positive",
+      "seamLongitudeDegrees": -180,
+      "uvOrigin": "north-west",
+      "valueScale": 1,
+      "valueOffset": 0,
+      "noDataValue": null,
+      "validRange": [
+        0,
+        255
+      ],
+      "observation": "Poly Haven 1K photographic material release",
+      "productKind": "measured",
+      "derivedRecipe": "local-pbr-atlas-v1",
+      "bodyReferenceFrameVersion": "iau-naif-j2000-v1"
+    },
+    {
+      "id": "polyhaven-moon_meteor_02-nor_gl-1k",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/moon_meteor_02/moon_meteor_02_nor_gl_1k.jpg",
+      "author": "Greg Zaal, Jenelle van Heerden, Rico Cilliers",
+      "license": "CC0-1.0",
+      "licenseUrl": "https://docs.polyhaven.com/en/faq",
+      "attribution": "Poly Haven moon_meteor_02 nor_gl; regolith local PBR response",
+      "checksumSha256": "78314fac2bcf14d9e09e4b93d423b6e57701a7cdbebc7a565f426fb9522c1443",
+      "localPath": "sources/polyhaven-local/moon_meteor_02_nor_gl_1k.jpg",
+      "authoringOnly": true,
+      "sourceDimensions": [
+        1024,
+        1024
+      ],
+      "transformations": [
+        "1K source pin",
+        "diffuse luminance normalization without biome recoloring",
+        "OpenGL tangent normal preservation",
+        "roughness packing",
+        "2 metre body-fixed triplanar atlas sampling",
+        "displacement channel explicitly excluded"
+      ],
+      "bodies": [
+        "moon"
+      ],
+      "channels": [
+        "localDetail"
+      ],
+      "datum": "local photoscan tangent plane",
+      "verticalDatum": "not-applicable; displacement excluded",
+      "projection": "local tangent-plane tile",
+      "axisOrder": "longitude,latitude",
+      "longitudeDirection": "east-positive",
+      "seamLongitudeDegrees": -180,
+      "uvOrigin": "north-west",
+      "valueScale": 1,
+      "valueOffset": 0,
+      "noDataValue": null,
+      "validRange": [
+        0,
+        255
+      ],
+      "observation": "Poly Haven 1K photographic material release",
+      "productKind": "measured",
+      "derivedRecipe": "local-pbr-atlas-v1",
+      "bodyReferenceFrameVersion": "iau-naif-j2000-v1"
+    },
+    {
+      "id": "polyhaven-moon_meteor_02-rough-1k",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/moon_meteor_02/moon_meteor_02_rough_1k.jpg",
+      "author": "Greg Zaal, Jenelle van Heerden, Rico Cilliers",
+      "license": "CC0-1.0",
+      "licenseUrl": "https://docs.polyhaven.com/en/faq",
+      "attribution": "Poly Haven moon_meteor_02 rough; regolith local PBR response",
+      "checksumSha256": "6404cf10063b7b82326fa93bc638767c23a176e8baa6bd6bd52e519e2f441265",
+      "localPath": "sources/polyhaven-local/moon_meteor_02_rough_1k.jpg",
+      "authoringOnly": true,
+      "sourceDimensions": [
+        1024,
+        1024
+      ],
+      "transformations": [
+        "1K source pin",
+        "diffuse luminance normalization without biome recoloring",
+        "OpenGL tangent normal preservation",
+        "roughness packing",
+        "2 metre body-fixed triplanar atlas sampling",
+        "displacement channel explicitly excluded"
+      ],
+      "bodies": [
+        "moon"
+      ],
+      "channels": [
+        "localDetail"
+      ],
+      "datum": "local photoscan tangent plane",
+      "verticalDatum": "not-applicable; displacement excluded",
+      "projection": "local tangent-plane tile",
+      "axisOrder": "longitude,latitude",
+      "longitudeDirection": "east-positive",
+      "seamLongitudeDegrees": -180,
+      "uvOrigin": "north-west",
+      "valueScale": 1,
+      "valueOffset": 0,
+      "noDataValue": null,
+      "validRange": [
+        0,
+        255
+      ],
+      "observation": "Poly Haven 1K photographic material release",
+      "productKind": "measured",
+      "derivedRecipe": "local-pbr-atlas-v1",
+      "bodyReferenceFrameVersion": "iau-naif-j2000-v1"
+    },
+    {
+      "id": "polyhaven-rock_ground-diff-1k",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rock_ground/rock_ground_diff_1k.jpg",
+      "author": "Rob Tuytel",
+      "license": "CC0-1.0",
+      "licenseUrl": "https://docs.polyhaven.com/en/faq",
+      "attribution": "Poly Haven rock_ground diff; rock local PBR response",
+      "checksumSha256": "bec2573bc8aa9c714b690df753730e41f2077a1f0bbca83b13e055c86b4d5626",
+      "localPath": "sources/polyhaven-local/rock_ground_diff_1k.jpg",
+      "authoringOnly": true,
+      "sourceDimensions": [
+        1024,
+        1024
+      ],
+      "transformations": [
+        "1K source pin",
+        "diffuse luminance normalization without biome recoloring",
+        "OpenGL tangent normal preservation",
+        "roughness packing",
+        "2 metre body-fixed triplanar atlas sampling",
+        "displacement channel explicitly excluded"
+      ],
+      "bodies": [
+        "earth"
+      ],
+      "channels": [
+        "localDetail"
+      ],
+      "datum": "local photoscan tangent plane",
+      "verticalDatum": "not-applicable; displacement excluded",
+      "projection": "local tangent-plane tile",
+      "axisOrder": "longitude,latitude",
+      "longitudeDirection": "east-positive",
+      "seamLongitudeDegrees": -180,
+      "uvOrigin": "north-west",
+      "valueScale": 1,
+      "valueOffset": 0,
+      "noDataValue": null,
+      "validRange": [
+        0,
+        255
+      ],
+      "observation": "Poly Haven 1K photographic material release",
+      "productKind": "measured",
+      "derivedRecipe": "local-pbr-atlas-v1",
+      "bodyReferenceFrameVersion": "iau-naif-j2000-v1"
+    },
+    {
+      "id": "polyhaven-rock_ground-nor_gl-1k",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rock_ground/rock_ground_nor_gl_1k.jpg",
+      "author": "Rob Tuytel",
+      "license": "CC0-1.0",
+      "licenseUrl": "https://docs.polyhaven.com/en/faq",
+      "attribution": "Poly Haven rock_ground nor_gl; rock local PBR response",
+      "checksumSha256": "eea3e980653ff19938326fe6416c717f69c1493d16caec54ce2797460157efbf",
+      "localPath": "sources/polyhaven-local/rock_ground_nor_gl_1k.jpg",
+      "authoringOnly": true,
+      "sourceDimensions": [
+        1024,
+        1024
+      ],
+      "transformations": [
+        "1K source pin",
+        "diffuse luminance normalization without biome recoloring",
+        "OpenGL tangent normal preservation",
+        "roughness packing",
+        "2 metre body-fixed triplanar atlas sampling",
+        "displacement channel explicitly excluded"
+      ],
+      "bodies": [
+        "earth"
+      ],
+      "channels": [
+        "localDetail"
+      ],
+      "datum": "local photoscan tangent plane",
+      "verticalDatum": "not-applicable; displacement excluded",
+      "projection": "local tangent-plane tile",
+      "axisOrder": "longitude,latitude",
+      "longitudeDirection": "east-positive",
+      "seamLongitudeDegrees": -180,
+      "uvOrigin": "north-west",
+      "valueScale": 1,
+      "valueOffset": 0,
+      "noDataValue": null,
+      "validRange": [
+        0,
+        255
+      ],
+      "observation": "Poly Haven 1K photographic material release",
+      "productKind": "measured",
+      "derivedRecipe": "local-pbr-atlas-v1",
+      "bodyReferenceFrameVersion": "iau-naif-j2000-v1"
+    },
+    {
+      "id": "polyhaven-rock_ground-rough-1k",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rock_ground/rock_ground_rough_1k.jpg",
+      "author": "Rob Tuytel",
+      "license": "CC0-1.0",
+      "licenseUrl": "https://docs.polyhaven.com/en/faq",
+      "attribution": "Poly Haven rock_ground rough; rock local PBR response",
+      "checksumSha256": "2585e6eda380d10b081448fd98bc4e8c37b3e8947a26ec7d95d361920d36b2e7",
+      "localPath": "sources/polyhaven-local/rock_ground_rough_1k.jpg",
+      "authoringOnly": true,
+      "sourceDimensions": [
+        1024,
+        1024
+      ],
+      "transformations": [
+        "1K source pin",
+        "diffuse luminance normalization without biome recoloring",
+        "OpenGL tangent normal preservation",
+        "roughness packing",
+        "2 metre body-fixed triplanar atlas sampling",
+        "displacement channel explicitly excluded"
+      ],
+      "bodies": [
+        "earth"
+      ],
+      "channels": [
+        "localDetail"
+      ],
+      "datum": "local photoscan tangent plane",
+      "verticalDatum": "not-applicable; displacement excluded",
+      "projection": "local tangent-plane tile",
+      "axisOrder": "longitude,latitude",
+      "longitudeDirection": "east-positive",
+      "seamLongitudeDegrees": -180,
+      "uvOrigin": "north-west",
+      "valueScale": 1,
+      "valueOffset": 0,
+      "noDataValue": null,
+      "validRange": [
+        0,
+        255
+      ],
+      "observation": "Poly Haven 1K photographic material release",
+      "productKind": "measured",
+      "derivedRecipe": "local-pbr-atlas-v1",
+      "bodyReferenceFrameVersion": "iau-naif-j2000-v1"
+    },
+    {
+      "id": "polyhaven-sand_01-diff-1k",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/sand_01/sand_01_diff_1k.jpg",
+      "author": "Rob Tuytel",
+      "license": "CC0-1.0",
+      "licenseUrl": "https://docs.polyhaven.com/en/faq",
+      "attribution": "Poly Haven sand_01 diff; sand local PBR response",
+      "checksumSha256": "a73b90eaa6d675ef57e7d48a8cf23e1f412e353ab2e29cf73930b8ecd4e76875",
+      "localPath": "sources/polyhaven-local/sand_01_diff_1k.jpg",
+      "authoringOnly": true,
+      "sourceDimensions": [
+        1024,
+        1024
+      ],
+      "transformations": [
+        "1K source pin",
+        "diffuse luminance normalization without biome recoloring",
+        "OpenGL tangent normal preservation",
+        "roughness packing",
+        "2 metre body-fixed triplanar atlas sampling",
+        "displacement channel explicitly excluded"
+      ],
+      "bodies": [
+        "earth"
+      ],
+      "channels": [
+        "localDetail"
+      ],
+      "datum": "local photoscan tangent plane",
+      "verticalDatum": "not-applicable; displacement excluded",
+      "projection": "local tangent-plane tile",
+      "axisOrder": "longitude,latitude",
+      "longitudeDirection": "east-positive",
+      "seamLongitudeDegrees": -180,
+      "uvOrigin": "north-west",
+      "valueScale": 1,
+      "valueOffset": 0,
+      "noDataValue": null,
+      "validRange": [
+        0,
+        255
+      ],
+      "observation": "Poly Haven 1K photographic material release",
+      "productKind": "measured",
+      "derivedRecipe": "local-pbr-atlas-v1",
+      "bodyReferenceFrameVersion": "iau-naif-j2000-v1"
+    },
+    {
+      "id": "polyhaven-sand_01-nor_gl-1k",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/sand_01/sand_01_nor_gl_1k.jpg",
+      "author": "Rob Tuytel",
+      "license": "CC0-1.0",
+      "licenseUrl": "https://docs.polyhaven.com/en/faq",
+      "attribution": "Poly Haven sand_01 nor_gl; sand local PBR response",
+      "checksumSha256": "73984aecdc35b1ffbc322d64b7f8d8165b06970d11f37dd47010609fcb532704",
+      "localPath": "sources/polyhaven-local/sand_01_nor_gl_1k.jpg",
+      "authoringOnly": true,
+      "sourceDimensions": [
+        1024,
+        1024
+      ],
+      "transformations": [
+        "1K source pin",
+        "diffuse luminance normalization without biome recoloring",
+        "OpenGL tangent normal preservation",
+        "roughness packing",
+        "2 metre body-fixed triplanar atlas sampling",
+        "displacement channel explicitly excluded"
+      ],
+      "bodies": [
+        "earth"
+      ],
+      "channels": [
+        "localDetail"
+      ],
+      "datum": "local photoscan tangent plane",
+      "verticalDatum": "not-applicable; displacement excluded",
+      "projection": "local tangent-plane tile",
+      "axisOrder": "longitude,latitude",
+      "longitudeDirection": "east-positive",
+      "seamLongitudeDegrees": -180,
+      "uvOrigin": "north-west",
+      "valueScale": 1,
+      "valueOffset": 0,
+      "noDataValue": null,
+      "validRange": [
+        0,
+        255
+      ],
+      "observation": "Poly Haven 1K photographic material release",
+      "productKind": "measured",
+      "derivedRecipe": "local-pbr-atlas-v1",
+      "bodyReferenceFrameVersion": "iau-naif-j2000-v1"
+    },
+    {
+      "id": "polyhaven-sand_01-rough-1k",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/sand_01/sand_01_rough_1k.jpg",
+      "author": "Rob Tuytel",
+      "license": "CC0-1.0",
+      "licenseUrl": "https://docs.polyhaven.com/en/faq",
+      "attribution": "Poly Haven sand_01 rough; sand local PBR response",
+      "checksumSha256": "ccb179b12c56a9032d60e4f4e2da690b3612a58e1784eb14576372690cdcd1cb",
+      "localPath": "sources/polyhaven-local/sand_01_rough_1k.jpg",
+      "authoringOnly": true,
+      "sourceDimensions": [
+        1024,
+        1024
+      ],
+      "transformations": [
+        "1K source pin",
+        "diffuse luminance normalization without biome recoloring",
+        "OpenGL tangent normal preservation",
+        "roughness packing",
+        "2 metre body-fixed triplanar atlas sampling",
+        "displacement channel explicitly excluded"
+      ],
+      "bodies": [
+        "earth"
+      ],
+      "channels": [
+        "localDetail"
+      ],
+      "datum": "local photoscan tangent plane",
+      "verticalDatum": "not-applicable; displacement excluded",
+      "projection": "local tangent-plane tile",
+      "axisOrder": "longitude,latitude",
+      "longitudeDirection": "east-positive",
+      "seamLongitudeDegrees": -180,
+      "uvOrigin": "north-west",
+      "valueScale": 1,
+      "valueOffset": 0,
+      "noDataValue": null,
+      "validRange": [
+        0,
+        255
+      ],
+      "observation": "Poly Haven 1K photographic material release",
+      "productKind": "measured",
+      "derivedRecipe": "local-pbr-atlas-v1",
+      "bodyReferenceFrameVersion": "iau-naif-j2000-v1"
+    },
+    {
+      "id": "polyhaven-snow_02-diff-1k",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/snow_02/snow_02_diff_1k.jpg",
+      "author": "Rob Tuytel",
+      "license": "CC0-1.0",
+      "licenseUrl": "https://docs.polyhaven.com/en/faq",
+      "attribution": "Poly Haven snow_02 diff; snow-and-grounded-ice local PBR response",
+      "checksumSha256": "523a4e69c90b96d787dd69b897f29a2b3761a017024405c60aa630d1e8e9009a",
+      "localPath": "sources/polyhaven-local/snow_02_diff_1k.jpg",
+      "authoringOnly": true,
+      "sourceDimensions": [
+        1024,
+        1024
+      ],
+      "transformations": [
+        "1K source pin",
+        "diffuse luminance normalization without biome recoloring",
+        "OpenGL tangent normal preservation",
+        "roughness packing",
+        "2 metre body-fixed triplanar atlas sampling",
+        "displacement channel explicitly excluded"
+      ],
+      "bodies": [
+        "earth"
+      ],
+      "channels": [
+        "localDetail"
+      ],
+      "datum": "local photoscan tangent plane",
+      "verticalDatum": "not-applicable; displacement excluded",
+      "projection": "local tangent-plane tile",
+      "axisOrder": "longitude,latitude",
+      "longitudeDirection": "east-positive",
+      "seamLongitudeDegrees": -180,
+      "uvOrigin": "north-west",
+      "valueScale": 1,
+      "valueOffset": 0,
+      "noDataValue": null,
+      "validRange": [
+        0,
+        255
+      ],
+      "observation": "Poly Haven 1K photographic material release",
+      "productKind": "measured",
+      "derivedRecipe": "local-pbr-atlas-v1",
+      "bodyReferenceFrameVersion": "iau-naif-j2000-v1"
+    },
+    {
+      "id": "polyhaven-snow_02-nor_gl-1k",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/snow_02/snow_02_nor_gl_1k.jpg",
+      "author": "Rob Tuytel",
+      "license": "CC0-1.0",
+      "licenseUrl": "https://docs.polyhaven.com/en/faq",
+      "attribution": "Poly Haven snow_02 nor_gl; snow-and-grounded-ice local PBR response",
+      "checksumSha256": "9495ec680616b8340e2cbecbd151bff84c690cfad4209e90cc98d2d0ba81f810",
+      "localPath": "sources/polyhaven-local/snow_02_nor_gl_1k.jpg",
+      "authoringOnly": true,
+      "sourceDimensions": [
+        1024,
+        1024
+      ],
+      "transformations": [
+        "1K source pin",
+        "diffuse luminance normalization without biome recoloring",
+        "OpenGL tangent normal preservation",
+        "roughness packing",
+        "2 metre body-fixed triplanar atlas sampling",
+        "displacement channel explicitly excluded"
+      ],
+      "bodies": [
+        "earth"
+      ],
+      "channels": [
+        "localDetail"
+      ],
+      "datum": "local photoscan tangent plane",
+      "verticalDatum": "not-applicable; displacement excluded",
+      "projection": "local tangent-plane tile",
+      "axisOrder": "longitude,latitude",
+      "longitudeDirection": "east-positive",
+      "seamLongitudeDegrees": -180,
+      "uvOrigin": "north-west",
+      "valueScale": 1,
+      "valueOffset": 0,
+      "noDataValue": null,
+      "validRange": [
+        0,
+        255
+      ],
+      "observation": "Poly Haven 1K photographic material release",
+      "productKind": "measured",
+      "derivedRecipe": "local-pbr-atlas-v1",
+      "bodyReferenceFrameVersion": "iau-naif-j2000-v1"
+    },
+    {
+      "id": "polyhaven-snow_02-rough-1k",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/snow_02/snow_02_rough_1k.jpg",
+      "author": "Rob Tuytel",
+      "license": "CC0-1.0",
+      "licenseUrl": "https://docs.polyhaven.com/en/faq",
+      "attribution": "Poly Haven snow_02 rough; snow-and-grounded-ice local PBR response",
+      "checksumSha256": "b6dea8039ac2a5beaed6fd41834fb55540cc76b492edd1d48ba2da2f30f1cb75",
+      "localPath": "sources/polyhaven-local/snow_02_rough_1k.jpg",
+      "authoringOnly": true,
+      "sourceDimensions": [
+        1024,
+        1024
+      ],
+      "transformations": [
+        "1K source pin",
+        "diffuse luminance normalization without biome recoloring",
+        "OpenGL tangent normal preservation",
+        "roughness packing",
+        "2 metre body-fixed triplanar atlas sampling",
+        "displacement channel explicitly excluded"
+      ],
+      "bodies": [
+        "earth"
+      ],
+      "channels": [
+        "localDetail"
+      ],
+      "datum": "local photoscan tangent plane",
+      "verticalDatum": "not-applicable; displacement excluded",
+      "projection": "local tangent-plane tile",
+      "axisOrder": "longitude,latitude",
+      "longitudeDirection": "east-positive",
+      "seamLongitudeDegrees": -180,
+      "uvOrigin": "north-west",
+      "valueScale": 1,
+      "valueOffset": 0,
+      "noDataValue": null,
+      "validRange": [
+        0,
+        255
+      ],
+      "observation": "Poly Haven 1K photographic material release",
+      "productKind": "measured",
+      "derivedRecipe": "local-pbr-atlas-v1",
+      "bodyReferenceFrameVersion": "iau-naif-j2000-v1"
+    },
+    {
+      "id": "usfws-nwi-ksc-snapshot-2026-07-20",
+      "url": "https://fwspublicservices.wim.usgs.gov/wetlandsmapservice/rest/services/Wetlands/MapServer/0/query",
+      "author": "U.S. Fish and Wildlife Service National Wetlands Inventory",
+      "license": "Public-Domain",
+      "licenseUrl": "https://www.fws.gov/program/national-wetlands-inventory/data-download",
+      "attribution": "USFWS NWI Cowardin classification, bounded KSC snapshot",
+      "checksumSha256": "fba4859b81c6bbde032bb6168cca6f9b314d3c07ed24546de6f6eb8e3fb34e8d",
+      "localPath": "sources/usfws-nwi-ksc/nwi-ksc-2026-07-20.geojson",
+      "authoringOnly": true,
+      "sourceDimensions": [
+        3840,
+        2160
+      ],
+      "transformations": [
+        "bounded EPSG:4326 FeatureServer snapshot",
+        "Cowardin system class mapping",
+        "sample-center categorical rasterization",
+        "GSHHG parent fallback"
+      ],
+      "bodies": [
+        "earth"
+      ],
+      "channels": [
+        "surfaceClassRegional"
+      ],
+      "datum": "WGS84 spherical presentation; source datum retained during authoring",
+      "projection": "EPSG:4326 plate-carree",
+      "axisOrder": "longitude,latitude",
+      "longitudeDirection": "east-positive",
+      "seamLongitudeDegrees": -180,
+      "uvOrigin": "north-west",
+      "bodyReferenceFrameVersion": "iau-naif-j2000-v1",
+      "verticalDatum": "not-applicable",
+      "valueScale": 1,
+      "valueOffset": 0,
+      "noDataValue": 0,
+      "validRange": [
+        0,
+        6
+      ],
+      "observation": "2026-07-20",
+      "productKind": "measured",
+      "derivedRecipe": "earth-surface-class-v1"
+    },
+    {
+      "id": "nasa-pds-mola-megdr-16ppd",
+      "title": "MGS MOLA Mission Experiment Gridded Data Record, topography, 16 pixels per degree (megt90n000eb)",
+      "url": "https://pds-geosciences.wustl.edu/mgs/urn-nasa-pds-mgs_mola_topography_derived/meg016/megt90n000eb.img",
+      "license": "Public domain (NASA Planetary Data System)",
+      "attribution": "Smith et al., MGS MOLA Science Team; NASA PDS Geosciences Node",
+      "bodies": [
+        "mars"
+      ]
+    },
+    {
+      "id": "usgs-mercury-messenger-dem-665m",
+      "title": "Mercury MESSENGER Global DEM 665m v2 (USGS Astrogeology)",
+      "url": "https://planetarymaps.usgs.gov/mosaic/Mercury_Messenger_USGS_DEM_Global_665m_v2.tif",
+      "license": "Public domain (USGS / NASA)",
+      "attribution": "USGS Astrogeology Science Center; NASA/JHUAPL/Carnegie Institution of Washington MESSENGER",
+      "bodies": [
+        "mercury"
+      ]
+    }
+  ],
+  "conversions": [
+    "Earth/Moon medium packs: 1024x512 orbital and 2048x1024 detail materials; gas albedo from low packs",
+    "Earth/Moon high packs: optional 4096x2048 close materials; height and buildability stay independent of visual LOD",
+    "RG tangent slopes decoded to RGB tangent normals",
+    "material R extracted as roughness; cloud R extracted as alpha",
+    "RG16 height decoded before nearest sampling to 128x64 orbital and 1024x512 detail uint16 LE fields",
+    "surfaceClass 1 -> land 255; 0 and 2-6 -> unavailable 0; nearest categorical sampling",
+    "512x256 buildability: maximum eight-neighbour detail slope over 2x2 footprint, ceil degrees 0-254; 255 water/no-data",
+    "Mars/Mercury: albedo from Perilune medium/high packs; relief from MOLA MEGDR 16 ppd and the USGS MESSENGER 665 m DEM, area-averaged to 128x64, 1024x512 and 4096x2048 over one min-max datum per body; normals from that relief (slope factor fitted to the Moon); roughness from albedo"
+  ]
+}

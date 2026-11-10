@@ -4,9 +4,9 @@
 > its output with "Expected", and tick the step's checkbox (`- [ ]` to `- [x]`) only when it matches. No plugin, skill
 > or workflow tool is required. When something does not match, follow rule 8 under "Rules": stop and report.
 
-**Goal:** Turn `metavrviz` into a building IWSDK project in which the galaxy code copied from `codebase-viz` runs in a browser from baked data and optimized assets.
+**Goal:** Turn this repository into a building IWSDK project in which the galaxy code copied from the desktop app runs in a browser from baked data and optimized assets.
 
-**Architecture:** An IWSDK (WebXR) starter is scaffolded at the repository root and left untouched as the future XR entry (`index.html`). The copied scene code lives in `galaxy/` and is proven by a second page, the flat reference view (`flat.html`), which runs the constellation with a mouse, static dataset files and no server. Datasets and assets are produced by scripts in `tools/`, so nothing large or hand-made is committed.
+**Architecture:** An IWSDK (WebXR) starter is scaffolded at the repository root and left untouched as the future XR entry (`index.html`). The copied scene code lives in `galaxy/` and is proven by a second page, the flat reference view (`flat.html`), which runs the constellation with a mouse, static dataset files and no server. Code, datasets and assets are already committed; this plan adds the project around them.
 
 **Tech Stack:** Node 22, Vite 7, IWSDK 1.1.0-rc.2 (three.js as `super-three@0.185.0`), d3, graphology, glTF-Transform, sharp, Playwright (headless Chromium).
 
@@ -22,239 +22,218 @@ The `main` branch already contains, tested:
 
 | Path | What it is |
 | --- | --- |
-| `galaxy/` | Code copied from `codebase-viz` at commit `88c68743e48da7784cb2bb6f5071c8471a48994a`, with patches applied. See `galaxy/README.md`. |
+| `galaxy/` | Scene code, source models, analyzer and offline checks copied from the desktop app, with patches applied. See `galaxy/README.md`. |
 | `reference/` | Read-only desktop code for later milestones. |
-| `tools/migrate/copy-code.sh`, `tools/migrate/apply-patches.mjs` | Re-create `galaxy/` and `reference/` from a `codebase-viz` checkout. |
-| `tools/bake-dataset.mjs` | Analyzes a project into `public/data/<name>/`. |
-| `tools/assets/build-assets.mjs` | Builds `public/assets/` from `codebase-viz/viewer/assets`. |
-| `tools/copy-runtime.mjs` | Copies the TypeScript compiler the browser loads. |
-| `tools/run-checks.mjs` | Runs the offline checks in `galaxy/checks/`. |
-| `tools/check-boundaries.mjs` | Fails when an import crosses a boundary of the code structure (`docs/design.md` §4.0). |
-| `tools/smoke-flat.mjs` | Serves `dist/`, loads the flat view in headless Chromium, fails on errors, saves a screenshot. |
+| `public/assets/` | 369 model and map files, 115 MB, already optimized. |
+| `public/data/sample/` | A 13-file test dataset. |
+| `public/data/editor-core/` | The demo dataset: 229 files of the VS Code editor's text model (MIT licence, source commit in its `manifest.json`). |
+| `flat.html`, `src/flat/` | The flat reference view. |
 | `src/README.md` | The folder structure for the XR app and its import rules. No XR code exists yet. |
-| `flat.html`, `src/flat/main.js`, `src/flat/flat-host.js` | The flat reference view. |
-| `public/data/editor-core/` | The demo dataset, already baked: 229 files of the VS Code editor's text model (`src/vs/editor/common` of `microsoft/vscode`, MIT licence, commit in its `manifest.json`). You do not need a VS Code checkout. |
-| `docs/migration/flat-overview.png`, `flat-town.png`, `flat-editor-core.png` | What the smoke runs looked like when this plan was written. |
+| `tools/setup-after-scaffold.mjs` | Applies this project's settings to a freshly generated IWSDK starter. |
+| `tools/run-checks.mjs`, `tools/check-boundaries.mjs` | Offline checks, and the import rules of the code structure. |
+| `tools/smoke-flat.mjs` | Serves `dist/`, loads the flat view in headless Chromium, fails on errors, saves a screenshot. |
+| `tools/bake-dataset.mjs`, `tools/assets/`, `tools/migrate/`, `tools/copy-runtime.mjs` | How the committed data, assets and copied code were produced. You do not run the first three. |
+| `docs/migration/*.png` | What the smoke runs looked like when this plan was written. |
 
-Your job is everything those files need around them: the IWSDK scaffold, dependencies,
-build wiring, the baked test sample, the built assets, verification and guidance
-files. Deployment is deferred (Task 9).
+**You do not need any other repository.** Everything the desktop app contributed is
+already here.
+
+Your job: scaffold the IWSDK starter, apply the project settings, install
+dependencies, and prove that everything builds and runs.
+
+### What was tested, and what was not
+
+This plan was run end to end on Linux against a simulation of the generator's
+output, built from the files in its published package with its real dependencies
+installed. Typecheck, both page builds, the checks and all three smoke runs passed.
+
+Two things could not be tested and are where to be careful:
+
+- **Running the generator itself** (Task 1, Step 1). Its files and settings are known;
+  its command-line behaviour was not exercised.
+- **macOS.** The scripts use only Node and portable shell, but were not run on a Mac.
 
 ### Time
 
-About an hour and a half of work if nothing goes wrong: Task 1 fifteen minutes, Task 2
-ten, Task 3 five, Task 4 ten, Task 5 five, Task 6 fifteen plus the push, Task 7
-fifteen (one run takes three minutes), Task 8 ten, Task 10 ten.
+About forty-five minutes if nothing goes wrong.
 
 ### Rules
 
 1. **Do not edit files under `galaxy/` by hand**, except `galaxy/README.md`,
-   `galaxy/viewer/app/static-data.js` and `galaxy/viewer/app/project-store.ts`. A
-   change to copied code goes into `tools/migrate/apply-patches.mjs`.
-2. **Do not change the scripts in `tools/`** unless a step tells you to. They were
-   tested against these exact inputs. If one fails, stop and report (rule 8).
+   `galaxy/viewer/app/static-data.js` and `galaxy/viewer/app/project-store.ts`.
+2. **Do not change the scripts in `tools/`.** They were tested against these exact
+   inputs. If one fails, stop and report (rule 8).
 3. **Do not start XR work.** Leave the scaffold's `src/index.ts`, `src/panel.ts`,
-   `src/robot.ts` and its scene exactly as generated. M1 has its own plan.
-4. **Do not use `rsync`.** It is not installed in the cloud environment. Use `cp`.
-5. **Commit after every task** with the message the task gives. Do not open a pull
-   request unless the owner asks.
-6. **This plan outranks the scaffold's guidance.** The generator in Task 1 installs an
+   `src/robot.ts` and its scene exactly as generated. The next milestone has its own plan.
+4. **Do not edit generated or committed data by hand:** `public/assets/`,
+   `public/data/`, `reference/`.
+5. **Commit after every task** with the message the task gives. Work on the branch
+   `m0-migration`. Do not merge into `main` and do not open a pull request; the owner
+   decides that.
+6. **This plan outranks the scaffold's guidance.** The generator installs an
    `AGENTS.md` and skills written for starting a new experience. They say to begin
-   implementing at once and not to write planning files. Here, follow this plan
-   instead: read that guidance for how IWSDK's tools work, not for what to build.
+   implementing at once and not to write planning files. Follow this plan instead:
+   read that guidance for how IWSDK's tools work, not for what to build.
 7. **No task in this plan needs an API key or any other secret.** Do not ask for one,
-   do not create `.env` files, and do not call any model API. Provider keys come later,
-   when a later milestone asks for them (`docs/design.md` §4.5).
+   do not create `.env` files, and do not call any model API.
 8. **Stop and report instead of improvising** when: a command's output does not match
-   "Expected"; a script in `tools/` errors; a permission prompt or classifier blocks
-   a command; or a step would need you to edit copied code. Say which task and step,
-   paste the output, and wait.
-
-### Paths used in commands
-
-Every command is run from the `metavrviz` repository root unless it says otherwise.
-Set this once per shell:
-
-```bash
-export CBV=/home/user/codebase-viz        # absolute path to a codebase-viz checkout
-```
-
-On a different machine, change the path. All later commands use `"$CBV"`.
+   "Expected"; a script in `tools/` errors or prints `STOPPED`; a permission prompt
+   blocks a command and the owner is not there to approve it; or a step would need
+   you to edit copied code. Say which task and step, paste the output, and wait.
 
 ### Things that will look wrong but are not
 
 | You see | Why | What to do |
 | --- | --- | --- |
-| The flat view runs at 1–3 FPS in the smoke test | Headless Chromium renders with software WebGL | Nothing. Use the `--settle` values given. |
-| `Module "node:url" has been externalized for browser compatibility` during `vite build` | `galaxy/source-model/tree-sitter.js` is only used for non-JavaScript languages | Nothing. It is a warning. |
-| Landing on a planet shows "Placing towns and connecting roads…" for over a minute | Town construction is spread across frames, and frames are slow in software | Nothing. `--settle=150000` covers it. |
-| `browserType.launch: Executable doesn't exist` | Playwright wants a browser build that is not installed | Run with `CHROMIUM_PATH=/path/to/chrome`. In the cloud environment the script already uses `/opt/pw-browsers/chromium`. |
+| `wc -l` prints its number with leading spaces | macOS pads it | Compare the number only. |
+| `Module "node:url" has been externalized for browser compatibility` during the build | A parser used only for non-JavaScript languages | Nothing. It is a warning. |
+| `(!) Some chunks are larger than 500 kB` during the build | The starter's bundle is large | Nothing. |
+| The XR starter page logs a failed load of a `robot` model when offline | The starter fetches its sample robot from a public CDN | Nothing. The robot is removed in the next milestone. |
 | The scaffold's `AGENTS.md` says to start building the experience | It is written for new projects | Rule 6: follow this plan. |
-| Re-running `copy-code.sh` prints `5 applied` | It restores the originals and patches them again | Nothing. `git status` should still be clean. |
+| A smoke run with `--land` takes a minute or more | It waits for the planet's towns to finish building | Nothing. It stops as soon as they are done. |
 
 ---
 
 ## File structure after this plan
 
 ```
-metavrviz/
-  index.html, vite.config.ts, tsconfig.json, iwsdk.config.json, package.json   IWSDK scaffold (Task 1)
-  AGENTS.md, CLAUDE.md, .claude/, .agents/, .codex/                              scaffold guidance (Task 1), extended (Task 8)
-  src/index.ts, src/panel.ts, src/robot.ts, ...                                  scaffold starter, untouched
-  src/flat/                                                                      flat reference view (exists)
-  flat.html                                                                      flat reference view page (exists)
-  galaxy/, reference/, tools/, docs/                                             exist
-  public/ui/, public/scenes/, public/audio/                                      scaffold (Task 1)
-  public/data/editor-core/                                                       demo dataset (exists)
-  public/data/sample/                                                            small test dataset (Task 5)
-  public/assets/                                                                 built models and maps (Task 6)
-  public/vendor/runtime/typescript.js                                            copied on install, not committed (Task 2)
+index.html, vite.config.ts, tsconfig.json, iwsdk.config.json, package.json   IWSDK scaffold (Task 1), adjusted by the setup script
+AGENTS.md, CLAUDE.md, .claude/, .agents/, .codex/                              scaffold guidance, with this project's section added
+src/index.ts, src/panel.ts, src/robot.ts, ...                                  scaffold starter, untouched
+src/flat/, flat.html                                                           flat reference view (exists)
+galaxy/, reference/, tools/, docs/, public/assets/, public/data/               exist
+public/ui/, public/scenes/, public/audio/                                      scaffold (Task 1)
+public/vendor/runtime/typescript.js                                            copied on install, not committed (Task 2)
 ```
 
 ---
 
-### Task 0: Preconditions
+### Task 0: Set up the working folder
 
 **Files:** none.
 
-- [ ] **Step 1: Check Node**
+- [ ] **Step 1: Check the tools**
 
-Run: `node -v`
-Expected: `v22.12.0` or newer in the 22 line (the scaffold accepts `>=20.19.0 <21`, `>=22.12.0 <23` or `>=24`).
+Run: `node -v && npm -v && git --version`
+Expected: Node `v22.12.0` or newer in the 22 line, or `v24`. (The generator accepts
+`>=20.19.0 <21`, `>=22.12.0 <23` or `>=24`.) If Node is older, install Node 22 first,
+for example with `brew install node@22` or `nvm install 22`, and check again.
 
-- [ ] **Step 2: Check the starting point**
+- [ ] **Step 2: Clone into the empty folder**
+
+The current folder must be empty. Run: `ls -A`
+Expected: no output.
+
+Then:
+```bash
+git clone https://github.com/nnetraga97/orrery.git .
+git checkout -b m0-migration
+git log --oneline -1
+```
+Expected: the clone finishes (about 125 MB) and you are on a new branch `m0-migration`.
+
+- [ ] **Step 3: Check the contents**
 
 Run:
 ```bash
-git fetch origin main
-git log --oneline -1 origin/main
-git status --short
-ls galaxy tools src flat.html docs/plans public/data
+ls
+ls tools public/data src
+find public/assets -type f | wc -l
 ```
-Expected: `git status` prints nothing, and the `ls` lists `galaxy/` (with `viewer`,
-`source-model`, `engine`, `checks`, `README.md`, `SOURCE_COMMIT`), `tools/` (five
-scripts and the folders `assets` and `migrate`), `src/` (`README.md` and `flat`),
-`flat.html`, this plan, and `editor-core`.
-
-Work on the branch your session designates, created from `origin/main`:
-`git checkout -b <your-branch> origin/main`. If none is designated, use `m0-migration`.
-
-- [ ] **Step 3: Check the codebase-viz checkout**
-
-Run:
-```bash
-export CBV=/home/user/codebase-viz
-git -C "$CBV" rev-parse HEAD
-cat galaxy/SOURCE_COMMIT
-test -f "$CBV/viewer/assets/planets/library.json" && echo assets-present
-```
-Expected: both hashes are `88c68743e48da7784cb2bb6f5071c8471a48994a`, then `assets-present`.
-
-If `HEAD` differs, run `git -C "$CBV" checkout 88c68743e48da7784cb2bb6f5071c8471a48994a`
-(a shallow clone may need `git -C "$CBV" fetch --depth=200 origin main` first). If
-that commit cannot be reached, stop and report.
+Expected: the first `ls` shows `README.md docs flat.html galaxy public reference src tools`.
+`tools` holds `assets bake-dataset.mjs check-boundaries.mjs copy-runtime.mjs migrate run-checks.mjs scaffold setup-after-scaffold.mjs smoke-flat.mjs`;
+`public/data` holds `editor-core sample`; `src` holds `README.md flat`. The count is `369`.
 
 ---
 
 ### Task 1: Scaffold the IWSDK project
 
 **Files:**
-- Create (by the generator): `package.json`, `index.html`, `vite.config.ts`, `tsconfig.json`, `iwsdk.config.json`, `pnpm-workspace.yaml`, `.gitignore`, `.nvmrc`, `README.md`, `AGENTS.md`, `CLAUDE.md`, `.claude/`, `.agents/`, `.codex/`, `src/index.ts`, `src/panel.ts`, `src/robot.ts`, `src/robot-component.ts`, `src/assets.ts`, `src/components.ts`, `src/vite-env.d.ts`, `src/scene-assets/`, `public/ui/`, `public/audio/`, `public/scenes/main.iwsdk.scene.json`
-- Modify: `.gitignore`
+- Create (by the generator): `package.json`, `index.html`, `vite.config.ts`, `tsconfig.json`, `iwsdk.config.json`, `pnpm-workspace.yaml`, `.gitignore`, `.nvmrc`, `AGENTS.md`, `CLAUDE.md`, `.claude/`, `.agents/`, `.codex/`, `src/index.ts`, `src/panel.ts`, `src/robot.ts`, `src/robot-component.ts`, `src/assets.ts`, `src/components.ts`, `src/vite-env.d.ts`, `src/scene-assets/`, `public/ui/`, `public/audio/`, `public/scenes/main.iwsdk.scene.json`
+- Overwritten by the generator, then restored: `README.md`
+- Modify (by the setup script): `package.json`, `.gitignore`, `vite.config.ts`, `AGENTS.md`, `index.html`
 
-This step was **not** pre-tested: the generator could not be run where this plan was
-written. Its files were read from the published package, so the names above are right,
-but treat its output carefully.
-
-- [ ] **Step 1: Run the generator into the existing repository**
+- [ ] **Step 1: Run the generator into the repository**
 
 Run:
 ```bash
 npm create @iwsdk@1.1.0-rc.2 . -- --yes --force --target vr --no-git --no-locomotion --grabbing --no-physics
 ```
 
-The version is pinned to the one this plan was checked against. If npm reports that
-version does not exist, use `@iwsdk@latest` and say so in the final report.
-
 `.` scaffolds into the current directory. `--force` is required because the directory
-is not empty; it overwrites only files the generator itself writes (here: the one-line
-`README.md`) and keeps everything else. `--no-git` because the repository exists.
-`--no-locomotion` because the app is seated and the world moves, not the user.
+is not empty; it overwrites only files the generator itself writes and keeps
+everything else. `--no-git` because the repository exists. `--no-locomotion` because
+the app is seated and the world moves, not the user.
 
 Expected: it prints the resolved settings (target VR, TypeScript, grabbing on,
-locomotion off, physics off), writes files, and installs dependencies.
+locomotion off, physics off), writes files, and installs dependencies. This takes a
+few minutes.
 
-If a permission prompt or classifier blocks the command, stop and ask the owner to
-approve or run that one command, then continue from Step 2.
+- If npm says that version does not exist, use `@iwsdk@latest` and say so in the final report.
+- If dependency installation fails on a network error, run `npm install` once more.
+- If only a "reference warmup" step fails, continue: it is an optional documentation index.
 
-If dependency installation fails on a network error, run `npm install` once more. If
-only the "reference warmup" part fails, continue: it is an optional documentation
-index.
-
-- [ ] **Step 2: Confirm nothing of ours was touched**
-
-Run: `git status --short`
-Expected: new untracked scaffold files, `README.md` modified, and **no** line
-mentioning `galaxy/`, `reference/`, `tools/`, `src/flat/`, `flat.html` or `docs/`.
-
-If any of those paths appears as modified or deleted, run `git checkout -- <path>`
-for it and report what happened.
-
-- [ ] **Step 3: Confirm the pinned versions**
+- [ ] **Step 2: Confirm nothing of ours was touched, and restore the README**
 
 Run:
 ```bash
-npm pkg get dependencies.three dependencies.@iwsdk/core overrides.three
+git checkout -- README.md
+git status --short | grep -v '^??'
 ```
+Expected: no output. (The generator replaces `README.md`; the first command puts ours
+back. `git status` then shows only new, untracked files, which the `grep` hides.)
+
+If any line appears, a tracked file was changed. Run `git checkout -- <path>` for it
+and note the path in the final report.
+
+- [ ] **Step 3: Apply the project settings**
+
+Run: `node tools/setup-after-scaffold.mjs`
+Expected:
+```
+applied:
+  package.json: name and scripts
+  .gitignore: screenshots/ and public/vendor/runtime/
+  vite.config.ts: two pages, bundles in dist/bundle/
+  AGENTS.md: project section
+  index.html: title
+features: locomotion=false grabbing=true physics=false
+```
+
+What it did: named the package `orrery` and added the `check`, `bake`, `assets`,
+`smoke` and `postinstall` scripts; ignored two generated folders; made the build
+produce `flat.html` beside `index.html` and put bundles in `dist/bundle/` (because
+`dist/assets/` is where the models are copied); put this project's rules at the top of
+`AGENTS.md`; and set the page title.
+
+If it prints `STOPPED`, do what the message says or report it. Running the script
+again is safe.
+
+- [ ] **Step 4: Confirm the pinned versions**
+
+Run: `npm pkg get dependencies.three dependencies.@iwsdk/core overrides.three`
 Expected: `three` and `overrides.three` are `npm:super-three@0.185.0`; `@iwsdk/core`
 is `1.1.0-rc.2` or newer.
 
 If `three` is a different version, do not change it. Continue, and say so in the
-final report: the dry run that validated the copied code used `0.185.0`.
+final report.
 
-- [ ] **Step 4: Confirm the features**
+- [ ] **Step 5: Typecheck the starter**
 
-Run:
-```bash
-node -e "const c=require('./iwsdk.config.json'); console.log(JSON.stringify(c.world?.features ?? c.features ?? c, null, 1))"
-```
-Expected: the printed settings show locomotion off, grabbing on and physics off.
-The exact key names are the generator's; do not edit the file. If locomotion is on,
-stop and report: an unused locomotion feature makes the player fall through a scene
-with no floor component.
+Run: `npm run typecheck`
+Expected: it exits without errors. (Do not build yet: the flat view's dependencies are
+installed in Task 2, and the first build is in Task 4.)
 
-- [ ] **Step 5: Ignore generated folders**
-
-Append to `.gitignore`:
-
-```gitignore
-
-# This project
-screenshots/
-public/vendor/runtime/
-```
-
-- [ ] **Step 6: Verify the untouched starter builds**
-
-Run:
-```bash
-npm run typecheck
-npm run build
-ls dist/index.html
-```
-Expected: `typecheck` prints nothing and exits 0; `build` ends with `✓ built in`;
-`dist/index.html` exists.
-
-- [ ] **Step 7: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
 git add -A
-git commit -m "Scaffold the IWSDK virtual reality starter"
+git commit -m "Scaffold the IWSDK starter and apply the project settings"
 ```
 
 ---
 
-### Task 2: Add dependencies and scripts
+### Task 2: Add dependencies
 
 **Files:**
 - Modify: `package.json`, `package-lock.json`
@@ -278,310 +257,135 @@ Expected: both commands end with `added N packages` and no `ERR!` lines.
 | Package | Used by |
 | --- | --- |
 | `d3`, `graphology`, `graphology-communities-louvain` | `galaxy/viewer` (layout, colours, import clusters) |
-| `typescript`, `ignore` | `galaxy/engine/analyzer` when baking; `typescript` is also copied for the browser |
+| `typescript`, `ignore` | The analyzer; `typescript` is also copied for the browser |
 | `@gltf-transform/*`, `sharp` | `tools/assets/build-assets.mjs` |
 
 - [ ] **Step 2: Check there is one copy of three.js**
 
-Run: `npm ls three 2>&1 | grep -c "super-three@0.185.0" ; find node_modules -path '*node_modules/three/package.json' | wc -l`
-Expected: the first number is 1 or more; the second is exactly `1`.
+Run: `find node_modules -path '*node_modules/three/package.json' | wc -l`
+Expected: `1`.
 
-If the second number is greater than 1, stop and report: a dependency brought its own
-three.js, which breaks `instanceof` checks between the scene code and IWSDK.
+If it is greater than 1, stop and report: a dependency brought its own three.js,
+which breaks the scene code.
 
-- [ ] **Step 3: Add the scripts**
+- [ ] **Step 3: Check the browser runtime was copied**
 
-Run:
-```bash
-npm pkg get scripts.postinstall
-```
-Expected: `{}` (the scaffold defines none). If it prints a command instead, stop and report.
+Run: `ls public/vendor/runtime`
+Expected: `typescript.LICENSE  typescript.js`. If the folder is missing, run
+`npm run postinstall`.
 
-Then:
-```bash
-npm pkg set scripts.check="node tools/check-boundaries.mjs && node tools/run-checks.mjs" \
-  scripts.bake="node tools/bake-dataset.mjs" \
-  scripts.assets="node tools/assets/build-assets.mjs" \
-  scripts.smoke="node tools/smoke-flat.mjs" \
-  scripts.postinstall="node tools/copy-runtime.mjs"
-npm run postinstall
-ls public/vendor/runtime
-```
-Expected: `Copied the TypeScript runtime to public/vendor/runtime/.` then
-`typescript.LICENSE  typescript.js`.
+- [ ] **Step 4: Install the test browser**
 
-- [ ] **Step 4: Run the offline checks**
+Run: `npx playwright install chromium`
+Expected: it downloads Chromium, or reports it is already installed.
+
+If the command says `playwright` is not found, run
+`npm install --save-dev playwright` and then the command again.
+
+- [ ] **Step 5: Run the offline checks**
 
 Run: `npm run check`
-Expected: `import boundaries hold across N files` (N is about 140), ten lines starting
+Expected: `import boundaries hold across N files` (N is about 150), ten lines starting
 `ok`, then `all 10 checks passed`.
 
-If the boundary check fails on a scaffold file under `src/` importing `three`
-directly, do not edit the scaffold file: report it. (The starter imports three.js
-from `@iwsdk/core`, so this is not expected.)
-
-- [ ] **Step 5: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
 git add package.json package-lock.json
-git commit -m "Add the galaxy code's dependencies and the project scripts"
+git commit -m "Add the galaxy code's dependencies"
 ```
 
 `public/vendor/runtime/` is ignored and must not appear in `git status`.
 
 ---
 
-### Task 3: Verify the copied code is reproducible
+### Task 3: Verify what was committed is intact
 
-**Files:** none changed if everything matches.
+**Files:** none changed.
 
-- [ ] **Step 1: Re-run the copy**
-
-Run: `tools/migrate/copy-code.sh "$CBV"`
-Expected:
-```
-Copied from codebase-viz at 88c68743e48da7784cb2bb6f5071c8471a48994a
-patches: 5 applied, 0 already present; brand keys renamed in 7 files
-```
-
-- [ ] **Step 2: Confirm it produced exactly what is committed**
-
-Run: `git status --short galaxy reference`
-Expected: no output.
-
-If files differ, `codebase-viz` is not at the commit in Task 0 Step 3. Run
-`git checkout -- galaxy reference`, fix the checkout, and repeat this task.
-
-- [ ] **Step 3: Confirm the desktop API and brand names are gone from shipped code**
+- [ ] **Step 1: The copied code**
 
 Run:
 ```bash
+cat galaxy/SOURCE_COMMIT
 grep -rn "/api/projects" galaxy/viewer galaxy/source-model src | wc -l
-grep -rliE "bugatti|aventador|lamborghini" galaxy/viewer src flat.html | wc -l
+grep -rliE "bugatti|aventador|lamborghini" galaxy/viewer src flat.html public/assets | wc -l
 ```
-Expected: `0` and `0`.
+Expected: `88c68743e48da7784cb2bb6f5071c8471a48994a`, then `0`, then `0`.
+
+- [ ] **Step 2: The datasets**
+
+Run:
+```bash
+node -e "for (const n of ['sample','editor-core']) { const m=require('./public/data/'+n+'/manifest.json'); console.log(n, m.files, m.scanDir) }"
+ls public/data/editor-core/symbols | wc -l
+head -1 public/data/editor-core/LICENSE.txt
+```
+Expected:
+```
+sample 13 .
+editor-core 229 src/vs/editor/common
+```
+then `229`, then `MIT License`.
+
+The licence file must stay beside the dataset: the MIT licence requires its notice to
+travel with copies of the code. Do not remove copyright headers from the files under
+`public/data/editor-core/source/`.
+
+- [ ] **Step 3: The assets**
+
+Run:
+```bash
+ls public/assets
+ls public/assets/rigged
+find public/assets -type f | wc -l
+find public/assets -type f -size +10M | wc -l
+```
+Expected:
+```
+buildings  cannon  island  kit  planets  rigged  vehicles
+arc  arrow  cargo  context-district  factory  satellite  terminal-moon  town-port
+```
+then `369`, then `0`.
 
 No commit: nothing changed.
 
 ---
 
-### Task 4: Build both pages
+### Task 4: Build both pages and prove the copied code runs
 
 **Files:**
-- Modify: `vite.config.ts`
+- Modify: `docs/migration/flat-overview.png`, `docs/migration/flat-town.png`, `docs/migration/flat-editor-core.png`
 
-The scaffold builds only `index.html`. The flat view is a second page. Vite's default
-output folder for bundles is `dist/assets/`, which is also where `public/assets/` is
-copied; bundles move to `dist/bundle/` so the two never mix.
+`tools/smoke-flat.mjs` serves `dist/` itself on a free local port, opens `flat.html`
+in headless Chromium, waits, and fails on any page error, console error or missing
+file. It prints a summary, the list of asset files requested, and `SMOKE PASSED` or
+`SMOKE FAILED`.
 
-- [ ] **Step 1: Edit the build section of `vite.config.ts`**
-
-Find:
-```ts
-  build: {
-    outDir: 'dist',
-    sourcemap: process.env.NODE_ENV !== 'production',
-    target: 'esnext',
-    rollupOptions: { input: './index.html' },
-  },
-```
-Replace with:
-```ts
-  build: {
-    outDir: 'dist',
-    // Not "assets": public/assets/ holds the models and maps the scene fetches at run time.
-    assetsDir: 'bundle',
-    sourcemap: process.env.NODE_ENV !== 'production',
-    target: 'esnext',
-    chunkSizeWarningLimit: 8192,
-    // index.html is the XR app. flat.html is the flat reference view (src/flat/).
-    rollupOptions: { input: { index: './index.html', flat: './flat.html' } },
-  },
-```
-
-If the generated `build` section differs from the "Find" text, keep every line the
-generator wrote and make only these three changes: add `assetsDir: 'bundle'`, add
-`chunkSizeWarningLimit: 8192`, and change `rollupOptions.input` to the object above.
-
-- [ ] **Step 2: Build**
+- [ ] **Step 1: Build**
 
 Run:
 ```bash
 npm run typecheck && npm run build
 ls dist/index.html dist/flat.html && ls dist/bundle | head -3
 ```
-Expected: both HTML files exist and `dist/bundle/` contains hashed `.js` files. The
-`node:url` warning from the table at the top is fine.
-
-If the build fails **only** after adding `assetsDir`, remove that one line, rebuild,
-and note it in the final report. Everything else still works; the smoke test's asset
-list will simply include bundle files.
-
-- [ ] **Step 3: Commit**
-
-```bash
-git add vite.config.ts
-git commit -m "Build the flat reference view beside the XR app"
-```
-
----
-
-### Task 5: Bake the sample dataset
-
-**Files:**
-- Create: `public/data/sample/` (`graph.js`, `symbols-index.json`, `manifest.json`, `symbols/*.json`, `source/*.js`)
-
-Two datasets exist after this task:
-
-- `sample` — this repository's own `galaxy/source-model` folder, 13 JavaScript files.
-  Small and fast; the smoke tests use it. You bake it here.
-- `editor-core` — the demo project, already committed. Do **not** re-bake it. Step 3
-  only checks it.
-
-- [ ] **Step 1: Bake**
-
-Run: `npm run bake -- sample galaxy/source-model`
-Expected:
-```
-sample: 13 files, 3 imports, 1 unresolved module references
-baked 13 files into public/data/sample (5.5 MB)
-```
-(The megabyte figure may differ by a few tenths.)
-
-- [ ] **Step 2: Check the output**
-
-Run:
-```bash
-ls public/data/sample
-ls public/data/sample/symbols | wc -l
-ls public/data/sample/source | wc -l
-node -e "const i=require('./public/data/sample/symbols-index.json'); console.log(Object.keys(i).length, i['layout-memory.js'])"
-```
-Expected: `graph.js  manifest.json  source  symbols  symbols-index.json`, then `13`,
-`13`, then `13` followed by a file name ending in `.json`.
-
-- [ ] **Step 3: Check the committed demo dataset**
-
-Run:
-```bash
-node -e "const m=require('./public/data/editor-core/manifest.json'); console.log(m.files, m.scanDir, m.sourceCommit.slice(0,8), m.licence)"
-ls public/data/editor-core/symbols | wc -l
-head -1 public/data/editor-core/LICENSE.txt
-```
-Expected: `229 src/vs/editor/common 316b9733 LICENSE.txt`, then `229`, then `MIT License`.
-
-The licence file must stay beside the dataset: the MIT licence requires its notice to
-travel with copies of the code. Do not remove copyright headers from the files under
-`public/data/editor-core/source/`.
-
-- [ ] **Step 4: Commit**
-
-```bash
-git add public/data/sample
-git commit -m "Bake the sample dataset from the source models"
-```
-
----
-
-### Task 6: Build the assets
-
-**Files:**
-- Create: `public/assets/` (about 370 files, about 115 MB)
-
-`tools/assets/build-assets.mjs` copies only what the scene loads, shrinks the textures
-inside each model to at most 1024 px WebP, leaves geometry, node names and animations
-alone, skips Blender sources, raw downloads and the 4K planet tier, and publishes two
-brand-named ship rigs as `arc` and `arrow`.
-
-- [ ] **Step 1: Build**
-
-Run: `npm run assets -- "$CBV"`
-Expected, within a few megabytes:
-```
-369 files: 191.6 MB in codebase-viz -> 115.1 MB in public/assets
-```
-and exit code 0. It exits 1 if the result is over 120 MB; if that happens, stop and
-report the printed size.
-
-- [ ] **Step 2: Check the layout and the names**
-
-Run:
-```bash
-ls public/assets
-ls public/assets/rigged
-grep -rlaiE "bug+at+i|aventador|lamborghini" public/assets | wc -l
-find public/assets -type f -size +10M | wc -l
-find public/assets -name '*.blend*' -o -name '*-raw.glb' -o -path '*/close/*' | wc -l
-```
-Expected:
-```
-buildings  cannon  island  kit  planets  rigged  vehicles
-arc  arrow  cargo  context-district  factory  satellite  terminal-moon  town-port
-0
-0
-0
-```
-
-- [ ] **Step 3: Commit**
-
-```bash
-git add public/assets
-git commit -m "Build the runtime assets from codebase-viz"
-```
-
-These files are generated, but they are committed so the host can deploy from git.
-They are written once; rebuilding from the same inputs produces identical files.
-
-- [ ] **Step 4: Push now**
-
-Run: `git push -u origin HEAD`
-
-This is the largest push in the plan. If it fails with HTTP 413 or a size error, undo
-the commit and push the folders one at a time:
-
-```bash
-git reset --soft HEAD~1 && git reset -q
-for d in buildings cannon island kit planets rigged vehicles; do
-  git add "public/assets/$d" && git commit -q -m "Build the runtime assets: $d" && git push -u origin HEAD
-done
-```
-
-Retry a push that fails on a network error up to four times, waiting 2, 4, 8 and 16 seconds.
-
----
-
-### Task 7: Prove the copied code runs
-
-**Files:**
-- Modify: `docs/migration/flat-overview.png`, `docs/migration/flat-town.png`
-
-`tools/smoke-flat.mjs` serves `dist/` itself on a free local port, opens `flat.html`
-in headless Chromium, waits, and fails on any page error, console error or missing file. It prints a summary, the
-list of asset files requested, and `SMOKE PASSED` or `SMOKE FAILED`.
-
-- [ ] **Step 1: Build**
-
-Run: `npm run build`
-Expected: `✓ built in`.
+Expected: `✓ built in`; both HTML files exist; `dist/bundle/` contains hashed `.js` files.
 
 - [ ] **Step 2: Smoke-test the overview**
 
 Run: `npm run smoke -- --settle=12000 --out=docs/migration/flat-overview.png`
-Expected, in the JSON summary: `"files": 13`, `"canvases": 1`, `"sceneError": false`,
-and the last line `SMOKE PASSED`. The requested assets include
+Expected, in the JSON summary: `"files": 13`, `"canvases": 1`, `"webgl": true`,
+`"sceneError": false`, and the last line `SMOKE PASSED`. The requested assets include
 `assets/cannon/meshy/agent-cannon.glb` and `assets/rigged/arc/arc-lod.glb`.
 
 - [ ] **Step 3: Smoke-test landing on a planet**
 
 Run:
 ```bash
-npm run smoke -- --land=layout-memory.js --line=20 --settle=150000 --size=900x600 --out=docs/migration/flat-town.png
+npm run smoke -- --land=layout-memory.js --line=20 --settle=300000 --size=900x600 --out=docs/migration/flat-town.png
 ```
-This takes about three minutes. Expected: `"landed": true`, `"loading": ""`,
-`"labels"` above 50, and `SMOKE PASSED`.
-
-If `"loading"` is not empty, the planet had not finished building: run again with
-`--settle=300000`. If it still is not empty, stop and report.
+Expected: `"landed": true`, `"loading": ""`, `"labels"` above 50, and `SMOKE PASSED`.
+It finishes when the planet is ready, usually well under the five-minute limit.
 
 - [ ] **Step 4: Smoke-test the demo dataset**
 
@@ -590,32 +394,33 @@ Expected: `"files": 229` and `SMOKE PASSED`.
 
 - [ ] **Step 5: Look at the three screenshots**
 
-Open `docs/migration/flat-overview.png`, `flat-town.png` and `flat-editor-core.png`.
+Open the three files in `docs/migration/`.
 
 - Overview: a starfield, a black hole with small planets around it and file-name
   labels (`java.js`, `code-model.js`), and near the middle a station, a satellite and
   a cratered moon.
-- Town: a planet's surface filling the frame, roads with lane markings, small
-  buildings along them, and a label beginning `L20 · Return ·`.
+- Town: a planet's surface, roads with lane markings, small buildings along them, and
+  a label beginning `L20 · Return ·`.
 - Demo dataset: many small systems spread across the view, with group labels such as
   `cursor`, `model`, `languages` and `diff`, and file labels such as `range.ts`.
 
-`git diff --stat docs/migration` will show the files changed (rendering is not
-pixel-identical between runs). That is expected. If a screenshot is black, or shows
-only stars, stop and report.
+`git diff --stat docs/migration` will show the files changed: rendering is not
+pixel-identical between runs or machines. That is expected. If a screenshot is black,
+or shows only stars, stop and report.
 
-- [ ] **Step 6: If the smoke test fails**
+- [ ] **Step 6: If a smoke run fails**
 
 Read the lines under `missing files` and `errors`.
 
 | Output | Cause | Fix |
 | --- | --- | --- |
-| `404 /assets/...` | `public/assets/` is incomplete | Repeat Task 6. If the file is still missing, report its path; do not hand-copy it. |
-| `404 /data/sample/...` | The dataset was not baked or not built into `dist/` | Repeat Task 5, then `npm run build`. |
-| `404 /vendor/runtime/typescript.js` | `postinstall` did not run | `npm run postinstall`, then `npm run build`. |
-| `Cannot read properties of null (reading 'value')` or `(reading 'addEventListener')` | The scene code looked up a DOM id that `flat.html` lacks | Report the stack trace. Do not edit `galaxy/`. |
-| `Playwright is not installed` | Neither `playwright` nor `playwright-core` can be found | `npm install --save-dev playwright`, then set `CHROMIUM_PATH` to a Chrome or Chromium binary and rerun. |
-| `dist/flat.html does not exist` | The build did not run or Task 4 was skipped | `npm run build`; if `flat.html` is still missing, redo Task 4. |
+| `WebGL is unavailable in this browser; rerun with SMOKE_GL=software` | Headless Chromium did not get a GPU | Put `SMOKE_GL=software` before the command: `SMOKE_GL=software npm run smoke -- ...` |
+| `Executable doesn't exist` | The test browser is not installed | Task 2, Step 4. Or set `CHROMIUM_PATH=/path/to/chrome` before the command. |
+| `Playwright is not installed` | Neither `playwright` nor `playwright-core` can be found | `npm install --save-dev playwright`, then Task 2, Step 4. |
+| `dist/flat.html does not exist` | The build did not produce it | `npm run build`. If it is still missing, run `node tools/setup-after-scaffold.mjs` and build again. |
+| `404 /vendor/runtime/typescript.js` | The runtime was not copied | `npm run postinstall`, then `npm run build`. |
+| `404 /assets/...` or `404 /data/...` | A committed file is missing from the working tree | `git status`; restore with `git checkout -- public`. If it is still missing, report the path. |
+| `Cannot read properties of null` | The scene code looked up a page element that `flat.html` lacks | Report the stack trace. Do not edit `galaxy/`. |
 
 - [ ] **Step 7: Commit**
 
@@ -626,153 +431,21 @@ git commit -m "Record the flat reference view after migration"
 
 ---
 
-### Task 8: Guidance for whoever works here next
+### Task 5: Deploy a preview — DEFERRED, do not do this now
 
-**Files:**
-- Modify: `AGENTS.md` (generated in Task 1)
-- Modify: `README.md` (generated in Task 1)
-- Modify: `index.html` (generated in Task 1), `flat.html`
+The owner will set up hosting later. Skip this task. The steps stay here so they are
+ready when hosting is decided.
 
-- [ ] **Step 1: Add a project section to the top of `AGENTS.md`**
-
-Insert this directly under the file's first heading line, above the generator's own
-text:
-
-```markdown
-## This project
-
-Orrery: a voice-and-hands code editor for Meta Quest, built for the Meta VR Start Developer
-Competition 2026 (deadline 2026-11-18 12:00 PT). Design:
-`docs/design.md`.
-
-| Folder | Rule |
-| --- | --- |
-| `src/` | New XR code, structured as `src/README.md` describes. Import three.js from `@iwsdk/core`. |
-| `src/flat/`, `flat.html` | The flat reference view: the copied galaxy in a browser tab. A test page, not the product. |
-| `galaxy/` | Copied from another repository. Do not hand-edit; see `galaxy/README.md`. Its files import `three`, which is aliased to the same build. |
-| `reference/` | Read-only desktop code. Never import from it. |
-| `public/assets/`, `public/data/` | Generated by `npm run assets` and `npm run bake`. Do not edit by hand. |
-| `tools/` | Migration, baking, asset and test scripts. |
-
-Hard requirements from the competition rules:
-
-- Every interaction must work with hands only. No controller, no keyboard, no typing.
-- Nothing may depend on a second device or a local server.
-- No brand names, in text, file names or assets.
-- Design for a seated user: all targets within about 60 cm of the resting hands.
-
-Secrets live only on the server: provider keys read from `ANTHROPIC_API_KEY` (Claude,
-supplied by the owner), and optionally `OPENAI_API_KEY` and `NEBIUS_API_KEY`
-(Nemotron). People using the app never enter a key. Build and test against
-the recorded fake first and ask the owner for the key only when a plan's step says a
-live call is required, through a secure credential form, never pasted into a chat.
-Never commit a key or put one in a file git tracks, in client code, or in a log.
-
-The plans in `docs/plans/` say what to build next and outrank the generic IWSDK
-guidance below, which is written for starting a new experience. Use that guidance for
-how IWSDK's tools and APIs work.
-
-Before claiming a change works: `npm run typecheck && npm run check && npm run build && npm run smoke`.
-`npm run check` includes the import rules of the code structure (`docs/design.md` §4.0).
-```
-
-- [ ] **Step 2: Replace `README.md`**
-
-Replace the whole file with:
-
-````markdown
-# Orrery
-
-A voice-and-hands code editor for Meta Quest. A codebase is a tabletop galaxy; an AI
-agent shows you where a bug lives and you review its fix by hand and by voice.
-
-The product is called Orrery. This repository is named `metavrviz`.
-
-## Run
-
-```sh
-npm install
-npm run dev          # the XR app with the IWSDK emulator
-npm run dev:runtime  # plain Vite; open /flat.html for the flat reference view
-```
-
-## Build and check
-
-```sh
-npm run typecheck    # TypeScript in src/
-npm run check        # import rules, then offline checks for the copied galaxy code
-npm run build        # dist/index.html (XR app) and dist/flat.html (reference view)
-npm run smoke        # loads dist/flat.html in headless Chromium
-```
-
-## Data and assets
-
-```sh
-npm run bake -- <name> <projectRoot> [scanDir]   # writes public/data/<name>/
-npm run assets -- /path/to/codebase-viz          # rebuilds public/assets/
-tools/migrate/copy-code.sh /path/to/codebase-viz # refreshes galaxy/ and reference/
-```
-
-## Layout
-
-| Folder | Contents |
-| --- | --- |
-| `src/` | The XR app ([structure and import rules](src/README.md)) |
-| `galaxy/` | Scene code, source models and analyzer copied from `codebase-viz` ([details](galaxy/README.md)) |
-| `reference/` | Read-only desktop code for later work ([details](reference/README.md)) |
-| `tools/` | Migration, baking, asset and test scripts |
-| `docs/` | Design and plans |
-````
-
-- [ ] **Step 3: Set the page titles**
-
-In `index.html`, change the text inside `<title>…</title>` to `Orrery`. In
-`flat.html`, change `<title>Flat reference view</title>` to
-`<title>Orrery — flat reference view</title>`. Change nothing else in either file.
-
-Run: `grep -n "<title>" index.html flat.html`
-Expected: one line per file, showing the two titles above.
-
-- [ ] **Step 4: Check and commit**
-
-Run: `npm run typecheck && npm run check`
-Expected: no type errors; `import boundaries hold`; `all 10 checks passed`.
-
-```bash
-git add AGENTS.md README.md index.html flat.html
-git commit -m "Name the product and describe the project layout and its rules"
-```
+- [ ] **Step 1 (later):** Read `.claude/skills/iwsdk-hosting/SKILL.md` and its `references/vercel.md`.
+- [ ] **Step 2 (later):** Deploy the branch as a **preview**, with build command
+  `npm run build` and output directory `dist`. Do not create accounts or projects
+  yourself; the owner links them.
+- [ ] **Step 3 (later):** `npm run smoke -- --base=https://<preview-host>/ --settle=20000 --out=screenshots/preview.png`
+  Expected: `SMOKE PASSED`.
 
 ---
 
-### Task 9: Deploy a preview — DEFERRED, do not do this now
-
-The owner will set up hosting later. Skip this task and go to Task 10. The steps stay
-here so they are ready when hosting is decided.
-
-**Files (later):** possibly `vercel.json` or project settings, as the hosting skill directs.
-
-- [ ] **Step 1 (later): Read the hosting guidance the scaffold installed**
-
-Read `.claude/skills/iwsdk-hosting/SKILL.md` and its `references/vercel.md`.
-
-- [ ] **Step 2 (later): Deploy a preview build**
-
-Deploy the branch as a **preview** (not production), with build command
-`npm run build` and output directory `dist`. Do not create accounts or projects
-yourself; the owner links them.
-
-- [ ] **Step 3 (later): Test the deployed flat view**
-
-```bash
-npm run smoke -- --base=https://<preview-host>/ --settle=20000 --out=screenshots/preview.png
-```
-Expected: `SMOKE PASSED`. If this machine cannot reach the host, give the owner
-`https://<preview-host>/flat.html` and `https://<preview-host>/` to open.
-
----
-
-### Task 10: Final verification and report
+### Task 6: Final verification and report
 
 **Files:** none.
 
@@ -785,50 +458,43 @@ git status --short
 ```
 Expected: `all 10 checks passed`, `✓ built in`, `SMOKE PASSED`, and an empty `git status`.
 
-Then push: `git push -u origin HEAD` (retry a network failure up to four times,
-waiting 2, 4, 8 and 16 seconds).
+- [ ] **Step 2: Push the branch**
 
-- [ ] **Step 2: Measure**
+Run: `git push -u origin m0-migration`
+If it fails on a network error, try again up to four times, waiting 2, 4, 8 and 16
+seconds. Do not push to `main`.
+
+- [ ] **Step 3: Measure**
 
 ```bash
 du -sh .git public/assets public/data dist | cat
-git count-objects -vH | grep size-pack
 ```
 
-- [ ] **Step 3: Report to the owner**
+- [ ] **Step 4: Report to the owner**
 
 Give, in this order:
 
 1. Which tasks passed, and any that did not, with the failing output.
-2. The four sizes from Step 2.
-3. That deployment (Task 9) was skipped as instructed.
+2. The branch name and its last commit.
+3. The four sizes from Step 3.
 4. Anything that differed from "Expected" (for example a different `three` version,
-   or `assetsDir` removed).
-5. The open items from the design's section 9. Do not ask for the Claude key: no step
-   here uses it.
+   a generator version other than the pinned one, or `SMOKE_GL` being needed).
+5. How the generator behaved in Task 1, since that step could not be tested ahead of time.
 
-Then stop. M1 is planned separately.
+Then stop. Do not start the next milestone, do not ask for an API key, and do not
+merge.
 
 ---
 
-## Self-review notes
+## Notes on how this plan was checked
 
-- **Coverage.** Design §7's M0 outcome is "repo builds; copied code runs in a browser
-  from baked data; assets built": Tasks 1–4 build, 5 bakes, 6 builds assets, 7 proves
-  the run. Deployment (Task 9) is deferred by the owner. Brand-name removal (design §1) is checked in
-  Tasks 3 and 6. The legibility evidence (design §6) is the screenshot from Task 7.
-- **Verified ahead of time**, in a scratch copy with the same dependency versions:
-  the copy and patches, the ten checks, the Vite build of the copied code against
-  `super-three@0.185.0` with one copy of three.js, baking, the asset build and its
-  sizes, and all three smoke runs.
-- **Review pass (second).** Changes from re-reading the plan against the tools and
-  IWSDK's shipped guidance: the generator version is pinned; the feature flags are
-  checked after scaffolding; the smoke test no longer depends on the build tool's
-  preview server, which the scaffold's plugin could have altered; the scaffold's
-  "start implementing" guidance is explicitly outranked; import boundaries are
-  enforced by `npm run check`; the starting branch is `main`.
-- **Keys.** The owner supplies one Claude key later; this plan uses none (rule 7), and
-  the project guidance written in Task 8 says how and when to ask.
-- **Not verified ahead of time:** Task 1 (the generator), the scaffold's interaction
-  with the `vite.config.ts` edit in Task 4. Each has an explicit fallback or a stop
-  condition.
+- **Coverage.** The milestone's outcome in `docs/design.md` §7 is "repo builds; copied
+  code runs in a browser from baked data; assets built". Tasks 1 and 2 make it build,
+  Task 3 confirms the committed code, data and assets, and Task 4 proves the run.
+- **Verified ahead of time**, on Linux, against the generator's published template
+  with its real dependencies: the setup script, typecheck, both page builds with the
+  IWSDK plugin, one copy of three.js, the offline checks, and all three smoke runs.
+- **Not verified ahead of time:** the generator's own command line, and macOS. Both
+  have stop conditions or fallbacks in the steps above.
+- **Keys.** This plan uses none (rule 7). The project guidance the setup script writes
+  says how and when keys are asked for.

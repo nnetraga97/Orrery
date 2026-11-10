@@ -1,0 +1,11 @@
+{
+  "name": "sample",
+  "files": 13,
+  "scanDir": ".",
+  "sourceRemote": "https://github.com/nnetraga97/orrery",
+  "sourceCommit": "974e82dc6d64caa5bf08357cee6288ab5aea0485",
+  "licence": null,
+  "sourceBytes": 168061,
+  "totalBytes": 5765405,
+  "bakedAt": "2026-11-10T20:40:36.733Z"
+}

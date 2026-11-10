@@ -39,8 +39,8 @@ Start Developer Competition 2026. Special-award target: **Best Agentic Interacti
 | Topic | Decision |
 | --- | --- |
 | Framework | **Immersive Web SDK (IWSDK) 1.1.0-rc.2** on three.js. See §3. |
-| Repository | `metavrviz`, new. Code is copied from `codebase-viz`, not shared. |
-| Product name | **Orrery** (a tabletop model of orbiting bodies), confirmed by the owner. The repository keeps the name `metavrviz`; the word "Meta" must not appear in anything shown to users, because the rules forbid implying association. |
+| Repository | `nnetraga97/orrery`, new and public. Code is copied from `codebase-viz`, not shared. |
+| Product name | **Orrery** (a tabletop model of orbiting bodies), confirmed by the owner. The word "Meta" must not appear in anything shown to users, because the rules forbid implying association. |
 | View | Constellation and planet towns. The circuit board and country map are not ported. |
 | Passthrough | None. Full VR. |
 | Editing | No manual text entry. Edits come from the agent and are accepted or rejected by hand. |

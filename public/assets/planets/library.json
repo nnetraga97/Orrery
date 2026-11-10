@@ -1,0 +1,704 @@
+{
+  "version": 1,
+  "planets": [
+    {
+      "id": "earth",
+      "name": "Ocean world",
+      "origin": "perilune",
+      "kind": "terrestrial",
+      "maps": {
+        "albedo": "earth/albedo.webp",
+        "normal": "earth/normal.png",
+        "roughness": "earth/roughness.png",
+        "height": "earth/height.u16",
+        "clouds": "earth/clouds.png"
+      },
+      "detail": {
+        "albedo": "earth/detail/albedo.webp",
+        "normal": "earth/detail/normal.png",
+        "roughness": "earth/detail/roughness.png",
+        "height": "earth/detail/height.u16",
+        "heightSize": [
+          1024,
+          512
+        ],
+        "land": "earth/detail/land.png",
+        "emissive": "earth/detail/emissive.webp",
+        "buildable": "earth/detail/buildable.u8",
+        "buildableSize": [
+          512,
+          256
+        ]
+      },
+      "close": {
+        "albedo": "earth/close/albedo.webp",
+        "normal": "earth/close/normal.png",
+        "roughness": "earth/close/roughness.png",
+        "height": "earth/close/height.u16",
+        "heightSize": [
+          4096,
+          2048
+        ],
+        "land": "earth/close/land.png",
+        "landSize": [
+          4096,
+          2048
+        ]
+      },
+      "land": "#43805c",
+      "ocean": "#153f64",
+      "atmosphere": "#79bcde",
+      "cloudOpacity": 0.7,
+      "relief": 0.009,
+      "sources": [
+        "nasa-black-marble-earth-2016",
+        "nasa-blue-marble-clouds-2002",
+        "nasa-bmng-earth-2004-07",
+        "noaa-etopo-2022-earth-bedrock-60s",
+        "noaa-etopo-2022-earth-surface-60s",
+        "noaa-gshhg-2-3-7-full",
+        "polyhaven-dirt-diff-1k",
+        "polyhaven-dirt-nor_gl-1k",
+        "polyhaven-dirt-rough-1k",
+        "polyhaven-rock_ground-diff-1k",
+        "polyhaven-rock_ground-nor_gl-1k",
+        "polyhaven-rock_ground-rough-1k",
+        "polyhaven-sand_01-diff-1k",
+        "polyhaven-sand_01-nor_gl-1k",
+        "polyhaven-sand_01-rough-1k",
+        "polyhaven-snow_02-diff-1k",
+        "polyhaven-snow_02-nor_gl-1k",
+        "polyhaven-snow_02-rough-1k",
+        "usfws-nwi-ksc-snapshot-2026-07-20"
+      ],
+      "evidence": [
+        {
+          "channel": "albedo",
+          "source": "generated/earth/medium/albedo.webp",
+          "sha256": "bf8a0e85c221d42afad3df3ea691ef6392fea1c7740809b0482aa223a23e46b8"
+        },
+        {
+          "channel": "maps.albedo",
+          "file": "earth/albedo.webp",
+          "sha256": "27a89f02a8fdd5382175ce2a6aa6085c494ab8ac0b573851f5338079a801c5c2"
+        },
+        {
+          "channel": "detail.albedo",
+          "file": "earth/detail/albedo.webp",
+          "sha256": "9a58a707cf489a1e56f3662b483a50a26616738367aabb32cc44f352d141e3b6"
+        },
+        {
+          "channel": "normal",
+          "source": "generated/earth/medium/normal.png",
+          "sha256": "a528ff30e31893c570cd3dd35822190ed80f3d2c92d4b6402b25589e78b8002c"
+        },
+        {
+          "channel": "material",
+          "source": "generated/earth/medium/material.png",
+          "sha256": "3194cbff05f1b5d9db93b6c5a399602e2c807598c8ab3a9dd34b270d852ded9a"
+        },
+        {
+          "channel": "maps.normal",
+          "file": "earth/normal.png",
+          "sha256": "6802f077bb41832417584429feafc6e028cfda01ee42517ec1d5385301250568"
+        },
+        {
+          "channel": "maps.roughness",
+          "file": "earth/roughness.png",
+          "sha256": "910192700ed00e3d0d08c3ec307315b747b6aa07b870d3184f19540af6f3b4f5"
+        },
+        {
+          "channel": "detail.normal",
+          "file": "earth/detail/normal.png",
+          "sha256": "f9c21ff80e3ffaec531a40c03931f4118a600c1090708707b6ba4378791cba43"
+        },
+        {
+          "channel": "detail.roughness",
+          "file": "earth/detail/roughness.png",
+          "sha256": "b2c5004e8f4d2625535b70a9311c39121f4bc1129ec2df5cedfec9cc8cd1e378"
+        },
+        {
+          "channel": "heightMacro",
+          "source": "generated/earth/medium/heightMacro.png",
+          "sha256": "df203631caf12ddd00857bf2a2fa8a0dda6e47510b195b3aa2b331a48fdf4837"
+        },
+        {
+          "channel": "maps.height",
+          "file": "earth/height.u16",
+          "sha256": "946a6e94d8f3c260ebd1e38bc174818a1b1071930beb925c11014c05a9083f03"
+        },
+        {
+          "channel": "detail.height",
+          "file": "earth/detail/height.u16",
+          "sha256": "62cb34e6dcbce0578efac04ba0bcfdc3de9b1439da67fb9526250ecb70f2addb"
+        },
+        {
+          "channel": "clouds",
+          "source": "generated/earth/medium/clouds.png",
+          "sha256": "d37392c815b2341d25c47e106abe0b4a5db4f6d5f24619b37a6fc7508fd6499f"
+        },
+        {
+          "channel": "maps.clouds",
+          "file": "earth/clouds.png",
+          "sha256": "1e8bb8bdeb29a280c2795f4575d6a03fc6f37174dd42da2672a55757f39b77fb"
+        },
+        {
+          "channel": "surfaceClass",
+          "source": "generated/earth/medium/surfaceClass.png",
+          "sha256": "852764845b0a05dee28f21fea1e0b11545adcbe74c18a4813f928acc83e16cf3"
+        },
+        {
+          "channel": "detail.land",
+          "file": "earth/detail/land.png",
+          "sha256": "d8993ceed65e8fc86112ff37a39eaba077f41f6d24584e180333c9e8e5b73567"
+        },
+        {
+          "channel": "emissive",
+          "source": "generated/earth/medium/emissive.webp",
+          "sha256": "5eaba9b4be8601a1733ef65c721916ad79597223db1ce85a805fabb8756f9b6f"
+        },
+        {
+          "channel": "detail.emissive",
+          "file": "earth/detail/emissive.webp",
+          "sha256": "1494867a0b68b6d48397bf3956250e0d85dfff3db13df577a12e4ec2601fe47c"
+        },
+        {
+          "channel": "detail.buildable",
+          "file": "earth/detail/buildable.u8",
+          "sha256": "2ad6f128845e679fff1a69ee2def919c82f19c6bd4e498257875f2b23882e82b"
+        },
+        {
+          "channel": "albedo",
+          "source": "generated/earth/high/albedo.webp",
+          "sha256": "5b82b5a4653220099e39c9edab77de20452b1f7d6bffdb813e72ff662a892d47"
+        },
+        {
+          "channel": "close.albedo",
+          "file": "earth/close/albedo.webp",
+          "sha256": "522f60d59a8a88050e62d0334ec33797a13b4fa7da3f51674a16a7c2cf8cd78d"
+        },
+        {
+          "channel": "normal",
+          "source": "generated/earth/high/normal.png",
+          "sha256": "67d4b7d3cfba6ff0c1c97a6eaee1d56cef556370758a55bf4123f7121b61a8d3"
+        },
+        {
+          "channel": "close.normal",
+          "file": "earth/close/normal.png",
+          "sha256": "0e6c5df0385465b33df5ee941bb60d7ec9f5afe78b2414788fbc56982b8d7990"
+        },
+        {
+          "channel": "material",
+          "source": "generated/earth/high/material.png",
+          "sha256": "bf6b532d15659e027d500c565218fbcf9fd76b860d3667cb33a8520defef78b1"
+        },
+        {
+          "channel": "close.roughness",
+          "file": "earth/close/roughness.png",
+          "sha256": "9bfcd679ddd8afe87abeabedb1963822612c890dced57cdb77cdce4ac5d5022d"
+        },
+        {
+          "channel": "heightMacro",
+          "source": "generated/earth/high/heightMacro.png",
+          "sha256": "a024bd26de071184bb3a1b68222d1a5049c0e424b2260a4f9f7563ecc4d96cde"
+        },
+        {
+          "channel": "close.height",
+          "file": "earth/close/height.u16",
+          "sha256": "4161a86491ab326af2ab0cc97127f625b80dfbfd513e81e5ad6c36b3e3964f5d"
+        },
+        {
+          "channel": "surfaceClass",
+          "source": "generated/earth/high/surfaceClass.png",
+          "sha256": "925af64375126c50ee3623dffd932d05c96c99686bbb28c4cdb4092f6cc8f1b4"
+        },
+        {
+          "channel": "close.land",
+          "file": "earth/close/land.png",
+          "sha256": "95e5fbf052dbee66d5242683d14dfdad9bc8dfd76b5dd4ba490a06b90e9ddfaf"
+        }
+      ],
+      "waterTexels": true
+    },
+    {
+      "id": "moon",
+      "name": "Lunar highlands",
+      "origin": "perilune",
+      "kind": "terrestrial",
+      "maps": {
+        "albedo": "moon/albedo.webp",
+        "normal": "moon/normal.png",
+        "roughness": "moon/roughness.png",
+        "height": "moon/height.u16"
+      },
+      "detail": {
+        "albedo": "moon/detail/albedo.webp",
+        "normal": "moon/detail/normal.png",
+        "roughness": "moon/detail/roughness.png",
+        "height": "moon/detail/height.u16",
+        "heightSize": [
+          1024,
+          512
+        ],
+        "buildable": "moon/detail/buildable.u8",
+        "buildableSize": [
+          512,
+          256
+        ]
+      },
+      "close": {
+        "albedo": "moon/close/albedo.webp",
+        "normal": "moon/close/normal.png",
+        "roughness": "moon/close/roughness.png",
+        "height": "moon/close/height.u16",
+        "heightSize": [
+          4096,
+          2048
+        ]
+      },
+      "land": "#a8a39a",
+      "ocean": "#53545b",
+      "atmosphere": null,
+      "cloudOpacity": 0,
+      "relief": 0.018,
+      "sources": [
+        "nasa-lola-moon-height",
+        "nasa-lro-moon-color-2025-4k",
+        "polyhaven-moon_meteor_02-diff-1k",
+        "polyhaven-moon_meteor_02-nor_gl-1k",
+        "polyhaven-moon_meteor_02-rough-1k"
+      ],
+      "evidence": [
+        {
+          "channel": "albedo",
+          "source": "generated/moon/medium/albedo.webp",
+          "sha256": "18faaa2977dea2f1516bf7267c942f66e8667d2948a8e598615e74c98c94a644"
+        },
+        {
+          "channel": "maps.albedo",
+          "file": "moon/albedo.webp",
+          "sha256": "fc8ae9e5572fd3ba970ca25865ce7d25e05c04942b541c008a7f7a87ba9720f0"
+        },
+        {
+          "channel": "detail.albedo",
+          "file": "moon/detail/albedo.webp",
+          "sha256": "8af74fc6a15ebac588209ffb767b531bcfaa346452365b42e0c7df84e3e3c150"
+        },
+        {
+          "channel": "normal",
+          "source": "generated/moon/medium/normal.png",
+          "sha256": "cb27ca945b1c345b12f554a8e6024517c50cbada237a2a49816c966bc97a8dd0"
+        },
+        {
+          "channel": "material",
+          "source": "generated/moon/medium/material.png",
+          "sha256": "3647898d27d86cff9f81fe270575b8807bc01b8726713b744d0752ba49472377"
+        },
+        {
+          "channel": "maps.normal",
+          "file": "moon/normal.png",
+          "sha256": "2e0fedcbfdd3a3674024af87304e26ef9e8da38325e37058053f5fc2f3c5fcce"
+        },
+        {
+          "channel": "maps.roughness",
+          "file": "moon/roughness.png",
+          "sha256": "442132b0fc55604cdf6183345d09cc7ab21432acdc5fb7450fe6077c99827221"
+        },
+        {
+          "channel": "detail.normal",
+          "file": "moon/detail/normal.png",
+          "sha256": "398f915f08e31b54cce69648fd7b6a94351183971af51a158571658dff6d3112"
+        },
+        {
+          "channel": "detail.roughness",
+          "file": "moon/detail/roughness.png",
+          "sha256": "fcbaf1e526ab6a48ed616df3cef95a200f523e64a054876daf0d6eada0fb9347"
+        },
+        {
+          "channel": "heightMacro",
+          "source": "generated/moon/medium/heightMacro.png",
+          "sha256": "718dfb868a18678417b579d36ac28b2f340159ddaaac1a7fae438f8633b7ba64"
+        },
+        {
+          "channel": "maps.height",
+          "file": "moon/height.u16",
+          "sha256": "d87e1585a8cf9e0cb9f3d3a25c45284f0678dd4dad70487fb44eaedb1532dc41"
+        },
+        {
+          "channel": "detail.height",
+          "file": "moon/detail/height.u16",
+          "sha256": "9958643f76e67f59349ab7f72138784e0003d8854ea1133614bcda2e66565b7e"
+        },
+        {
+          "channel": "detail.buildable",
+          "file": "moon/detail/buildable.u8",
+          "sha256": "23a0355ea3392b3c88a64a18469ccec912e46c97ed343d7d3e56bafb9b52e763"
+        },
+        {
+          "channel": "albedo",
+          "source": "generated/moon/high/albedo.webp",
+          "sha256": "fa4516306755798e9f4a436e4de567f535e08157d3e489e0cb5977a40ea02185"
+        },
+        {
+          "channel": "close.albedo",
+          "file": "moon/close/albedo.webp",
+          "sha256": "df3a8ab0bfd7e454a68a26b2d9524d959fc9423d2b97a537d298167c77298025"
+        },
+        {
+          "channel": "normal",
+          "source": "generated/moon/high/normal.png",
+          "sha256": "e449b968639629df359601b3a9541c7e5f89b57cbb443c17c9479d5620b0dfc4"
+        },
+        {
+          "channel": "close.normal",
+          "file": "moon/close/normal.png",
+          "sha256": "5874e9654f5accbe5ead940ab34aa2295ac157ef49bf81381369a36e58678c3f"
+        },
+        {
+          "channel": "material",
+          "source": "generated/moon/high/material.png",
+          "sha256": "2bd4d7aeb1e187b1e27efb38350df6821aa65a89fd8d58c3599d31d941701b39"
+        },
+        {
+          "channel": "close.roughness",
+          "file": "moon/close/roughness.png",
+          "sha256": "bb7fc7ce408f16bd313f790c6c91ee4f26b5d69334d71b0a9840da48685427c9"
+        },
+        {
+          "channel": "heightMacro",
+          "source": "generated/moon/high/heightMacro.png",
+          "sha256": "0d234d53a7fbdc9f048ee344b4713fd108076f9672e3c9f2dd76565aac568a93"
+        },
+        {
+          "channel": "close.height",
+          "file": "moon/close/height.u16",
+          "sha256": "f73245361f274668fb3e58612a5c6b2ed132b80bcf7372df59a233f41947b168"
+        }
+      ]
+    },
+    {
+      "id": "jupiter",
+      "name": "Banded giant",
+      "origin": "perilune",
+      "kind": "gas",
+      "maps": {
+        "albedo": "jupiter/albedo.webp"
+      },
+      "detail": {},
+      "land": "#b99477",
+      "ocean": "#715d53",
+      "atmosphere": "#d5b797",
+      "cloudOpacity": 0,
+      "relief": 0,
+      "sources": [
+        "nasa-cassini-jupiter-pia07782-natural-appearance"
+      ],
+      "evidence": [
+        {
+          "channel": "albedo",
+          "source": "generated/jupiter/low/albedo.webp",
+          "sha256": "59a7fb13a44e66c9f9f576f003d120bc5316d56e369562b416f50866a5bbb871"
+        },
+        {
+          "channel": "maps.albedo",
+          "file": "jupiter/albedo.webp",
+          "sha256": "6e51a95993fe5a224c2e1955e71818f6ae58b8fbdefc60d562dd7336426a2402"
+        }
+      ]
+    },
+    {
+      "id": "venus",
+      "name": "Amber clouds",
+      "origin": "perilune",
+      "kind": "gas",
+      "maps": {
+        "albedo": "venus/albedo.webp"
+      },
+      "detail": {},
+      "land": "#c6aa6c",
+      "ocean": "#6e5734",
+      "atmosphere": "#d7ba81",
+      "cloudOpacity": 0,
+      "relief": 0,
+      "sources": [
+        "jpl-venus-mariner10-representative-clouds"
+      ],
+      "evidence": [
+        {
+          "channel": "albedo",
+          "source": "generated/venus/low/albedo.webp",
+          "sha256": "39382595175b4c4ee7d3b7d74b692208ad8e5ee9ebcad36804bf99edff35ff82"
+        },
+        {
+          "channel": "maps.albedo",
+          "file": "venus/albedo.webp",
+          "sha256": "394420b21f914da770406efff011c87c0e398600bcdcd54ac39a0bb638fe3779"
+        }
+      ]
+    },
+    {
+      "id": "mars",
+      "name": "Red desert",
+      "origin": "perilune",
+      "kind": "terrestrial",
+      "maps": {
+        "albedo": "mars/albedo.webp",
+        "height": "mars/height.u16",
+        "normal": "mars/normal.png",
+        "roughness": "mars/roughness.png"
+      },
+      "detail": {
+        "albedo": "mars/detail/albedo.webp",
+        "height": "mars/detail/height.u16",
+        "heightSize": [
+          1024,
+          512
+        ],
+        "normal": "mars/detail/normal.png",
+        "roughness": "mars/detail/roughness.png",
+        "buildable": "mars/detail/buildable.u8",
+        "buildableSize": [
+          512,
+          256
+        ]
+      },
+      "close": {
+        "albedo": "mars/close/albedo.webp",
+        "normal": "mars/close/normal.png",
+        "roughness": "mars/close/roughness.png",
+        "height": "mars/close/height.u16",
+        "heightSize": [
+          4096,
+          2048
+        ]
+      },
+      "land": "#b4643e",
+      "ocean": "#5b3426",
+      "atmosphere": "#d6a27c",
+      "cloudOpacity": 0,
+      "relief": 0.013,
+      "sources": [
+        "nasa-marstrek-viking-mdim21-global-232m",
+        "nasa-pds-mola-megdr-16ppd"
+      ],
+      "evidence": [
+        {
+          "channel": "albedo",
+          "source": "generated/mars/medium/albedo.webp",
+          "sha256": "fc8405fdd0c1b3ff2eaddebdfc7d546872672ce117b9448713f51f8436184eca"
+        },
+        {
+          "channel": "maps.albedo",
+          "file": "mars/albedo.webp",
+          "sha256": "36972b8668f0940856457299499c8a9a5d5b09571a10c36a93c168823625b486"
+        },
+        {
+          "channel": "detail.albedo",
+          "file": "mars/detail/albedo.webp",
+          "sha256": "aa90dc090914e66cace2e3d4a4032d7c53ca534b750265e69c96cc9dbb9303fc"
+        },
+        {
+          "channel": "elevation",
+          "source": "sources/nasa-pds-mola-megdr-16ppd/megt90n000eb.img",
+          "sha256": "d18d9b9ab8c5516d02e157dd2cde0f1d0d160c21940e953ba22391269a545e7b"
+        },
+        {
+          "channel": "albedo",
+          "source": "generated/mars/high/albedo.webp",
+          "sha256": "6e781a77a2be98cc4c8224ed993d89990386715350db6e1d3c177b10e6ed4714"
+        },
+        {
+          "channel": "maps.height",
+          "file": "mars/height.u16",
+          "sha256": "92625b6a87cd396c2a4dc729f8e01f7a0d7c143b3829a8ce822914d7d9bf88bc"
+        },
+        {
+          "channel": "detail.height",
+          "file": "mars/detail/height.u16",
+          "sha256": "b472942f95dee3ed216145c5bbdb7f449c23fcefda87c03f98fd7f36d299b476"
+        },
+        {
+          "channel": "maps.normal",
+          "file": "mars/normal.png",
+          "sha256": "9ca281823f9a253c5def99691e594fb854c965a4bb5233da3b76aab43c55c3da"
+        },
+        {
+          "channel": "maps.roughness",
+          "file": "mars/roughness.png",
+          "sha256": "23c6c33d1247dfb8039908d12f4e611b277b8119f8e4fb28e8c8413d4a75998f"
+        },
+        {
+          "channel": "detail.normal",
+          "file": "mars/detail/normal.png",
+          "sha256": "9aef8e6bfd174c074c3c46bcf2183eae2459be66a13240e185406ec32a424c9d"
+        },
+        {
+          "channel": "detail.roughness",
+          "file": "mars/detail/roughness.png",
+          "sha256": "64cb13dde96033bcb81283c3ab809c076871ef843b59a40a96be7903a9d2965e"
+        },
+        {
+          "channel": "detail.buildable",
+          "file": "mars/detail/buildable.u8",
+          "sha256": "ec831e7a16cb19aacf4f602efccfb14be3d8d629c40d868daa521aab81fdc640"
+        },
+        {
+          "channel": "close.albedo",
+          "file": "mars/close/albedo.webp",
+          "sha256": "8e6c0cb4d1fc3184b3511d565905a7df82c85f31742758f05f8217cb36d46b55"
+        },
+        {
+          "channel": "close.normal",
+          "file": "mars/close/normal.png",
+          "sha256": "1543a8a9648d581088b6c92e85ac2b0e506bc5528c4836bcd7d4454802b3e17b"
+        },
+        {
+          "channel": "close.roughness",
+          "file": "mars/close/roughness.png",
+          "sha256": "7c2eaed0ea66f47e0ce2890f6b206ad8fa760c23265523c4836a107b659da06b"
+        },
+        {
+          "channel": "close.height",
+          "file": "mars/close/height.u16",
+          "sha256": "65e2dc0a3a7a8e6167692f355d5cc21607549cf626df61e055ade321f35933a4"
+        }
+      ],
+      "datum": {
+        "lowestMetres": -8177,
+        "highestMetres": 21171
+      }
+    },
+    {
+      "id": "mercury",
+      "name": "Cratered scarps",
+      "origin": "perilune",
+      "kind": "terrestrial",
+      "maps": {
+        "albedo": "mercury/albedo.webp",
+        "height": "mercury/height.u16",
+        "normal": "mercury/normal.png",
+        "roughness": "mercury/roughness.png"
+      },
+      "detail": {
+        "albedo": "mercury/detail/albedo.webp",
+        "height": "mercury/detail/height.u16",
+        "heightSize": [
+          1024,
+          512
+        ],
+        "normal": "mercury/detail/normal.png",
+        "roughness": "mercury/detail/roughness.png",
+        "buildable": "mercury/detail/buildable.u8",
+        "buildableSize": [
+          512,
+          256
+        ]
+      },
+      "close": {
+        "albedo": "mercury/close/albedo.webp",
+        "normal": "mercury/close/normal.png",
+        "roughness": "mercury/close/roughness.png",
+        "height": "mercury/close/height.u16",
+        "heightSize": [
+          4096,
+          2048
+        ]
+      },
+      "land": "#8c857c",
+      "ocean": "#4a4744",
+      "atmosphere": null,
+      "cloudOpacity": 0,
+      "relief": 0.007,
+      "sources": [
+        "nasa-messenger-mercury-pia17386-enhanced-color",
+        "usgs-mercury-messenger-dem-665m"
+      ],
+      "evidence": [
+        {
+          "channel": "albedo",
+          "source": "generated/mercury/medium/albedo.webp",
+          "sha256": "f8fad70de255d4ad7a2bdc7ea99325d1207ac3b4d0e536cefb3d2e29ab8d198b"
+        },
+        {
+          "channel": "maps.albedo",
+          "file": "mercury/albedo.webp",
+          "sha256": "5f34728343af8595dbd18615fb3a19627be24a0a060a04ec92b4378d85c305e7"
+        },
+        {
+          "channel": "detail.albedo",
+          "file": "mercury/detail/albedo.webp",
+          "sha256": "b57e172fe84f3a0624a7158e2d83dc72498056740681be57ae651ffa00ab924d"
+        },
+        {
+          "channel": "elevation",
+          "source": "sources/usgs-mercury-messenger-dem-665m/Mercury_Messenger_USGS_DEM_Global_665m_v2.tif",
+          "sha256": "defce776241dcaf44cb0f081ee508c17dbea28aa5a22880bf7a5e8c25f96cbea"
+        },
+        {
+          "channel": "albedo",
+          "source": "generated/mercury/high/albedo.webp",
+          "sha256": "fed05073862d9159084b468db58a50e8d9676ee02eac789ac20654cfae539b2a"
+        },
+        {
+          "channel": "maps.height",
+          "file": "mercury/height.u16",
+          "sha256": "67f6718bd5d461b402ed340d34aee3bfa5296c256f745b128ee438f48f7406e0"
+        },
+        {
+          "channel": "detail.height",
+          "file": "mercury/detail/height.u16",
+          "sha256": "acc77d3524c980a91449830d9e799ace1b1a88c72febb213b88a7aa950daf5ba"
+        },
+        {
+          "channel": "maps.normal",
+          "file": "mercury/normal.png",
+          "sha256": "6b38d97bc173cce4f9deb74763a49766fadbb551ca086cae03beae6d49842dac"
+        },
+        {
+          "channel": "maps.roughness",
+          "file": "mercury/roughness.png",
+          "sha256": "9636b6caf68f278879356dc6c4cbd9087de8268a92a713fdae4484d0cb267d74"
+        },
+        {
+          "channel": "detail.normal",
+          "file": "mercury/detail/normal.png",
+          "sha256": "c4fa582eff0251d7b50f23c9c3c4a7e57a546a3ce143747b4f2f527b9207854d"
+        },
+        {
+          "channel": "detail.roughness",
+          "file": "mercury/detail/roughness.png",
+          "sha256": "6e14219478888d1b29181e6f53ac748703f0dc2a58b17935eaf2e63d1c864508"
+        },
+        {
+          "channel": "detail.buildable",
+          "file": "mercury/detail/buildable.u8",
+          "sha256": "010726e5addffb219bd77d3f01211e7471b72bfe11399b09926493901c0d76ca"
+        },
+        {
+          "channel": "close.albedo",
+          "file": "mercury/close/albedo.webp",
+          "sha256": "3e550eeb03fcc3e57d00026d21edb7092a44e26f3bdc9a45558ebbb2006e5dcf"
+        },
+        {
+          "channel": "close.normal",
+          "file": "mercury/close/normal.png",
+          "sha256": "ccf636ff1050a476c2553e74ce15f02dc7cf3394f55b302942d065d5b8da2177"
+        },
+        {
+          "channel": "close.roughness",
+          "file": "mercury/close/roughness.png",
+          "sha256": "04bc37087865949f9407ecad64c86560633c6b5d64fe5824dab391289947f2c8"
+        },
+        {
+          "channel": "close.height",
+          "file": "mercury/close/height.u16",
+          "sha256": "a9e580e1d02ff3232f362edbddaa9b538594f3a03ea1949d5209b21ecd108a12"
+        }
+      ],
+      "datum": {
+        "lowestMetres": -5382,
+        "highestMetres": 4497
+      }
+    }
+  ]
+}

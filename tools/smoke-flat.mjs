@@ -3,6 +3,7 @@
 // Usage: npm run build && node tools/smoke-flat.mjs [--dataset=sample] [--land=<path>] [--line=<n>] [--settle=<ms>]
 //        [--size=1440x900] [--query=cannon=off] [--out=screenshots/flat.png] [--base=https://host/path/]
 // Without --base it serves dist/ itself, on a free local port. With --base it tests an already deployed site.
+// --settle is how long to let the overview load; with --land it is the longest to wait for the planet to finish.
 // Prints the asset files the page requested, which is the list the app needs under public/assets/.
 import fs from 'node:fs';
 import http from 'node:http';
@@ -78,9 +79,16 @@ const stop = () => server?.close();
 // CHROMIUM_PATH names a browser binary when Playwright's own download is absent (cloud sessions: /opt/pw-browsers/chromium).
 const executablePath =
   process.env.CHROMIUM_PATH || (fs.existsSync('/opt/pw-browsers/chromium') ? '/opt/pw-browsers/chromium' : undefined);
+// Linux servers have no GPU, so WebGL runs in software there. Elsewhere the real GPU is used, which is far faster.
+// SMOKE_GL=software or SMOKE_GL=gpu overrides the choice.
+const softwareGL = process.env.SMOKE_GL ? process.env.SMOKE_GL === 'software' : process.platform === 'linux';
 const browser = await chromium.launch({
   executablePath,
-  args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--no-sandbox'],
+  args: [
+    '--ignore-gpu-blocklist',
+    ...(softwareGL ? ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'] : ['--enable-gpu']),
+    ...(process.platform === 'linux' ? ['--no-sandbox'] : []),
+  ],
 });
 const page = await browser.newPage({ viewport: { width, height } });
 const errors = [],
@@ -104,10 +112,23 @@ try {
   await page.waitForFunction(() => window.__flat || window.__flatError, null, { timeout: 60000 });
   const startError = await page.evaluate(() => window.__flatError || null);
   if (startError) errors.push(`start: ${startError}`);
-  await page.waitForTimeout(settle);
+  if (land) {
+    // A landing is finished when the loading notice has been gone for eight seconds (the camera is still flying in); --settle is the longest wait.
+    const deadline = Date.now() + settle;
+    let quietSince = 0;
+    while (Date.now() < deadline) {
+      await page.waitForTimeout(1000);
+      const ready = await page.evaluate(
+        () => !!window.__flat?.view.landed && document.getElementById('busy').hidden && document.querySelectorAll('#labels > div').length > 20,
+      );
+      quietSince = ready ? quietSince || Date.now() : 0;
+      if (quietSince && Date.now() - quietSince >= 8000) break;
+    }
+  } else await page.waitForTimeout(settle);
   const summary = await page.evaluate(() => ({
     files: window.__flat?.state.nodes.length ?? 0,
     canvases: document.querySelectorAll('#stage canvas').length,
+    webgl: !!document.createElement('canvas').getContext('webgl2'),
     labels: document.querySelectorAll('#labels > div').length,
     landed: !!window.__flat?.view.landed,
     sceneError: !document.getElementById('sceneError').hidden,
@@ -119,6 +140,8 @@ try {
   console.log(JSON.stringify(summary, null, 2));
   console.log(`screenshot: ${path.relative(repo, out)}`);
   console.log(`requested assets (${assets.size}):\n${[...assets].sort().join('\n')}`);
+  if (!summary.webgl)
+    errors.push(`WebGL is unavailable in this browser; rerun with SMOKE_GL=${softwareGL ? 'gpu' : 'software'}`);
   if (!summary.files) errors.push('no files were loaded');
   if (summary.canvases !== 1) errors.push(`expected one canvas, found ${summary.canvases}`);
   if (summary.sceneError) errors.push('the scene reported a render error');
