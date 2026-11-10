@@ -23,8 +23,10 @@ import {
   townKeys,
 } from './galaxy-session.js';
 import type { TableAnchor } from '../core/table-frame.ts';
-import type { ContextItem, ContextWindows, HostPort, InspectorPort, StageViewport, Viewport } from '../ports/host.ts';
+import type { ContextItem, ContextWindows, HostPort, StageViewport, Viewport } from '../ports/host.ts';
 import { hovered, loading, pinned } from '../state/app-state.ts';
+import { highlightSource } from './highlight.ts';
+import { createInspector } from './inspector.ts';
 import { createSceneKit } from './scene-kit.js';
 import type { LabelSink, OverlaySink, XrSceneKit } from './scene-kit.js';
 
@@ -61,12 +63,6 @@ function createContextWindows(): ContextWindows {
     },
   };
 }
-
-// The planet inspector stand-in: accepts every call and shows nothing (Task 13 replaces it).
-const inspectorStandIn = (): InspectorPort =>
-  new Proxy({} as InspectorPort, {
-    get: (_, name) => (name === 'then' ? undefined : () => undefined),
-  });
 
 export interface XrHostServices {
   renderer: WebGLRenderer;
@@ -157,8 +153,14 @@ export function createXrHost(services: XrHostServices): XrHost {
     },
     source: { open() {} },
     inspector: {
-      create: inspectorStandIn,
-      highlightSource: async (_node, source) => String(source || '').split('\n').map(escapeHtml),
+      create: createInspector,
+      highlightSource: (node, source, towns, signal) =>
+        highlightSource(
+          node as { path?: string; name?: string },
+          String(source || ''),
+          (towns as Record<string, unknown> | null) ?? null,
+          signal as AbortSignal | undefined,
+        ),
     },
     sceneKit(camPos) {
       kit = createSceneKit({

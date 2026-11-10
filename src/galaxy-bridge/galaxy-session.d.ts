@@ -44,3 +44,11 @@ export const remembered: HostPort['preferences']['recall'];
 export function installActions(host: XrHost, publish: { selected(path: string | null): void }): void;
 export function openGalaxy(host: XrHost, dataset: string, options?: { cannon?: boolean }): Promise<GalaxyView>;
 export function fileIndex(path: string): number;
+export function planetBuildBudget(
+  signal?: AbortSignal,
+  dispose?: () => void,
+  options?: { frameBound?: boolean; milliseconds?: number },
+): (force?: boolean) => Promise<void>;
+export function languageOf(path: string): { frontEnd?: string; [member: string]: unknown } | null | undefined;
+/** Loads the vendored TypeScript compiler as window.ts (once). */
+export function loadTypeScript(): Promise<unknown>;

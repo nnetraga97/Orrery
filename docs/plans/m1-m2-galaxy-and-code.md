@@ -320,13 +320,13 @@ A landed planet is an "overlay": an object with `scene`, `camera`, `frame()` ret
 
 **Files:** Create `src/galaxy-bridge/highlight.ts`, `src/galaxy-bridge/inspector.ts`. Modify `src/galaxy-bridge/xr-host.ts`, `src/state/app-state.ts`.
 
-- [ ] **Step 1. Tokens.** Port `highlightPlanetSource` from `reference/desktop-app/viewer/app/panels/planet-inspector/shared.tsx` (lines 58 onward) to `highlight.ts`. It returns, per line, segments `{ text, cls? }` with classes `tok-keyword`, `tok-string`, `tok-number`, `tok-comment` and so on. Keep its two sources: the town builder's `sourceTokens` when present, otherwise the TypeScript scanner on `window.ts`.
-- [ ] **Step 2. Inspector.** `createInspector(options)` stores the options and returns an object with all ten methods. Meaning: `setRegion(k)` and `openMethod(k)` set the selected function; `showStatement(element)` sets the selected source range from the element's `start`/`end` offsets or lines; `hover` sets a hovered range; `setTab`, `transportStatus`, `stackChanged`, `evidenceChanged` store their arguments in state for the next plan; `windowFor` returns `null`; `dispose` clears the code state. It publishes one signal, `codeView`: `{ file, lines (segments per line), regions, selectedRegion, selectedRange, hoveredRange, mode: 'function' | 'file' }`. Keep the `options` callbacks; Task 15 calls them.
-- [ ] **Step 3.** `xr-host.ts` uses `createInspector` and `highlight.ts` for `host.inspector`.
-- [ ] **Step 4. Check.** `npm run verify`, then land and read the state:
+- [x] **Step 1. Tokens.** Port `highlightPlanetSource` from `reference/desktop-app/viewer/app/panels/planet-inspector/shared.tsx` (lines 58 onward) to `highlight.ts`. It returns, per line, segments `{ text, cls? }` with classes `tok-keyword`, `tok-string`, `tok-number`, `tok-comment` and so on. Keep its two sources: the town builder's `sourceTokens` when present, otherwise the TypeScript scanner on `window.ts`.
+- [x] **Step 2. Inspector.** `createInspector(options)` stores the options and returns an object with all ten methods. Meaning: `setRegion(k)` and `openMethod(k)` set the selected function; `showStatement(element)` sets the selected source range from the element's `start`/`end` offsets or lines; `hover` sets a hovered range; `setTab`, `transportStatus`, `stackChanged`, `evidenceChanged` store their arguments in state for the next plan; `windowFor` returns `null`; `dispose` clears the code state. It publishes one signal, `codeView`: `{ file, lines (segments per line), regions, selectedRegion, selectedRange, hoveredRange, mode: 'function' | 'file' }`. Keep the `options` callbacks; Task 15 calls them.
+- [x] **Step 3.** `xr-host.ts` uses `createInspector` and `highlight.ts` for `host.inspector`.
+- [x] **Step 4. Check.** `npm run verify`, then land and read the state:
   `npm run smoke:xr -- --wait="window.__orrery?.ready" --settle=4000 --read="(__orrery.commands.landOn('core/range.ts', 90), new Promise(r => { const t = setInterval(() => { const c = __orrery.state.codeView.value; if (c && c.lines.length) { clearInterval(t); r({ file: c.file, lines: c.lines.length, hasKeyword: JSON.stringify(c.lines).includes('tok-keyword') }); } }, 500); }))"`
   Expected: `{ "file": "core/range.ts", "lines": <more than 400>, "hasKeyword": true }`.
-- [ ] **Step 5. Commit:** `Feed source tokens and selections to the app state`
+- [x] **Step 5. Commit:** `Feed source tokens and selections to the app state`
 
 ### Task 14: The code page
 

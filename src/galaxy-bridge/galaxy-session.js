@@ -19,6 +19,9 @@ export {
 export { fetchSymbols, groupArms, importUse, importsIndexed, membersOf, nodeOf } from '../../galaxy/viewer/app/graph.ts';
 export { remember, remembered } from '../../galaxy/viewer/app/project-store.ts';
 export { G, actions, projects } from '../../galaxy/viewer/app/state.ts';
+export { planetBuildBudget } from '../../galaxy/viewer/shared/build-budget.js';
+export { languageOf } from '../../galaxy/source-model/languages.js';
+export { loadTypeScript } from '../../galaxy/viewer/towns/town-assets.js';
 
 /** The copied code's shared state (files, links, the running view). */
 export const galaxyState = state;
