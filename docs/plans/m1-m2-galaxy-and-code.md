@@ -175,10 +175,10 @@ export function roomToModel(point: Vec3, pose: Pose): Vec3;
 
 Rules: `scale = clamp(anchor.width / (2 · d · tan(fov/2)), minScale, maxScale)`. The camera frame has −Z pointing from the camera to the target and +Y along `up` made perpendicular to that. `orientation = anchor.orientation ∘ inverse(cameraOrientation)`. `position` is chosen so `modelToRoom(camera.target) = anchor.position`. If the camera is at its target (`d` under 1e-6) use `d = 1e-6`.
 
-- [ ] **Step 1. Tests first.** Cover: (a) `modelToRoom(target, pose)` equals `anchor.position` for five varied cameras; (b) the camera's own position maps to a point `scale · d` from the anchor along the anchor's +Z; (c) halving `d` doubles `scale`; (d) scale is clamped at both limits; (e) `roomToModel(modelToRoom(p))` returns `p` within 1e-9; (f) a camera looking straight down −Z with +Y up and an identity anchor gives identity orientation.
-- [ ] **Step 2.** Run `npm run test:core`. Expected: the new tests fail because the module does not exist.
-- [ ] **Step 3.** Implement until `npm run test:core` passes.
-- [ ] **Step 4. Commit:** `Add the virtual-camera to table pose math`
+- [x] **Step 1. Tests first.** Cover: (a) `modelToRoom(target, pose)` equals `anchor.position` for five varied cameras; (b) the camera's own position maps to a point `scale · d` from the anchor along the anchor's +Z; (c) halving `d` doubles `scale`; (d) scale is clamped at both limits; (e) `roomToModel(modelToRoom(p))` returns `p` within 1e-9; (f) a camera looking straight down −Z with +Y up and an identity anchor gives identity orientation.
+- [x] **Step 2.** Run `npm run test:core`. Expected: the new tests fail because the module does not exist.
+- [x] **Step 3.** Implement until `npm run test:core` passes.
+- [x] **Step 4. Commit:** `Add the virtual-camera to table pose math`
 
 ### Task 3: Contracts for the copied code
 
