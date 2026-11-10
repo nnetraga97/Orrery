@@ -1,0 +1,37 @@
+#agentShow,
+#agentShip {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  background: #182433;
+  border-bottom: 1px solid #425368;
+  color: #e5edf6;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+#agentShow > div,
+#agentShip > div {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+#agentShow strong,
+#agentShip strong {
+  font-size: 11px;
+  color: #a9c8e8;
+}
+#agentShow p,
+#agentShip p {
+  margin: 4px 0 0;
+  white-space: pre-wrap;
+}
+#agentShow small,
+#agentShip small {
+  display: block;
+  margin-top: 4px;
+}
+#agentShow button,
+#agentShip button {
+  flex-shrink: 0;
+}

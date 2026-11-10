@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Codebase Views</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="styles/interface-tokens.css">
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:13px/1.45 var(--font-ui); height:100vh; display:flex; flex-direction:column; overflow:hidden; }
+  header { display:flex; gap:6px; padding:8px 16px; border-bottom:1px solid var(--line); flex-wrap:wrap; align-items:center; }
+  button, select { background:var(--panel); color:var(--text); border:1px solid var(--line); border-radius:7px; padding:5px 10px; font:inherit; cursor:pointer; }
+  button.on { background:var(--selection); border-color:var(--line); color:var(--text); }
+  button:hover:not(:disabled) { background:var(--hover); }
+  main { flex:1; display:flex; min-height:0; }
+  #stage { flex:1; position:relative; min-width:0; overflow:hidden; }
+  #stage > canvas { position:absolute; inset:0; }
+  #sceneNavigation { position:absolute; inset:0; z-index:6; pointer-events:none; }
+  .scene-navigation { position:absolute; right:16px; bottom:18px; display:flex; gap:7px; }
+  #sceneFps { position:absolute; top:16px; left:16px; display:flex; align-items:center; justify-content:center; min-width:70px; height:32px; padding:0 12px; border-radius:16px; border:1px solid var(--line); background:var(--panel); color:var(--secondary); font-size:11px; font-variant-numeric:tabular-nums; }
+  #sceneNavigation .scene-navigation button { display:flex; align-items:center; justify-content:center; width:32px; height:32px; padding:0; border-radius:8px; border:1px solid var(--line); background:var(--panel); color:var(--secondary); pointer-events:auto; }
+  #sceneNavigation .scene-navigation button:hover, #sceneNavigation .scene-navigation button:focus-visible { background:var(--hover); color:var(--text); }
+  #sceneNavigation .scene-navigation button:focus-visible { outline:2px solid var(--accent); outline-offset:3px; }
+  #sceneNavigation .scene-navigation button .ui-icon { width:16px; height:16px; }
+  #sceneNavigation .scene-navigation button[hidden] { display:none; }
+  body.planet-mode .planet-hint { right:108px; }
+  #labels { position:absolute; inset:0; pointer-events:none; overflow:hidden; }
+  #labels div { position:absolute; transform:translate(-50%,-100%); white-space:nowrap; font-size:11px; padding:1px 6px; border-radius:4px; background:var(--panel); }
+  body.planet-mode #legend, body.planet-mode #stats { display:none; }
+  h3.ph { font-size:11px; font-weight:500; color:var(--muted); margin:12px 0 4px; text-transform:uppercase; letter-spacing:.05em; }
+  .regions { margin:0; padding-left:20px; max-height:230px; overflow:auto; }
+  .regions li { cursor:pointer; margin:2px 0; }
+  .regions li:hover, .regions li.on { color:#fff; }
+  .regions li.on span:first-child { color:var(--accent); }
+  .code { margin-top:8px; max-height:340px; overflow:auto; background:var(--input); border-radius:4px; font-size:11px; line-height:1.5; }
+  .code .cl { white-space:pre; padding:0 6px; }
+  .code .ln { display:inline-block; width:34px; color:#4a5878; user-select:none; }
+  .code .cl.diffl { background:rgba(255,154,42,.16); }
+  .code .cl.throw { background:rgba(255,43,43,.28); color:#fff; }
+  .code .cl { cursor:pointer; }
+  .code .cl.hot { box-shadow:inset 3px 0 0 #7cc4ff; background:rgba(124,196,255,.12); }
+  #busy { position:absolute; top:16px; right:16px; width:min(240px,calc(100% - 32px)); z-index:30; pointer-events:none; }
+  #busy[hidden] { display:none; }
+  .scene-loading-card { padding:11px 13px; border:1px solid var(--line); border-radius:10px; background:var(--panel); color:var(--text); box-shadow:0 3px 12px rgba(0,0,0,.12); }
+  #sceneLoadingTitle { margin:0 0 3px; font-size:12px; font-weight:500; }
+  #sceneLoadingDetail { margin:0; color:var(--muted); font-size:11px; line-height:1.4; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .scene-loading-track { height:2px; margin:9px 0 0; overflow:hidden; border-radius:2px; background:rgba(128,140,160,.18); }
+  .scene-loading-track::after { content:''; display:block; width:38%; height:100%; border-radius:inherit; background:var(--accent); animation:scene-loading 1.4s ease-in-out infinite; }
+  @keyframes scene-loading { from { transform:translateX(-110%); } to { transform:translateX(370%); } }
+  @media (prefers-reduced-motion:reduce) { .scene-loading-track::after { width:100%; animation:none; opacity:.65; } }
+  #sceneError { position:absolute; bottom:16px; left:16px; right:16px; z-index:12; padding:12px; background:#241a18; border:1px solid #99634b; border-radius:8px; }
+  #sceneError button { margin-left:12px; }
+  .row { display:flex; gap:6px; margin:4px 0 12px; flex-wrap:wrap; }
+  #legend div { display:flex; align-items:center; gap:8px; margin:2px 0; }
+  #legend i { width:10px; height:10px; border-radius:50%; display:inline-block; flex:none; }
+  #hover { margin:10px 0; min-height:3.5em; color:var(--accent); word-break:break-all; }
+  #stats { color:var(--muted); }
+  #labels div.country-province-label { background:none; font-size:16px; font-weight:500; letter-spacing:normal; opacity:.48; text-transform:none; text-shadow:0 1px 3px #0c1a33; }
+  #labels div.probe { color:#fff !important; background:rgba(120,20,30,.85); border:1px solid #ff6b6b; }
+  #labels div.hot { color:#ffcf8a !important; background:rgba(60,30,6,.8); }
+  #labels div.arm { background:none; font-size:12px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; text-shadow:0 1px 3px #000; }
+  #labels div.planet-label { transform:translate(-50%,-50%); font-size:7px; line-height:1.2; max-width:64px; overflow:hidden; text-overflow:ellipsis; padding:0; border-radius:0; background:none; text-shadow:0 1px 2px #000, 0 0 3px #000; }
+  .chips { display:flex; gap:4px; flex-wrap:wrap; margin:6px 0; }
+  .legend3d { margin:8px 0 10px; font-size:11.5px; color:var(--text); }
+  .legend3d > div { display:flex; align-items:center; gap:8px; margin:3px 0; }
+  .legend3d .lg-h { color:var(--muted); text-transform:uppercase; letter-spacing:.05em; font-size:10.5px; margin-top:8px; }
+  .ico { width:16px; height:16px; flex:none; display:inline-block; position:relative; }
+  .ico.hole { border-radius:50%; background:#000; box-shadow:0 0 0 2px #ffe6c8, 0 0 8px 3px rgba(255,170,90,.6); width:10px; height:10px; margin:0 3px; }
+  .ico.planet { border-radius:50%; background:radial-gradient(circle at 35% 35%, #bfe0ff, #3d7fd6 60%, #1b3a66); width:13px; height:13px; }
+  .ico.rock { background:#6d6a66; clip-path:polygon(20% 5%,70% 0,100% 40%,85% 90%,35% 100%,0 60%); width:11px; height:10px; margin:0 2px; }
+  .ico.comet { background:linear-gradient(90deg, transparent, rgba(191,230,255,.8)); clip-path:polygon(0 35%,75% 20%,100% 50%,75% 80%,0 65%); }
+  .ico.comet::after { content:''; position:absolute; right:0; top:4px; width:8px; height:8px; background:#fff; transform:rotate(45deg); }
+  .ico.ship { background:var(--c); clip-path:polygon(0 50%,55% 30%,100% 0,85% 50%,100% 100%,55% 70%); width:16px; height:9px; }
+  .ico.ship.big { width:20px; height:11px; }
+  .ico.halo { border-radius:50%; background:radial-gradient(circle, #ffae42 0 25%, rgba(255,174,66,.35) 45%, transparent 70%); }
+  .ico.target { border:2px solid #ff5a5a; border-radius:50%; width:13px; height:13px; }
+  .ico.blast { border:2px solid #ff4a3a; border-radius:50%; width:14px; height:14px; box-shadow:0 0 6px #ff4a3a; }
+  .chips button { padding:3px 8px; font-size:12px; }
+  #search { position:relative; flex:1; min-width:220px; max-width:440px; margin-left:auto; }
+  #search input { width:100%; background:var(--panel); color:var(--text); border:1px solid var(--line); border-radius:6px; padding:6px 10px 6px 28px; font:inherit; outline:none; }
+  #search input:focus { border-color:var(--focus); }
+  #search svg { position:absolute; left:9px; top:50%; transform:translateY(-50%); width:13px; height:13px; stroke:var(--muted); fill:none; stroke-width:2; }
+  #results { position:absolute; top:calc(100% + 4px); left:0; right:0; background:var(--panel); border:1px solid var(--line); border-radius:6px; z-index:20; display:none; max-height:360px; overflow:auto; }
+  #results div { padding:6px 10px; cursor:pointer; display:flex; gap:8px; align-items:baseline; }
+  #results div.act, #results div:hover { background:var(--selection); }
+  #results b { color:#fff; font-weight:500; white-space:nowrap; }
+  #results span { color:var(--muted); font-size:11px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; direction:rtl; text-align:left; }
+  #results i { width:8px; height:8px; border-radius:50%; flex:none; align-self:center; }
+  #selected { margin:10px 0; padding:10px; border:1px solid var(--line); border-radius:6px; display:none; }
+  #selected .path { color:#fff; word-break:break-all; }
+  #selected .meta { color:var(--muted); margin:4px 0 8px; }
+  #selected ul { list-style:none; margin:0; padding:0; max-height:180px; overflow:auto; }
+  #selected li { cursor:pointer; padding:1px 0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  #selected li:hover { color:#fff; }
+  #selected .use { float:right; margin-left:8px; font-size:10.5px; color:var(--muted); }
+  #selected .use.runtime { color:var(--text); }
+  #selected h3 { font-size:11px; font-weight:500; color:var(--muted); margin:8px 0 2px; text-transform:uppercase; letter-spacing:.04em; }
+  /* The last few agent actions over the canvas (workspace-log.js). */
+  #workspaceLog { position:absolute; left:12px; bottom:12px; max-width:min(520px, 70%); display:flex; flex-direction:column; gap:2px; font-size:11.5px; z-index:4; pointer-events:none; }
+  #workspaceLog .gl { display:flex; gap:6px; align-items:baseline; background:var(--panel); border-radius:4px; padding:2px 8px; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; pointer-events:auto; }
+  #workspaceLog .gl span { overflow:hidden; text-overflow:ellipsis; }
+  #workspaceLog .gl:not(:first-child) { opacity:.72; }
+  #workspaceLog .gl.link { cursor:pointer; } #workspaceLog .gl.link:hover span { color:#fff; text-decoration:underline; }
+  #workspaceLog i { font-style:normal; width:12px; text-align:center; flex:none; }
+  #workspaceLog .tracer i { color:#9fe8ff; } #workspaceLog .flak i { color:#ffd66b; } #workspaceLog .shell i { color:#ff8a3d; } #workspaceLog .siege i { color:#ff4d6d; }
+  #workspaceLog .mortar i { color:#b7ff6b; } #workspaceLog .drone i { color:#c38bff; } #workspaceLog .err span { color:#ff9b9b; } #workspaceLog .dim span { color:var(--muted); }
+  #workspaceLog .prompt span { color:#fff; }
+</style>
+<link rel="stylesheet" href="styles/planet-inspector.css">
+<link rel="stylesheet" href="styles/context-window.css">
+<link rel="stylesheet" href="styles/projects.css">
+<link rel="stylesheet" href="styles/codex-chat.css">
+<link rel="stylesheet" href="styles/desktop-workbench.css">
+<link rel="stylesheet" href="styles/agent-history.css">
+<link rel="stylesheet" href="styles/board.css">
+</head>
+<body>
+<header>
+  <div class="toolbar-group" role="group" aria-label="Project">
+  <!-- The open project, kept as a renderer implementation detail; the workbench switches it. -->
+  <select id="dataset" aria-label="Project" hidden></select>
+  <button id="projectMenuBtn" class="toolbar-disclosure" aria-expanded="false" aria-controls="projectPop">File <span aria-hidden="true">⌄</span></button>
+  </div>
+  <div class="toolbar-group" role="group" aria-label="Agents and activity">
+  <button id="chatBtn" aria-controls="agentPanel" aria-label="Codex chats">Chats</button>
+  <button id="agentActivity" data-icon="history" data-icon-text="Activity" aria-label="Activity history">Activity history</button>
+  </div>
+  <div class="toolbar-group" role="group" aria-label="View">
+  <div id="viewTabs" class="view-tabs" role="group" aria-label="View">
+    <button data-v="board" title="Circuit board · files as parts, imports as copper"><span>Board</span></button>
+    <button data-v="constellation" title="3D constellation · files as planets and towns"><span>3D</span></button>
+    <button data-v="graph" title="Country map · folders as districts, imports as roads"><span>Map</span></button>
+  </div>
+  <button id="viewOptionsBtn" class="toolbar-disclosure" aria-expanded="false" aria-controls="viewOptionsPop">View options <span aria-hidden="true">⌄</span></button>
+  </div>
+  <div id="search"><!-- app/panels/FileSearch.tsx --></div>
+  <div id="projectPop" class="hdr-pop header-menu" aria-label="File" hidden><!-- app/panels/Workbench.tsx --></div>
+  <div id="viewOptionsPop" class="hdr-pop header-menu" aria-label="View options" hidden>
+    <h2>View options</h2>
+    <label class="view-option-field" for="groupSel"><span>Group files by</span><select id="groupSel"><option value="cluster">Import clusters</option><option value="folder">Folder</option></select></label>
+    <div id="extra"></div>
+    <div id="atlasControls"></div>
+    <section id="cameraOptions" aria-label="Camera controls" hidden>
+      <h2>Camera</h2>
+      <label class="view-option-field" for="cameraInputDevice"><span>Input device</span><select id="cameraInputDevice"><option value="trackpad">Trackpad</option><option value="mouse">Mouse</option></select></label>
+      <label class="view-option-field" for="cameraDragMode"><span>Drag to</span><select id="cameraDragMode"><option value="orbit">Orbit</option><option value="pan">Pan</option></select></label>
+      <div class="camera-actions">
+        <button id="cameraHome" title="Fit the whole scene (Home)">Fit view <kbd>Home</kbd></button>
+        <button id="cameraFocus" title="Focus the selected file (F)">Focus selected <kbd>F</kbd></button>
+        <button id="cameraZoomIn" aria-label="Zoom in" title="Zoom in (+)">Zoom in <kbd>+</kbd></button>
+        <button id="cameraZoomOut" aria-label="Zoom out" title="Zoom out (−)">Zoom out <kbd>−</kbd></button>
+      </div>
+      <details class="camera-help"><summary>Navigation help</summary>
+        <p>Drag to orbit or pan. Shift-drag switches between them. Right or middle drag pans.</p>
+        <p id="trackpadHelp">Two-finger swipe pans in any direction. Shift + swipe orbits. Pinch zooms toward the pointer.</p>
+        <p id="mouseHelp" hidden>Scroll to zoom toward the pointer. Shift-scroll pans.</p>
+        <p>Click the scene to use shortcuts: arrows pan, Shift + arrows orbit, + / − zoom, F focuses the selected file, Home fits the whole view.</p>
+      </details>
+    </section>
+    <div class="view-option-links">
+      <button id="reorganizeBtn" title="Regroup files and lay every view out afresh; otherwise groups keep their files as the code changes">Regroup files</button>
+      <button id="infoBtn" aria-expanded="false" aria-controls="infoPop">About this view and legend</button>
+    </div>
+  </div>
+  <div id="infoPop" class="hdr-pop" aria-label="About this view and legend" hidden>
+    <button class="header-pop-back" data-back-options>← View options</button>
+    <div id="viewInfo"><!-- app/panels/ViewInfo.tsx --></div>
+  </div>
+</header>
+<main>
+  <div id="stage" aria-busy="true"><div id="labels"></div>
+    <div id="busy"><section class="scene-loading-card" role="status" aria-live="polite" aria-atomic="true" aria-labelledby="sceneLoadingTitle">
+      <h2 id="sceneLoadingTitle">Opening workspace</h2>
+      <p id="sceneLoadingDetail">Preparing your scene…</p>
+      <div class="scene-loading-track" aria-hidden="true"></div>
+    </section></div>
+    <div id="sceneError" role="alert" hidden><span></span><button type="button">Reload view</button></div>
+    <div id="emptyPrompt" style="display: contents"><!-- app/panels/EmptyProject.tsx --></div>
+    <div id="sceneNavigation"><!-- app/panels/SceneNavigation.tsx --></div>
+  </div>
+  <aside id="agentPanel" aria-label="Codex chats" hidden>
+    <div id="agentResize" role="separator" tabindex="0" aria-label="Resize Chats panel" aria-orientation="vertical" aria-controls="agentPanel" title="Drag to resize · Arrow keys to adjust · Double-click to reset"></div>
+  </aside>
+</main>
+<div id="activityHistory"><!-- app/panels/ActivityHistory.tsx --></div>
+<script type="module" src="./app/main.ts"></script>
+</body>
+</html>

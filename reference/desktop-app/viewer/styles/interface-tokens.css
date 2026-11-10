@@ -1,0 +1,75 @@
+/* Opaque macOS-inspired chrome. Keep world colors in the scene, not in its controls. */
+:root {
+  color-scheme: dark;
+  --bg: #1c1c1e;
+  --sidebar: #262628;
+  --toolbar: #2c2c2e;
+  --panel: #2c2c2e;
+  --control: #48484a;
+  --hover: #3a3a3c;
+  --input: #1c1c1e;
+  --line: #454547;
+  --separator: #363638;
+  --text: #f2f2f7;
+  --secondary: #c7c7cc;
+  --muted: #a1a1a6;
+  --accent: #0a84ff;
+  --accent-hover: #2994ff;
+  --focus: #64a9ff;
+  --selection: #325474;
+  --panel-shadow: 0 12px 36px #0006, 0 0 0 1px #0003;
+  --font-ui: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+  --font-code: 'SF Mono', SFMono-Regular, Menlo, monospace;
+}
+body {
+  -webkit-font-smoothing: antialiased;
+  accent-color: var(--accent);
+}
+:where(button, input, select, textarea) {
+  font-family: var(--font-ui);
+}
+:where(button, select) {
+  font-weight: 500;
+}
+:where(button):active:not(:disabled) {
+  filter: brightness(1.12);
+}
+:where(button, input, select, textarea, summary):focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+:where(input, textarea)::placeholder {
+  color: var(--muted);
+}
+:where(code, pre, kbd) {
+  font-family: var(--font-code);
+}
+:where(
+  .hdr-pop,
+  .ctx,
+  .planet-map,
+  .planet-town-menu,
+  .planet-key,
+  #wbPicker,
+  .codex-account-menu,
+  .codex-composer-menu,
+  .activity-history
+) {
+  scrollbar-width: thin;
+  scrollbar-color: #636366 transparent;
+}
+/* Preserve distinction for people who request stronger contrast. */
+@media (prefers-contrast: more) {
+  :root {
+    --line: #8e8e93;
+    --separator: #636366;
+    --muted: #c7c7cc;
+    --secondary: #e5e5ea;
+    --selection: #244c74;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  :where(.hdr-pop, .ctx, .planet-tools, #wbTitlebar, #wbExplorer) * {
+    transition: none !important;
+  }
+}

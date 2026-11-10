@@ -1,0 +1,59 @@
+.activity-history {
+  width: min(840px, 94vw);
+  max-height: 85vh;
+  background: var(--input);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 24px;
+  font: 14px/1.5 system-ui;
+  box-sizing: border-box;
+}
+.activity-history::backdrop {
+  background: #02050abb;
+}
+.activity-history h2 {
+  margin: 0;
+}
+.activity-history p {
+  color: var(--secondary);
+}
+.activity-history input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px;
+  background: var(--panel);
+  color: inherit;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+}
+.activity-history button {
+  margin: 12px 8px 0 0;
+  padding: 8px 14px;
+  background: var(--hover);
+  color: inherit;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  cursor: pointer;
+}
+.activity-history button:disabled {
+  opacity: 0.4;
+}
+.activity-rows {
+  max-height: 48vh;
+  overflow: auto;
+}
+.activity-rows details {
+  border-bottom: 1px solid var(--line);
+  padding: 10px 0;
+}
+.activity-rows summary {
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+.activity-rows pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 12px;
+  color: var(--secondary);
+}

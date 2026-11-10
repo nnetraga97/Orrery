@@ -1,0 +1,283 @@
+/* Context windows (context-window.js) and the header popovers that replaced the side panel. */
+.ctx {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 30;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: var(--panel-shadow);
+  color: var(--text);
+  font-size: 12px;
+  line-height: 1.45;
+}
+.ctx[hidden] {
+  display: none;
+}
+.ctx-tip {
+  pointer-events: none;
+  max-width: 320px;
+  padding: 7px 10px;
+}
+.ctx-win {
+  width: 360px;
+  max-height: min(62vh, 560px);
+  display: flex;
+  flex-direction: column;
+  padding: 14px 16px;
+}
+.ctx-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ctx-kind {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--muted);
+}
+.ctx-close {
+  margin-left: auto;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  padding: 4px;
+  font-size: 16px;
+  line-height: 1;
+}
+.ctx-close:hover {
+  color: var(--text);
+}
+.ctx-title {
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 600;
+  margin-top: 5px;
+  overflow-wrap: anywhere;
+}
+.ctx-tip .ctx-title {
+  font-size: 12.5px;
+}
+.ctx-sub {
+  color: var(--muted);
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+.ctx-preview {
+  color: var(--secondary);
+  font-size: 11px;
+  margin-top: 3px;
+}
+.ctx-body {
+  overflow: auto;
+  min-height: 0;
+  margin-top: 8px;
+  flex: 1;
+}
+.ctx-body h4 {
+  margin: 14px 0 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.ctx-body h4:first-child {
+  margin-top: 0;
+}
+.ctx-body .note {
+  color: var(--muted);
+  font-size: 11px;
+  margin: 4px 0;
+}
+.ctx-body ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.ctx-body li {
+  padding: 2px 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ctx-body li[data-go],
+.ctx-body button.row-link {
+  cursor: pointer;
+}
+.ctx-body li[data-go]:hover {
+  color: var(--text);
+}
+.ctx-body button.row-link {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: 0;
+  padding: 5px 6px;
+  color: var(--text);
+  font-size: 11.5px;
+  border-radius: 5px;
+}
+.ctx-body button.row-link:hover {
+  color: var(--text);
+}
+.ctx-body button.row-link small,
+.ctx-body li small {
+  color: var(--muted);
+  font-size: 10.5px;
+}
+.ctx-body .use {
+  float: right;
+  margin-left: 8px;
+  font-size: 10.5px;
+  color: var(--muted);
+}
+.ctx-body .use.runtime {
+  color: var(--text);
+}
+.ctx-body pre {
+  background: var(--input);
+  border-radius: 7px;
+  padding: 6px 8px;
+  margin: 6px 0;
+  font-size: 11px;
+  overflow: auto;
+  max-height: 260px;
+  white-space: pre;
+}
+.ctx-body .code {
+  max-height: 280px;
+}
+.ctx-body .fact {
+  display: flex;
+  gap: 8px;
+  margin: 3px 0;
+  font-size: 11px;
+}
+.ctx-body .fact span {
+  color: var(--muted);
+  flex: none;
+}
+.ctx-body .fact code {
+  overflow-wrap: anywhere;
+}
+.ctx-body .metrics {
+  display: flex;
+  gap: 14px;
+  font-size: 10.5px;
+  color: var(--muted);
+  margin: 4px 0;
+}
+.ctx-body .metrics b {
+  color: var(--text);
+  font-size: 13px;
+}
+.ctx-body .warn {
+  color: #ffb3a8;
+  font-size: 11px;
+  margin: 4px 0;
+}
+.ctx-body .changed {
+  color: #ffcf8a;
+  font-size: 11px;
+  margin: 4px 0;
+}
+.ctx-body .chips {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin: 6px 0;
+}
+.ctx-body .chips button {
+  padding: 2px 7px;
+  font-size: 11px;
+}
+.ctx-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--separator);
+}
+.ctx-actions button {
+  padding: 5px 10px;
+  font-size: 12px;
+  border-color: transparent;
+  background: var(--control);
+  box-shadow:
+    inset 0 1px #ffffff0d,
+    0 1px 2px #0003;
+}
+.ctx-actions button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.ctx-actions button.on {
+  background: var(--accent);
+  color: #fff;
+}
+.ctx-actions button.on:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+
+/* Header controls and popovers. */
+header select {
+  padding: 4px 6px;
+}
+#extra {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+#extra input[type='range'] {
+  width: 90px;
+}
+
+.hdr-pop {
+  position: absolute;
+  top: calc(100% + 2px);
+  right: 16px;
+  z-index: 40;
+  width: 340px;
+  max-height: 75vh;
+  overflow: auto;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 8px;
+  box-shadow: var(--panel-shadow);
+}
+.hdr-pop[hidden] {
+  display: none;
+}
+.hdr-pop h2 {
+  font-size: 12px;
+  font-weight: 600;
+  margin: 6px 8px 10px;
+  color: var(--text);
+}
+.hdr-pop p {
+  margin: 0 0 10px;
+  color: var(--muted);
+}
+header {
+  position: relative;
+}
+.planet-status {
+  position: absolute;
+  top: 132px;
+  left: 12px;
+  z-index: 6;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  font-size: 11px;
+  color: var(--muted);
+}
+.planet-status button {
+  padding: 3px 9px;
+  font-size: 11px;
+}

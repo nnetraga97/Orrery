@@ -1,0 +1,131 @@
+/* The circuit board view (board/board.js) and the toolbar's view switcher. */
+.board-canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+  outline: none;
+  touch-action: none;
+}
+.board-canvas.panning {
+  cursor: grabbing;
+}
+
+/* Overview and zoom, bottom right over the board. */
+.board-hud {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  pointer-events: none;
+}
+.board-hud > * {
+  pointer-events: auto;
+}
+.board-minimap {
+  display: block;
+  width: 196px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #0b0d0c;
+  box-shadow: var(--panel-shadow);
+  cursor: crosshair;
+}
+.board-minimap[hidden] {
+  display: none;
+}
+.board-zoom {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--panel);
+  box-shadow: var(--panel-shadow);
+}
+.board-zoom button {
+  min-width: 28px;
+  height: 28px;
+  padding: 0 9px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text);
+  font-size: 12px;
+  line-height: 28px;
+}
+.board-zoom button[data-act='in'],
+.board-zoom button[data-act='out'] {
+  padding: 0;
+  font-size: 16px;
+}
+.board-zoom button:hover {
+  background: var(--hover);
+}
+.board-zoom button[hidden] {
+  display: none;
+}
+.board-zoom-level {
+  min-width: 44px;
+  color: var(--muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+/* Scene chrome the board replaces. */
+#sceneFps[hidden],
+#sceneNavigation .scene-navigation[hidden] {
+  display: none;
+}
+
+/* Toolbar buttons that pair an icon with their name. */
+header button#agentActivity {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: auto;
+  padding: 5px 11px 5px 9px;
+}
+header #agentActivity .ui-icon {
+  width: 15px;
+  height: 15px;
+  flex: none;
+}
+
+/* View switcher: every view one click away. */
+.view-tabs {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  min-height: 34px;
+  padding: 2px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--input);
+}
+header .view-tabs > button {
+  min-height: 28px;
+  padding: 3px 12px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  white-space: nowrap;
+}
+header .view-tabs > button:hover:not(:disabled) {
+  background: var(--hover);
+  color: var(--text);
+}
+header .view-tabs > button.on {
+  background: var(--control);
+  color: var(--text);
+}
+header .view-tabs > button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
