@@ -1,10 +1,12 @@
 // Runs the copied galaxy inside IWSDK: opens a dataset through the bridge, attaches the galaxy's scene to the world,
 // steps the scene kit every frame and poses the model on the table from the kit's virtual camera.
-import { createSystem } from '@iwsdk/core';
+import { Quaternion, Vector3, createSystem } from '@iwsdk/core';
 import type { Entity } from '@iwsdk/core';
 import { GalaxyRoot } from '../components/galaxy-root.ts';
 import { tablePose } from '../core/table-frame.ts';
 import type { TableAnchor } from '../core/table-frame.ts';
+import { createLabelLayer } from '../galaxy-bridge/label-layer.ts';
+import type { LabelLayer } from '../galaxy-bridge/label-layer.ts';
 import { createPointScaler } from '../galaxy-bridge/point-sizes.ts';
 import { fileIndex, galaxyState, installActions, openGalaxy } from '../galaxy-bridge/galaxy-session.js';
 import { createXrHost } from '../galaxy-bridge/xr-host.ts';
@@ -28,9 +30,17 @@ export class GalaxySystem extends createSystem({ roots: { required: [GalaxyRoot]
   private entity: Entity | null = null;
   private loadToken = 0;
   private points: ReturnType<typeof createPointScaler> | null = null;
+  private labels!: LabelLayer;
+  private head!: Vector3;
+  private gaze!: Vector3;
+  private headTurn!: Quaternion;
 
   init() {
-    this.host = createXrHost({ renderer: this.renderer, anchor: TABLE_ANCHOR });
+    this.head = new Vector3();
+    this.gaze = new Vector3();
+    this.headTurn = new Quaternion();
+    this.labels = createLabelLayer(this.world);
+    this.host = createXrHost({ renderer: this.renderer, anchor: TABLE_ANCHOR, labels: this.labels });
     installActions(this.host, { selected: path => (selectedPath.value = path) });
     this.cleanupFuncs.push(
       connectCommands({
@@ -102,5 +112,10 @@ export class GalaxySystem extends createSystem({ roots: { required: [GalaxyRoot]
     group.quaternion.set(pose.orientation[0], pose.orientation[1], pose.orientation[2], pose.orientation[3]);
     group.scale.setScalar(pose.scale);
     this.points?.update(pose.scale, delta);
+    // In a headset the head is the player's head; in a browser tab it is the page camera.
+    const head = this.renderer.xr.isPresenting ? this.player.head : this.camera;
+    head.getWorldPosition(this.head);
+    this.gaze.set(0, 0, -1).applyQuaternion(head.getWorldQuaternion(this.headTurn));
+    this.labels.update(this.head, this.gaze, pose);
   }
 }
