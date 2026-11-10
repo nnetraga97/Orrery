@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { modelToRoom, roomToModel, tablePose } from './table-frame.ts';
+import { focusedPose, modelToRoom, roomToModel, tablePose } from './table-frame.ts';
 import type { Quat, TableAnchor, Vec3, VirtualCamera } from './table-frame.ts';
 
 const near = (a: readonly number[], b: readonly number[], eps = 1e-9) =>
@@ -85,4 +85,23 @@ test('a camera looking down -Z with +Y up and an identity anchor gives identity 
     [0, 0, 0, 1],
     1e-12,
   );
+});
+
+test('focusedPose matches tablePose while the scale is under the cap', () => {
+  const camera = cameras[0];
+  const free = tablePose(camera, anchor);
+  const capped = focusedPose(camera, anchor, [5, 5, 5], free.scale * 2);
+  near(capped.position, free.position);
+  near(capped.orientation, free.orientation);
+  assert.equal(capped.scale, free.scale);
+});
+
+test('focusedPose caps the scale and puts the focus point on the anchor', () => {
+  const camera: VirtualCamera = { position: [0, 2, 3], target: [0, 1, 0], up: [0, 1, 0], fovDegrees: 45 };
+  const focus: Vec3 = [0, -9, 0];
+  const free = tablePose(camera, anchor);
+  const capped = focusedPose(camera, anchor, focus, free.scale / 10);
+  assert.equal(capped.scale, free.scale / 10);
+  near(capped.orientation, free.orientation);
+  near(modelToRoom(focus, capped), anchor.position, 1e-9);
 });

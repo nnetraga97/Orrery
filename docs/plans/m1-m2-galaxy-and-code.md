@@ -262,12 +262,12 @@ Core decides which labels show. It receives, per label, its direction from the h
 
 A landed planet is an "overlay": an object with `scene`, `camera`, `frame()` returning `{ origin, scale }`, `sync()`, `opacity`. On the desktop it is drawn in a second pass with its own camera. Here it becomes part of the model.
 
-- [ ] **Step 1.** `overlayLayer.update(overlays)`: for each overlay, keep one `Group` child of the galaxy group; put `overlay.scene` inside it (a `Scene` may be a child of a `Group`); each frame set the group's position to `frame().origin`, its scale to `frame().scale`, and `visible = overlay.opacity > 0.02`. Remove groups whose overlay is gone.
-- [ ] **Step 2.** The second click on an already selected file lands, as on the desktop (`actions.selectFile` does this already). Publish `phase = 'landed'` and `landedPath` when `view.landed` becomes true, by checking it in `GalaxySystem.update`.
-- [ ] **Step 3. Check.** `npm run verify`, then:
+- [x] **Step 1.** `overlayLayer.update(overlays)`: for each overlay, keep one `Group` child of the galaxy group; put `overlay.scene` inside it (a `Scene` may be a child of a `Group`); each frame set the group's position to `frame().origin`, its scale to `frame().scale`, and `visible = overlay.opacity > 0.02`. Remove groups whose overlay is gone.
+- [x] **Step 2.** The second click on an already selected file lands, as on the desktop (`actions.selectFile` does this already). Publish `phase = 'landed'` and `landedPath` when `view.landed` becomes true, by checking it in `GalaxySystem.update`.
+- [x] **Step 3. Check.** `npm run verify`, then:
   `npm run smoke:xr -- --wait="window.__orrery?.ready" --settle=4000 --read="(__orrery.commands.landOn('core/range.ts'), new Promise(r => { const t = setInterval(() => { if (__orrery.state.phase.value === 'landed' && !__orrery.kit.flying) { clearInterval(t); setTimeout(() => r(__orrery.state.landedPath.value), 8000); } }, 500); }))" --out=docs/migration/xr-landed.png`
   Expected: `"read": "core/range.ts"`. The screenshot shows a globe roughly 0.5–0.7 m across on the table with coloured regions.
-- [ ] **Step 4. Commit:** `Raise a selected file as a globe on the table`
+- [x] **Step 4. Commit:** `Raise a selected file as a globe on the table`
 
 ### Task 9: Turning and zooming with hands
 

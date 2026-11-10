@@ -125,3 +125,15 @@ export function modelToRoom(point: Vec3, pose: Pose): Vec3 {
 export function roomToModel(point: Vec3, pose: Pose): Vec3 {
   return scale3(rotate(conjugate(pose.orientation), sub(point, pose.position)), 1 / pose.scale);
 }
+
+/**
+ * tablePose with the scale capped at `maxScale`. While capped, `focus` (a model-space point, such as a landed planet's
+ * centre) sits on the anchor instead of the camera's target, so a close-up keeps the whole body on the table.
+ */
+export function focusedPose(camera: VirtualCamera, anchor: TableAnchor, focus: Vec3, maxScale: number): Pose {
+  const pose = tablePose(camera, anchor);
+  if (pose.scale <= maxScale) return pose;
+  const scale = maxScale;
+  const position = sub(anchor.position, scale3(rotate(pose.orientation, focus), scale));
+  return { position, orientation: pose.orientation, scale };
+}

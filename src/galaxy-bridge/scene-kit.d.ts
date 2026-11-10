@@ -1,5 +1,5 @@
 // Types for scene-kit.js: the scene-kit contract plus the members the XR app adds.
-import type { Group, Ray, Texture, WebGLRenderer } from '@iwsdk/core';
+import type { Group, Ray, Texture, Vector3, WebGLRenderer } from '@iwsdk/core';
 import type { HostPort } from '../ports/host.ts';
 import type { SceneKitPort, LabelDefinition, Overlay, Vector3Like } from '../ports/scene-kit.ts';
 import type { TableAnchor, VirtualCamera } from '../core/table-frame.ts';
@@ -25,6 +25,11 @@ export interface XrSceneKit extends SceneKitPort {
   orbit(dAzimuth: number, dPolar: number): void;
   dolly(factor: number): void;
   home(): void;
+  // Added to T by the constellation once it is built.
+  bodyPos?(i: number): Vector3;
+  bodySize?(i: number): number;
+  fileIndex?(path: string): number | null;
+  readonly landed?: boolean;
   [member: string]: unknown;
 }
 

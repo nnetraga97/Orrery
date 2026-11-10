@@ -56,6 +56,8 @@ export function createSceneKit({ camPos, host, renderer, anchor = null, labels =
   const sun = new THREE.DirectionalLight('#ffffff', legacyIntensity(COLOR.directionalIntensity));
   sun.position.set(80, 160, 60);
   scene.add(sun);
+  // On the desktop the sun aims at the world origin, which was the model's origin; here that is the group's origin.
+  scene.add(sun.target);
 
   // Hover picking on an InstancedMesh (instanceId -> file index), at most one raycast per frame. The pointer arrives
   // as a ray in the model's own space (pointerMove / pointerClick); picking tests objects by their world matrices,
