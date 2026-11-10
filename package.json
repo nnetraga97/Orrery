@@ -24,15 +24,24 @@
     "@pmndrs/uikit": "^1.0.74",
     "@pmndrs/uikit-horizon": "^1.0.74",
     "@pmndrs/uikit-lucide": "^1.0.74",
+    "d3": "^7.9.2",
+    "graphology": "^0.25.4",
+    "graphology-communities-louvain": "^2.0.2",
     "three": "npm:super-three@0.185.0"
   },
   "devDependencies": {
-    "@iwsdk/reference": "1.1.0-rc.2",
+    "@gltf-transform/core": "^4.5.1",
+    "@gltf-transform/extensions": "^4.5.1",
+    "@gltf-transform/functions": "^4.5.1",
     "@iwsdk/cli": "1.1.0-rc.2",
+    "@iwsdk/reference": "1.1.0-rc.2",
     "@iwsdk/vite-plugin-dev": "1.1.0-rc.2",
     "@meta-quest/metavr": "^1.8.1",
+    "@types/d3": "^7.4.3",
     "@types/three": "^0.185.0",
-    "typescript": "^5.5.0",
+    "ignore": "^7.0.14",
+    "sharp": "0.35.4",
+    "typescript": "^5.9.3",
     "vite": "^7.1.4"
   },
   "overrides": {
