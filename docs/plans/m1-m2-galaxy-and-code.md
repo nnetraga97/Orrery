@@ -273,17 +273,17 @@ A landed planet is an "overlay": an object with `scene`, `camera`, `frame()` ret
 
 **Files:** Create `src/core/orbit.ts` + test, `src/systems/manipulation-system.ts`. Modify `src/galaxy-bridge/scene-kit.js`.
 
-- [ ] **Step 1. Tests first** for the pure functions:
+- [x] **Step 1. Tests first** for the pure functions:
   `orbitFromDrag(dxMetres, dyMetres, sensitivity)` returns `{ dAzimuth, dPolar }` (0.5 m of hand travel is a half turn; polar is clamped by the caller);
   `applyOrbit(camera, dAzimuth, dPolar)` returns a new `VirtualCamera` at the same distance from the target, polar angle kept within 5°–175°;
   `applyDolly(camera, factor, minDistance, maxDistance)` moves the camera along its view line; factor 2 doubles the distance;
   `dollyFromSpread(startSpreadMetres, currentSpreadMetres)` returns `start / current` (hands apart zooms in).
-- [ ] **Step 2.** Implement, and make `kit.orbit` and `kit.dolly` apply them to the virtual camera (write `camera.position` and call `controls.update()`). `kit.home()` calls the constellation's home flight (`navigation` `home`).
-- [ ] **Step 3. System.** `ManipulationSystem.update`: read each hand's pinch (`getSelecting()`) and position. One hand pinching while the ray is **not** over a panel or a pickable body: accumulate its motion since the last frame and call `kit.orbit`. Two hands pinching: call `kit.dolly(dollyFromSpread(...))` relative to the spread when the second pinch began. A pinch that moves less than 2 cm in total is a click and belongs to Task 7, not an orbit. In a browser tab, also map mouse drag on empty space to orbit and the wheel to dolly, so tests can drive it.
-- [ ] **Step 4. Check.** `npm run verify`, then:
+- [x] **Step 2.** Implement, and make `kit.orbit` and `kit.dolly` apply them to the virtual camera (write `camera.position` and call `controls.update()`). `kit.home()` calls the constellation's home flight (`navigation` `home`).
+- [x] **Step 3. System.** `ManipulationSystem.update`: read each hand's pinch (`getSelecting()`) and position. One hand pinching while the ray is **not** over a panel or a pickable body: accumulate its motion since the last frame and call `kit.orbit`. Two hands pinching: call `kit.dolly(dollyFromSpread(...))` relative to the spread when the second pinch began. A pinch that moves less than 2 cm in total is a click and belongs to Task 7, not an orbit. In a browser tab, also map mouse drag on empty space to orbit and the wheel to dolly, so tests can drive it.
+- [x] **Step 4. Check.** `npm run verify`, then:
   `npm run smoke:xr -- --wait="window.__orrery?.ready" --settle=6000 --read="(() => { const a = __orrery.kit.virtual().position.slice(); __orrery.kit.orbit(0.5, 0); __orrery.kit.dolly(0.5); const b = __orrery.kit.virtual().position; return a.some((v, i) => Math.abs(v - b[i]) > 1e-3); })()"`
   Expected: `"read": true`. With the dev server and emulated hands (`.claude/skills/iwsdk-grab/SKILL.md`, hand input mode), pinch, move the hand 20 cm sideways and release: the model must have turned.
-- [ ] **Step 5. Commit:** `Turn and zoom the model with pinch gestures`
+- [x] **Step 5. Commit:** `Turn and zoom the model with pinch gestures`
 
 ### Task 10: Info cards, loading and errors
 

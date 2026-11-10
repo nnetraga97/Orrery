@@ -25,6 +25,8 @@ export interface XrSceneKit extends SceneKitPort {
   orbit(dAzimuth: number, dPolar: number): void;
   dolly(factor: number): void;
   home(): void;
+  readonly pointing: boolean;
+  swallowClick(on: boolean): void;
   // Added to T by the constellation once it is built.
   bodyPos?(i: number): Vector3;
   bodySize?(i: number): number;

@@ -10,11 +10,15 @@ import { GalaxySky } from '../../galaxy/viewer/scene/galaxy-sky.js';
 import { dotTex } from '../../galaxy/viewer/scene/textures.js';
 import { cameraInput, dampingBlend } from '../../galaxy/viewer/scene/camera-input.js';
 import { pickScene } from '../../galaxy/viewer/scene/scene-picking.js';
+import { applyDolly, applyOrbit } from '../core/orbit.ts';
 
 // The virtual stage: the desktop stage was about 1600 × 1000 pixels. The virtual camera uses its aspect.
 const STAGE_WIDTH = 1600,
   STAGE_HEIGHT = 1000,
   ASPECT = STAGE_WIDTH / STAGE_HEIGHT;
+
+// The farthest the virtual camera may dolly from its target (model units): the whole galaxy and its sky.
+const MAX_DISTANCE = 2000;
 
 const noLabels = { setLabels() {}, addLabels: () => () => {}, update() {} };
 const noOverlays = { update() {} };
@@ -111,7 +115,13 @@ export function createSceneKit({ camPos, host, renderer, anchor = null, labels =
       host.windows.context.hover(null);
     }
   }
+  // A drag that turned the model ends in a click the pointer library still sends; the gesture owner swallows it.
+  let swallowClick = false;
   function pointerClick(r) {
+    if (swallowClick) {
+      swallowClick = false;
+      return;
+    }
     // A fast pinch or a moving model may not have produced a hover frame.
     pointerMove(r);
     updatePick();
@@ -513,12 +523,25 @@ export function createSceneKit({ camPos, host, renderer, anchor = null, labels =
       up: [camera.up.x, camera.up.y, camera.up.z],
       fovDegrees: camera.fov,
     }),
-    // Filled in by Task 9 (src/core/orbit.ts).
-    orbit(_dAzimuth, _dPolar) {
-      interruptNavigation();
+    /** Whether the ray is over something the scene picks (a body or another clickable). */
+    get pointing() {
+      return hasRay && (lastPick !== -1 || !!hoverItem);
     },
-    dolly(_factor) {
+    /** Swallow the click that ends the current drag (true), or stop swallowing (false). */
+    swallowClick(on) {
+      swallowClick = on;
+    },
+    orbit(dAzimuth, dPolar) {
+      interruptNavigation();
+      const next = applyOrbit(this.virtual(), dAzimuth, dPolar);
+      camera.position.set(...next.position);
+      controls.update();
+    },
+    dolly(factor) {
       interruptNavigation('zoom');
+      const next = applyDolly(this.virtual(), factor, controls.minDistance, MAX_DISTANCE);
+      camera.position.set(...next.position);
+      controls.update();
     },
     home() {
       interruptNavigation();
