@@ -249,12 +249,12 @@ Core decides which labels show. It receives, per label, its direction from the h
 
 **Files:** Create `src/galaxy-bridge/pointer-bridge.ts`. Modify `src/systems/galaxy-system.ts`.
 
-- [ ] **Step 1.** Give the galaxy entity `RayInteractable`. On the group, listen for `pointermove`, `pointerleave`/`pointerout`, and `click`. For each, copy `event.ray`, transform it into the group's own space with the inverse of the group's world matrix, and call `kit.pointerMove(ray)`, `kit.pointerLeave()` or `kit.pointerClick(ray)`. The kit's existing logic then calls `host.actions.showHover` and `host.actions.selectFile`.
-- [ ] **Step 2.** The bridge must not allocate per event: keep one `Ray` and one `Matrix4`.
-- [ ] **Step 3. Check.** `npm run verify`, then select by command and confirm the state follows:
+- [x] **Step 1.** Give the galaxy entity `RayInteractable`. On the group, listen for `pointermove`, `pointerleave`/`pointerout`, and `click`. For each, copy `event.ray`, transform it into the group's own space with the inverse of the group's world matrix, and call `kit.pointerMove(ray)`, `kit.pointerLeave()` or `kit.pointerClick(ray)`. The kit's existing logic then calls `host.actions.showHover` and `host.actions.selectFile`.
+- [x] **Step 2.** The bridge must not allocate per event: keep one `Ray` and one `Matrix4`.
+- [x] **Step 3. Check.** `npm run verify`, then select by command and confirm the state follows:
   `npm run smoke:xr -- --wait="window.__orrery?.ready" --settle=8000 --read="(__orrery.commands.selectFile('core/range.ts'), new Promise(r => setTimeout(() => r(__orrery.state.selectedPath.value), 3000)))"`
   Expected: `"read": "core/range.ts"`. Then, with the dev server running (`npm run dev`), follow `.claude/skills/iwsdk-ray/SKILL.md` to aim an emulated ray at the galaxy and select once; `window.__orrery.state.selectedPath.value` must become a file path.
-- [ ] **Step 4. Commit:** `Select files by pointing and pinching`
+- [x] **Step 4. Commit:** `Select files by pointing and pinching`
 
 ### Task 8: Landing on a planet
 

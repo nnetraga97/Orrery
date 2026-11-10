@@ -7,6 +7,7 @@ import { tablePose } from '../core/table-frame.ts';
 import type { TableAnchor } from '../core/table-frame.ts';
 import { createLabelLayer } from '../galaxy-bridge/label-layer.ts';
 import type { LabelLayer } from '../galaxy-bridge/label-layer.ts';
+import { bridgePointer } from '../galaxy-bridge/pointer-bridge.ts';
 import { createPointScaler } from '../galaxy-bridge/point-sizes.ts';
 import { fileIndex, galaxyState, installActions, openGalaxy } from '../galaxy-bridge/galaxy-session.js';
 import { createXrHost } from '../galaxy-bridge/xr-host.ts';
@@ -31,6 +32,7 @@ export class GalaxySystem extends createSystem({ roots: { required: [GalaxyRoot]
   private loadToken = 0;
   private points: ReturnType<typeof createPointScaler> | null = null;
   private labels!: LabelLayer;
+  private unbridge: (() => void) | null = null;
   private head!: Vector3;
   private gaze!: Vector3;
   private headTurn!: Quaternion;
@@ -82,6 +84,7 @@ export class GalaxySystem extends createSystem({ roots: { required: [GalaxyRoot]
       const kit = this.host.kit!;
       this.entity = this.world.createTransformEntity(kit.scene);
       this.entity.addComponent(GalaxyRoot);
+      this.unbridge = bridgePointer(this.world, kit.scene, kit);
       this.points = createPointScaler(kit.scene);
       this.scene.background = kit.sky;
       this.scene.environment = kit.environment;
@@ -97,6 +100,8 @@ export class GalaxySystem extends createSystem({ roots: { required: [GalaxyRoot]
   }
 
   private detach() {
+    this.unbridge?.();
+    this.unbridge = null;
     this.entity?.dispose();
     this.entity = null;
     this.points = null;

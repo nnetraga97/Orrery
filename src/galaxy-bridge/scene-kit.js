@@ -11,8 +11,10 @@ import { dotTex } from '../../galaxy/viewer/scene/textures.js';
 import { cameraInput, dampingBlend } from '../../galaxy/viewer/scene/camera-input.js';
 import { pickScene } from '../../galaxy/viewer/scene/scene-picking.js';
 
-// The virtual camera's aspect. The desktop stage was about 1600 × 1000.
-const ASPECT = 1.6;
+// The virtual stage: the desktop stage was about 1600 × 1000 pixels. The virtual camera uses its aspect.
+const STAGE_WIDTH = 1600,
+  STAGE_HEIGHT = 1000,
+  ASPECT = STAGE_WIDTH / STAGE_HEIGHT;
 
 const noLabels = { setLabels() {}, addLabels: () => () => {}, update() {} };
 const noOverlays = { update() {} };
@@ -43,8 +45,12 @@ export function createSceneKit({ camPos, host, renderer, anchor = null, labels =
   // The virtual camera. Never rendered from; it only decides the model's pose on the table.
   const camera = new THREE.PerspectiveCamera(45, ASPECT, 0.5, 3000);
   camera.position.set(...camPos);
-  // Receives no events: it holds the target and keeps camera and target consistent in controls.update().
-  const controls = new OrbitControls(camera, document.createElement('div'));
+  // Receives no events: it holds the target and keeps camera and target consistent in controls.update(). The copied
+  // code reads the element's size as the stage's (bodies are sized in pixels for level of detail), so it reports the
+  // virtual stage the host describes (1600 × 1000).
+  const element = document.createElement('div');
+  Object.defineProperties(element, { clientWidth: { value: STAGE_WIDTH }, clientHeight: { value: STAGE_HEIGHT } });
+  const controls = new OrbitControls(camera, element);
   controls.enableDamping = true;
   scene.add(new THREE.HemisphereLight('#a9c0ff', '#0a0f1c', legacyIntensity(COLOR.hemisphereIntensity)));
   const sun = new THREE.DirectionalLight('#ffffff', legacyIntensity(COLOR.directionalIntensity));
@@ -73,6 +79,8 @@ export function createSceneKit({ camPos, host, renderer, anchor = null, labels =
     camera.updateMatrixWorld();
     scene.updateMatrixWorld();
     ray.ray.copy(modelRay).applyMatrix4(scene.matrixWorld);
+    // Line and point hit thresholds are in world units and ignore parent scale; keep the desktop's one model unit.
+    ray.params.Line.threshold = ray.params.Points.threshold = scene.scale.x;
     blocked = !!pickBlock?.(ray);
     const { id, item } = blocked ? { id: -1, item: null } : pickScene(ray, pickMesh, pickMap, pickers);
     if (id !== lastPick) {
