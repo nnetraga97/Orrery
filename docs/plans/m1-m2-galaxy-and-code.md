@@ -301,9 +301,9 @@ A landed planet is an "overlay": an object with `scene`, `camera`, `frame()` ret
 
 **Files:** Modify `public/scenes/main.iwsdk.scene.json` or `src/systems/galaxy-system.ts`.
 
-- [ ] **Step 1.** Add a table: a dark disc 0.9 m across at height 0.83 m under the anchor, with a faint rim. Add a floor: a large dark disc at height 0 with a subtle radial grid, so the room has a horizon and the user is not floating. Keep the starfield sky. Nothing in the room moves.
-- [ ] **Step 2. Check.** `npm run verify` and the Task 5 smoke command; the screenshot shows the galaxy resting above a table.
-- [ ] **Step 3. Commit:** `Add a table and a floor so the room has a stable frame`
+- [x] **Step 1.** Add a table: a dark disc 0.9 m across at height 0.83 m under the anchor, with a faint rim. Add a floor: a large dark disc at height 0 with a subtle radial grid, so the room has a horizon and the user is not floating. Keep the starfield sky. Nothing in the room moves.
+- [x] **Step 2. Check.** `npm run verify` and the Task 5 smoke command; the screenshot shows the galaxy resting above a table.
+- [x] **Step 3. Commit:** `Add a table and a floor so the room has a stable frame`
 
 ### Task 12: Part 1 review
 

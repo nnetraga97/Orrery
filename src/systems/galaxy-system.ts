@@ -17,6 +17,7 @@ import type { XrHost } from '../galaxy-bridge/xr-host.ts';
 import { error, landedPath, loading, phase, selectedPath } from '../state/app-state.ts';
 import { connectCommands, openDataset } from '../state/commands.ts';
 import { headObject } from './head.ts';
+import { createRoom } from './room.ts';
 
 // Where the model sits: above the table in front of the seat, pitched 30° down from level so its far edge tilts up
 // toward the user.
@@ -49,6 +50,7 @@ export class GalaxySystem extends createSystem({ roots: { required: [GalaxyRoot]
     this.head = new Vector3();
     this.gaze = new Vector3();
     this.headTurn = new Quaternion();
+    createRoom(this.world);
     this.labels = createLabelLayer(this.world);
     this.overlays = createOverlayLayer();
     this.host = createXrHost({
