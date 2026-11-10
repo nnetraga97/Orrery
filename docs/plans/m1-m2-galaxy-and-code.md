@@ -230,7 +230,7 @@ Add: `kit.virtual()` returning `{ position, target, up, fovDegrees }` as plain a
 - [x] **Step 3. System.** `GalaxySystem` (see `.claude/rules/ecs-api.md`): in `init`, create the kit and the host, load the dataset named by `?dataset=` (default `editor-core`) exactly as `src/flat/main.js` does (`loadDataset`, `loadGalaxyMemory`, `prepare`, `regroup`, `constellation(host)`, `createAgentCannon`), register the copied `actions` as `main.js` does, attach the kit's group with `world.createTransformEntity(group)` and tag the entity `GalaxyRoot`. In `update`, call `kit.tick(time * 1000)`, then `tablePose(kit.virtual(), anchor)` and copy the pose onto the group. Use the sky as the room background. Anchor: position `[0, 0.85, -0.55]`, orientation pitched 30° down from level (the far edge tilts up toward the user), width `0.8`, `minScale 0.0005`, `maxScale 4`.
 - [x] **Step 4.** Extend the test hook: `window.__orrery = { world, ready, state, commands, kit, stats }` where `stats()` returns `{ calls, triangles }` from `world.renderer.info.render` and `nodes` from the loaded dataset. `ready` becomes true only after the constellation exists.
 - [x] **Step 5. Check.** `npm run verify`, then:
-  `npm run smoke:xr -- --wait="window.__orrery?.ready" --settle=15000 --read="({n: __orrery.stats().nodes, phase: __orrery.state.phase.value})" --out=docs/migration/xr-overview.png`
+  `npm run smoke:xr -- --query=dataset=editor-core --wait="window.__orrery?.ready" --settle=15000 --read="({n: __orrery.stats().nodes, phase: __orrery.state.phase.value})" --out=docs/migration/xr-overview.png`
   Expected: `"read": { "n": 229, "phase": "overview" }` and `SMOKE PASSED`. Open the screenshot: a tabletop-sized galaxy below the middle of the view, labels absent (Task 6), stars behind it. If the galaxy is missing, check the pose is applied to the group and that `matrixAutoUpdate` is on.
 - [x] **Step 6. Commit:** `Show the galaxy on the table`
 
@@ -252,7 +252,7 @@ Core decides which labels show. It receives, per label, its direction from the h
 - [x] **Step 1.** Give the galaxy entity `RayInteractable`. On the group, listen for `pointermove`, `pointerleave`/`pointerout`, and `click`. For each, copy `event.ray`, transform it into the group's own space with the inverse of the group's world matrix, and call `kit.pointerMove(ray)`, `kit.pointerLeave()` or `kit.pointerClick(ray)`. The kit's existing logic then calls `host.actions.showHover` and `host.actions.selectFile`.
 - [x] **Step 2.** The bridge must not allocate per event: keep one `Ray` and one `Matrix4`.
 - [x] **Step 3. Check.** `npm run verify`, then select by command and confirm the state follows:
-  `npm run smoke:xr -- --wait="window.__orrery?.ready" --settle=8000 --read="(__orrery.commands.selectFile('core/range.ts'), new Promise(r => setTimeout(() => r(__orrery.state.selectedPath.value), 3000)))"`
+  `npm run smoke:xr -- --query=dataset=editor-core --wait="window.__orrery?.ready" --settle=8000 --read="(__orrery.commands.selectFile('core/range.ts'), new Promise(r => setTimeout(() => r(__orrery.state.selectedPath.value), 3000)))"`
   Expected: `"read": "core/range.ts"`. Then, with the dev server running (`npm run dev`), follow `.claude/skills/iwsdk-ray/SKILL.md` to aim an emulated ray at the galaxy and select once; `window.__orrery.state.selectedPath.value` must become a file path.
 - [x] **Step 4. Commit:** `Select files by pointing and pinching`
 
@@ -265,7 +265,7 @@ A landed planet is an "overlay": an object with `scene`, `camera`, `frame()` ret
 - [x] **Step 1.** `overlayLayer.update(overlays)`: for each overlay, keep one `Group` child of the galaxy group; put `overlay.scene` inside it (a `Scene` may be a child of a `Group`); each frame set the group's position to `frame().origin`, its scale to `frame().scale`, and `visible = overlay.opacity > 0.02`. Remove groups whose overlay is gone.
 - [x] **Step 2.** The second click on an already selected file lands, as on the desktop (`actions.selectFile` does this already). Publish `phase = 'landed'` and `landedPath` when `view.landed` becomes true, by checking it in `GalaxySystem.update`.
 - [x] **Step 3. Check.** `npm run verify`, then:
-  `npm run smoke:xr -- --wait="window.__orrery?.ready" --settle=4000 --read="(__orrery.commands.landOn('core/range.ts'), new Promise(r => { const t = setInterval(() => { if (__orrery.state.phase.value === 'landed' && !__orrery.kit.flying) { clearInterval(t); setTimeout(() => r(__orrery.state.landedPath.value), 8000); } }, 500); }))" --out=docs/migration/xr-landed.png`
+  `npm run smoke:xr -- --query=dataset=editor-core --wait="window.__orrery?.ready" --settle=4000 --read="(__orrery.commands.landOn('core/range.ts'), new Promise(r => { const t = setInterval(() => { if (__orrery.state.phase.value === 'landed' && !__orrery.kit.flying) { clearInterval(t); setTimeout(() => r(__orrery.state.landedPath.value), 8000); } }, 500); }))" --out=docs/migration/xr-landed.png`
   Expected: `"read": "core/range.ts"`. The screenshot shows a globe roughly 0.5–0.7 m across on the table with coloured regions.
 - [x] **Step 4. Commit:** `Raise a selected file as a globe on the table`
 
@@ -281,7 +281,7 @@ A landed planet is an "overlay": an object with `scene`, `camera`, `frame()` ret
 - [x] **Step 2.** Implement, and make `kit.orbit` and `kit.dolly` apply them to the virtual camera (write `camera.position` and call `controls.update()`). `kit.home()` calls the constellation's home flight (`navigation` `home`).
 - [x] **Step 3. System.** `ManipulationSystem.update`: read each hand's pinch (`getSelecting()`) and position. One hand pinching while the ray is **not** over a panel or a pickable body: accumulate its motion since the last frame and call `kit.orbit`. Two hands pinching: call `kit.dolly(dollyFromSpread(...))` relative to the spread when the second pinch began. A pinch that moves less than 2 cm in total is a click and belongs to Task 7, not an orbit. In a browser tab, also map mouse drag on empty space to orbit and the wheel to dolly, so tests can drive it.
 - [x] **Step 4. Check.** `npm run verify`, then:
-  `npm run smoke:xr -- --wait="window.__orrery?.ready" --settle=6000 --read="(() => { const a = __orrery.kit.virtual().position.slice(); __orrery.kit.orbit(0.5, 0); __orrery.kit.dolly(0.5); const b = __orrery.kit.virtual().position; return a.some((v, i) => Math.abs(v - b[i]) > 1e-3); })()"`
+  `npm run smoke:xr -- --query=dataset=editor-core --wait="window.__orrery?.ready" --settle=6000 --read="(() => { const a = __orrery.kit.virtual().position.slice(); __orrery.kit.orbit(0.5, 0); __orrery.kit.dolly(0.5); const b = __orrery.kit.virtual().position; return a.some((v, i) => Math.abs(v - b[i]) > 1e-3); })()"`
   Expected: `"read": true`. With the dev server and emulated hands (`.claude/skills/iwsdk-grab/SKILL.md`, hand input mode), pinch, move the hand 20 cm sideways and release: the model must have turned.
 - [x] **Step 5. Commit:** `Turn and zoom the model with pinch gestures`
 
@@ -324,7 +324,7 @@ A landed planet is an "overlay": an object with `scene`, `camera`, `frame()` ret
 - [x] **Step 2. Inspector.** `createInspector(options)` stores the options and returns an object with all ten methods. Meaning: `setRegion(k)` and `openMethod(k)` set the selected function; `showStatement(element)` sets the selected source range from the element's `start`/`end` offsets or lines; `hover` sets a hovered range; `setTab`, `transportStatus`, `stackChanged`, `evidenceChanged` store their arguments in state for the next plan; `windowFor` returns `null`; `dispose` clears the code state. It publishes one signal, `codeView`: `{ file, lines (segments per line), regions, selectedRegion, selectedRange, hoveredRange, mode: 'function' | 'file' }`. Keep the `options` callbacks; Task 15 calls them.
 - [x] **Step 3.** `xr-host.ts` uses `createInspector` and `highlight.ts` for `host.inspector`.
 - [x] **Step 4. Check.** `npm run verify`, then land and read the state:
-  `npm run smoke:xr -- --wait="window.__orrery?.ready" --settle=4000 --read="(__orrery.commands.landOn('core/range.ts', 90), new Promise(r => { const t = setInterval(() => { const c = __orrery.state.codeView.value; if (c && c.lines.length) { clearInterval(t); r({ file: c.file, lines: c.lines.length, hasKeyword: JSON.stringify(c.lines).includes('tok-keyword') }); } }, 500); }))"`
+  `npm run smoke:xr -- --query=dataset=editor-core --wait="window.__orrery?.ready" --settle=4000 --read="(__orrery.commands.landOn('core/range.ts', 90), new Promise(r => { const t = setInterval(() => { const c = __orrery.state.codeView.value; if (c && c.lines.length) { clearInterval(t); r({ file: c.file, lines: c.lines.length, hasKeyword: JSON.stringify(c.lines).includes('tok-keyword') }); } }, 500); }))"`
   Expected: `{ "file": "core/range.ts", "lines": <more than 400>, "hasKeyword": true }`.
 - [x] **Step 5. Commit:** `Feed source tokens and selections to the app state`
 
@@ -354,7 +354,7 @@ A landed planet is an "overlay": an object with `scene`, `camera`, `frame()` ret
 - [x] **Step 3. Buttons.** `Function / Whole file` toggles `mode`; `Page up` and `Page down` use `pageScroll`; a vertical drag on the page uses `dragScroll`.
 - [x] **Step 4. Commands.** Add `showCode(path, line)`: lands on the file if needed, selects the function containing the line, and scrolls there. The agent uses this in the next plan.
 - [x] **Step 5. Check.** `npm run verify`, then:
-  `npm run smoke:xr -- --wait="window.__orrery?.ready" --settle=4000 --read="(__orrery.commands.showCode('core/range.ts', 90), new Promise(r => { const t = setInterval(() => { const c = __orrery.state.codeView.value; if (c?.selectedRange) { clearInterval(t); setTimeout(() => r(__orrery.state.codeView.value.selectedRange), 6000); } }, 500); }))" --out=docs/migration/xr-code.png`
+  `npm run smoke:xr -- --query=dataset=editor-core --wait="window.__orrery?.ready" --settle=4000 --read="(__orrery.commands.showCode('core/range.ts', 90), new Promise(r => { const t = setInterval(() => { const c = __orrery.state.codeView.value; if (c?.selectedRange) { clearInterval(t); setTimeout(() => r(__orrery.state.codeView.value.selectedRange), 6000); } }, 500); }))" --out=docs/migration/xr-code.png`
   Expected: a range that includes line 90. The screenshot shows the globe with the code page to its right, the function's lines banded.
 - [x] **Step 6. Commit:** `Link buildings and code lines in both directions`
 
@@ -371,10 +371,10 @@ A landed planet is an "overlay": an object with `scene`, `camera`, `frame()` ret
 
 **Files:** Create `public/data/index.json`, `src/panels/draw-project-picker.ts`. Modify `tools/bake-dataset.mjs` is **not** changed; write the index by hand.
 
-- [ ] **Step 1.** `public/data/index.json`: `[{ "name": "editor-core", "title": "Editor core", "blurb": "The text model of an open-source code editor. 229 files.", "licence": "MIT" }, { "name": "sample", "title": "Source models", "blurb": "A small project for testing. 13 files." }]`. `DatasetPort.list()` reads it.
-- [ ] **Step 2.** On start with no `?dataset=`, show one card per project above the table; pinching one calls `openDataset(name)`. While loading, show the loading card. `?dataset=<name>` skips the picker (tests rely on this; update earlier commands only if they break).
-- [ ] **Step 3. Check.** `npm run verify`; `npm run smoke:xr -- --wait="window.__orrery?.ready" --read="__orrery.state.phase.value"` gives `"idle"` with the picker in the screenshot; with `--query=dataset=editor-core` it gives `"overview"`.
-- [ ] **Step 4. Commit:** `Choose a project from cards on the table`
+- [x] **Step 1.** `public/data/index.json`: `[{ "name": "editor-core", "title": "Editor core", "blurb": "The text model of an open-source code editor. 229 files.", "licence": "MIT" }, { "name": "sample", "title": "Source models", "blurb": "A small project for testing. 13 files." }]`. `DatasetPort.list()` reads it.
+- [x] **Step 2.** On start with no `?dataset=`, show one card per project above the table; pinching one calls `openDataset(name)`. While loading, show the loading card. `?dataset=<name>` skips the picker (tests rely on this; update earlier commands only if they break). *They did: the check commands of Tasks 5–15 now pass `--query=dataset=editor-core`.*
+- [x] **Step 3. Check.** `npm run verify`; `npm run smoke:xr -- --wait="window.__orrery?.ready" --read="__orrery.state.phase.value"` gives `"idle"` with the picker in the screenshot; with `--query=dataset=editor-core` it gives `"overview"`.
+- [x] **Step 4. Commit:** `Choose a project from cards on the table`
 
 ### Task 18: The tutorial
 

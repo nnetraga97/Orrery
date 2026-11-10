@@ -8,6 +8,7 @@ import { CODE_LAYOUT, CODE_PAGE, drawCodePage } from './draw-code-page.ts';
 import { iconPaths } from '../galaxy-bridge/icons.ts';
 import { DOCK, DOCK_BUTTONS, drawDock } from './draw-dock.ts';
 import { INFO_CARD, drawInfoCard } from './draw-info-card.ts';
+import { PROJECT_CARD, drawProjectCard } from './draw-project-picker.ts';
 import { STATUS_CARD, drawStatusCard } from './draw-status-card.ts';
 
 type Draw = (ctx: CanvasRenderingContext2D, w: number, h: number) => HitRegion[];
@@ -98,6 +99,14 @@ export async function drawAll() {
   });
   const icons = Object.fromEntries(DOCK_BUTTONS.map(b => [b.icon, iconPaths(b.icon)]));
   show('dock', DOCK.widthPx, DOCK.heightPx, (ctx, w, h) => drawDock(ctx, w, h, { hovered: 'agent', on: { code: true }, icons }));
+  show('projectCard', PROJECT_CARD.widthPx, PROJECT_CARD.heightPx, (ctx, w, h) =>
+    drawProjectCard(ctx, w, h, {
+      name: 'editor-core',
+      title: 'Editor core',
+      blurb: 'The text model of an open-source code editor. 229 files.',
+      licence: 'MIT',
+    }),
+  );
   show('loadingCard', STATUS_CARD.widthPx, STATUS_CARD.heightPx, (ctx, w, h) =>
     drawStatusCard(ctx, w, h, { kind: 'loading', title: 'Opening project', detail: 'editor-core' }),
   );

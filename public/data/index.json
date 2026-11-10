@@ -1,0 +1,9 @@
+[
+  {
+    "name": "editor-core",
+    "title": "Editor core",
+    "blurb": "The text model of an open-source code editor. 229 files.",
+    "licence": "MIT"
+  },
+  { "name": "sample", "title": "Source models", "blurb": "A small project for testing. 13 files." }
+]

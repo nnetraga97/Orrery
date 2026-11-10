@@ -83,7 +83,9 @@ export class GalaxySystem extends createSystem({ roots: { required: [GalaxyRoot]
         },
       }),
     );
-    openDataset(new URLSearchParams(location.search).get('dataset') || 'editor-core');
+    // ?dataset=<name> opens a project at once; without it the project picker (PickerSystem) offers the choice.
+    const requested = new URLSearchParams(location.search).get('dataset');
+    if (requested) openDataset(requested);
   }
 
   /** Whether a constellation is built and attached. */
