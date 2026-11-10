@@ -373,6 +373,21 @@ A recorded run of the buggy and fixed code is stored as debug records (the forma
 execution ship, step car and frame cards show where execution is. No runtime, no
 debug adapter.
 
+### 4.8 Decisions made while planning M1–M4
+
+Where an earlier section and the two plans differ, the plans are newer.
+
+| Topic | Decision | Why |
+| --- | --- | --- |
+| How the model is posed | The copied code keeps a virtual camera that is never rendered from. One pure function turns that camera and its target into the model's pose on the table (`src/core/table-frame.ts`). This replaces the separate "globe stand" of §4.2: a landed planet simply grows on the table | No copied navigation code has to change, and following a moving planet keeps working |
+| Panels | Flat rectangles textured from the 2D canvas, not UIKit markup | Monospace code with syntax colours, colour emoji, and every panel testable on a plain page with a screenshot |
+| Page elements the copied code expects | A hidden block in `index.html` with the same ids as `flat.html` | No patches to copied code |
+| Hand gestures on the galaxy | Pinch-drag orbits and two-hand pinch zooms the virtual camera; IWSDK grab components are used only on panels | The model's pose is computed, so a grab component would fight it |
+| Code page | Fixed beside the table, function-first with a whole-file switch | Owner's choice |
+| Agent replies | Text on the chat panel; no speech output | Owner's choice |
+| Chat | A floating, movable panel with every desktop chat feature in a hands-and-voice form; the parity table is in the M3 + M4 plan | Owner's request |
+| Bug to fix | Scenario files in `public/scenarios/`. The first seeds an off-by-one in `Range.containsPosition` of the demo project and ships a failing and a fixed replay | Work is not blocked on choosing a real historical bug; another scenario is one more file |
+
 ## 5. Desktop UI to VR
 
 Every desktop control, and what replaces it. Source for each is under
@@ -419,14 +434,14 @@ selected. The agent's `show_code` drives both at once.
 | | Dates | Outcome | Needs the key | Plan |
 | --- | --- | --- | --- | --- |
 | M0 Migration | Nov 10–11 | Repo builds; copied code runs in a browser from baked data; assets built | No | `docs/plans/m0-migration.md` |
-| M1 Galaxy in XR | Nov 11–13 | XR scene kit and host; galaxy on the table; ray, pinch, grab; globe stand; labels | No | written after M0 |
-| M2 Reading code | Nov 13–14 | Code panel, town-to-code linking, palm menu, sample picker, tutorial | No | |
-| M3 Agent and voice | Nov 14–16 | Server function with three provider adapters, browser loop and tools, transcript, diff, push-to-talk, recorded fallback | Only its last step, the live check | |
-| M4 Replay and polish | Nov 16–17 | Debugger replay, Quest asset tier, frame-rate pass, sound | No | |
+| M1 Galaxy in XR | Nov 11–13 | XR scene kit and host; galaxy on the table; ray, pinch, orbit and zoom; landing; labels | No | `docs/plans/m1-m2-galaxy-and-code.md` |
+| M2 Reading code | Nov 13–14 | Code page, town-to-code linking, dock and palm menu, project picker, tutorial | No | same plan |
+| M3 Agent and voice | Nov 14–16 | Chat panel with full feature parity, browser loop and tools, three provider adapters, push-to-talk, recorded fallback | No | `docs/plans/m3-m4-agent-and-polish.md` |
+| M4 Replay and polish | Nov 16–17 | Debugger replay, sound, settings, headset asset tier, frame-rate pass, then the live check | Only its live-check task | same plan |
 | M5 Headset and submit | Nov 17–18 | Hosting with the key in its environment, two-hour Quest session, fixes, video, Devpost entry | Yes | |
 
-M1 through M5 each get their own plan, written when the milestone before it lands,
-because each depends on what the previous one showed.
+M1 and M2 share one plan and M3 and M4 another. M5 (hosting, the device session and
+submission) is planned when those land.
 
 **Cut order if a milestone slips:** Problems markers, settings, speech output,
 live OpenAI and Nemotron (ship Claude only), the replay, live agent (ship the
@@ -454,7 +469,8 @@ the tutorial, the code panel, hands-only operation.
    for the key at the end of M3, through a secure credential form, and it goes into
    the hosting environment in M5. Keys for OpenAI and Nemotron are optional; without
    them those two providers are built but stay switched off.
-2. **The bug to fix** in the editor-core sample. Needed for M2.
+2. **The bug to fix.** A default scenario is planned: an off-by-one in the demo
+   project's range check. Replace it if you prefer a real historical bug.
 3. **Hosting account**, when ready. The first deployment should happen well before
    Nov 17, because it has not been tested.
 4. **Start programme membership** confirmed, since it gates submission.
