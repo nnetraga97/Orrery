@@ -1,4 +1,4 @@
-# Orrery (proposed name): a voice-and-hands code editor for Meta Quest — design
+# Orrery: a voice-and-hands code editor for Meta Quest — design
 
 Date: 2026-11-10 · Status: draft for review · Deadline: 2026-11-18 12:00 PT
 
@@ -40,7 +40,7 @@ Start Developer Competition 2026. Special-award target: **Best Agentic Interacti
 | --- | --- |
 | Framework | **Immersive Web SDK (IWSDK) 1.1.0-rc.2** on three.js. See §3. |
 | Repository | `metavrviz`, new. Code is copied from `codebase-viz`, not shared. |
-| Product name | **Proposed: Orrery** (a tabletop model of orbiting bodies). Awaiting the owner's confirmation. Must not contain "Meta": the rules forbid implying association. |
+| Product name | **Orrery** (a tabletop model of orbiting bodies), confirmed by the owner. The repository keeps the name `metavrviz`; the word "Meta" must not appear in anything shown to users, because the rules forbid implying association. |
 | View | Constellation and planet towns. The circuit board and country map are not ported. |
 | Passthrough | None. Full VR. |
 | Editing | No manual text entry. Edits come from the agent and are accepted or rejected by hand. |
@@ -450,16 +450,15 @@ the tutorial, the code panel, hands-only operation.
 
 ## 9. Open items for the owner
 
-1. **Confirm the product name** (proposed: Orrery).
-2. **The Claude API key and a daily spend cap.** Not needed yet: the implementer asks
+1. **The Claude API key and a daily spend cap.** Not needed yet: the implementer asks
    for the key at the end of M3, through a secure credential form, and it goes into
    the hosting environment in M5. Keys for OpenAI and Nemotron are optional; without
    them those two providers are built but stay switched off.
-3. **The bug to fix** in the editor-core sample. Needed for M2.
-4. **Hosting account**, when ready. The first deployment should happen well before
+2. **The bug to fix** in the editor-core sample. Needed for M2.
+3. **Hosting account**, when ready. The first deployment should happen well before
    Nov 17, because it has not been tested.
-5. **Start programme membership** confirmed, since it gates submission.
-6. **Asset provenance sheet.** The rules let the sponsor ask for written proof of
+4. **Start programme membership** confirmed, since it gates submission.
+5. **Asset provenance sheet.** The rules let the sponsor ask for written proof of
    ownership or licence for any material. One page listing each asset family, how it
    was made (which generator, which account or plan) or where it came from, and its
    licence. Only the owner knows the plan terms behind the generated models.

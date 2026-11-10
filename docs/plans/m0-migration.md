@@ -631,6 +631,7 @@ git commit -m "Record the flat reference view after migration"
 **Files:**
 - Modify: `AGENTS.md` (generated in Task 1)
 - Modify: `README.md` (generated in Task 1)
+- Modify: `index.html` (generated in Task 1), `flat.html`
 
 - [ ] **Step 1: Add a project section to the top of `AGENTS.md`**
 
@@ -640,7 +641,7 @@ text:
 ```markdown
 ## This project
 
-A voice-and-hands code editor for Meta Quest, built for the Meta VR Start Developer
+Orrery: a voice-and-hands code editor for Meta Quest, built for the Meta VR Start Developer
 Competition 2026 (deadline 2026-11-18 12:00 PT). Design:
 `docs/design.md`.
 
@@ -680,12 +681,12 @@ Before claiming a change works: `npm run typecheck && npm run check && npm run b
 Replace the whole file with:
 
 ````markdown
-# metavrviz
+# Orrery
 
 A voice-and-hands code editor for Meta Quest. A codebase is a tabletop galaxy; an AI
 agent shows you where a bug lives and you review its fix by hand and by voice.
 
-Working title; the product name is not decided.
+The product is called Orrery. This repository is named `metavrviz`.
 
 ## Run
 
@@ -723,14 +724,23 @@ tools/migrate/copy-code.sh /path/to/codebase-viz # refreshes galaxy/ and referen
 | `docs/` | Design and plans |
 ````
 
-- [ ] **Step 3: Check and commit**
+- [ ] **Step 3: Set the page titles**
+
+In `index.html`, change the text inside `<title>…</title>` to `Orrery`. In
+`flat.html`, change `<title>Flat reference view</title>` to
+`<title>Orrery — flat reference view</title>`. Change nothing else in either file.
+
+Run: `grep -n "<title>" index.html flat.html`
+Expected: one line per file, showing the two titles above.
+
+- [ ] **Step 4: Check and commit**
 
 Run: `npm run typecheck && npm run check`
 Expected: no type errors; `import boundaries hold`; `all 10 checks passed`.
 
 ```bash
-git add AGENTS.md README.md
-git commit -m "Describe the project layout and its rules"
+git add AGENTS.md README.md index.html flat.html
+git commit -m "Name the product and describe the project layout and its rules"
 ```
 
 ---
