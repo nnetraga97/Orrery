@@ -34,7 +34,7 @@ The project generator's starter files (`robot.ts`, `robot-component.ts`, `panel.
   in `update()`; put every subscription's unsubscribe in `cleanupFuncs`.
 - **Build against the fake first.** Every port has a recorded fake in `adapters/`.
   A feature is developed and tested on the fake; the live adapter is checked last.
-  The Claude key lives only on the server (`api/`), never in `src/`.
+  Provider keys live only on the server (`api/`), never in `src/`.
 - **three.js** comes from `@iwsdk/core` everywhere except `flat/` and the copied code.
 - **The copied galaxy is one subtree.** It is attached once with
   `world.createTransformEntity(root)`. Inside it the copied code loads its own models

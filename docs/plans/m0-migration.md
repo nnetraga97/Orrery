@@ -63,8 +63,8 @@ fifteen (one run takes three minutes), Task 8 ten, Task 10 ten.
    implementing at once and not to write planning files. Here, follow this plan
    instead: read that guidance for how IWSDK's tools work, not for what to build.
 7. **No task in this plan needs an API key or any other secret.** Do not ask for one,
-   do not create `.env` files, and do not call any model API. The owner supplies a
-   Claude key later, when a later milestone asks for it (`docs/design.md` §4.5).
+   do not create `.env` files, and do not call any model API. Provider keys come later,
+   when a later milestone asks for them (`docs/design.md` §4.5).
 8. **Stop and report instead of improvising** when: a command's output does not match
    "Expected"; a script in `tools/` errors; a permission prompt or classifier blocks
    a command; or a step would need you to edit copied code. Say which task and step,
@@ -660,8 +660,9 @@ Hard requirements from the competition rules:
 - No brand names, in text, file names or assets.
 - Design for a seated user: all targets within about 60 cm of the resting hands.
 
-Secrets live only on the server. Today that is the owner's Claude API key, read from
-`ANTHROPIC_API_KEY`. People using the app never enter a key. Build and test against
+Secrets live only on the server: provider keys read from `ANTHROPIC_API_KEY` (Claude,
+supplied by the owner), and optionally `OPENAI_API_KEY` and `NEBIUS_API_KEY`
+(Nemotron). People using the app never enter a key. Build and test against
 the recorded fake first and ask the owner for the key only when a plan's step says a
 live call is required, through a secure credential form, never pasted into a chat.
 Never commit a key or put one in a file git tracks, in client code, or in a log.

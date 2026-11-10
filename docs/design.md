@@ -45,8 +45,8 @@ Start Developer Competition 2026. Special-award target: **Best Agentic Interacti
 | Passthrough | None. Full VR. |
 | Editing | No manual text entry. Edits come from the agent and are accepted or rejected by hand. |
 | Sample project | The VS Code editor's text model: `src/vs/editor/common` of `microsoft/vscode` (MIT), 229 TypeScript files, baked as `public/data/editor-core/`. One prepared bug, chosen in M2. See §4.4. |
-| Agent | Real model calls to Claude, with one key supplied by the owner and held on the server. People using the app never supply a key. Built and tested without the key until the first live check. See §4.5. |
-| Voice | Required to work. Push-to-talk. The source of speech-to-text is undecided: a Claude key does not provide it. See §4.6. |
+| Agent | Real model calls. Three providers: Claude (the default), OpenAI and Nemotron. Keys are held on the server; people using the app never supply one. The owner supplies a Claude key; a provider is offered only when its key is set. Built and tested without keys until the first live check. See §4.5. |
+| Voice | Required to work. Push-to-talk, using the browser's built-in speech recognition. See §4.6. |
 | Debugger | Kept, as a scripted replay of a recorded run. |
 | Hosting | Static site plus serverless functions on Vercel. Set up later; not part of M0. |
 | Headset testing | Emulator for development; one two-hour session on a borrowed Quest before submission. |
@@ -259,20 +259,36 @@ with the same command.
 
 ```
 headset browser                                   our server (serverless functions)
-  transcript panel  <-- stream --  /api/agent  -->  Claude API
-  conversation history (append-only)                the owner's key, rate limit, daily budget
+  transcript panel  <-- stream --  /api/agent  -->  Claude | OpenAI | Nemotron
+  conversation history (append-only)                server-held keys, rate limit, daily budget
   tool executor (workspace, scene)
 ```
 
-- **Nobody using the app supplies a key.** The owner provides one Claude API key. It
-  lives only on the server as the environment variable `ANTHROPIC_API_KEY`; it is
-  never sent to the browser, never committed, and never written into a file git tracks.
-- **Claude is the only live provider.** The agent sits behind `AgentPort`, so another
-  provider can be added later as one more adapter, but none is built now.
+- **Nobody using the app supplies a key.** Keys live only on the server, as environment
+  variables; they are never sent to the browser, never committed, and never written
+  into a file git tracks.
+- **Three providers, each its own adapter on the server:**
+
+  | Provider | Server variable | Key status | Starting point |
+  | --- | --- | --- | --- |
+  | Claude (default) | `ANTHROPIC_API_KEY` | The owner will supply it | Official TypeScript SDK (`@anthropic-ai/sdk`); notes below |
+  | OpenAI | `OPENAI_API_KEY` | Not promised | OpenAI's own SDK and current documentation |
+  | Nemotron | `NEBIUS_API_KEY` | Not promised | The desktop app's working tool loop, `reference/desktop-app/engine/agent/providers/nemotron-loop.cjs` |
+
+  The browser sees one `AgentPort` and one message format of our own; each server
+  adapter translates to and from its provider. A provider's code never borrows
+  another provider's SDK or a compatibility shim.
+- **A provider is offered only when its key is set.** The server reports which
+  providers are configured; the settings panel lists only those. With just the Claude
+  key, the app runs on Claude and the other two are simply absent. Providers are
+  named in plain text, with no logos, because the rules forbid corporate branding.
+- **OpenAI and Nemotron cannot be checked live without their keys.** All three
+  adapters are built and tested against stubbed clients. Only a provider whose key
+  exists gets a live end-to-end check, and only checked providers should be switched
+  on for judging.
 - **The server function is small and stateless.** Each request carries the
-  conversation so far; the function makes one streaming call with the official
-  TypeScript SDK (`@anthropic-ai/sdk`), relays text as it arrives, and returns the
-  finished message. Because strangers can reach it, it enforces a per-visitor rate
+  conversation so far and the chosen provider; the function makes one streaming call,
+  relays text as it arrives, and returns the finished message. Because strangers can reach it, it enforces a per-visitor rate
   limit and a daily spend cap, and accepts only this app's tool definitions.
 - **The loop and the tools run in the browser**, against the in-memory workspace and
   the scene. The browser appends each returned message to its history unchanged, runs
@@ -296,13 +312,14 @@ headset browser                                   our server (serverless functio
 | --- | --- |
 | `AgentPort` and the browser loop | Against `FakeAgent`, an adapter that replays a recorded session turn by turn |
 | Tools, transcript, diff, panels | Driven by `FakeAgent`; unit tests in `core/` |
-| The server function | Unit-tested with a stubbed SDK client: request shaping, rate limit, budget, error mapping |
+| The server function and its three provider adapters | Unit-tested with stubbed clients: request shaping, translation to and from our message format, rate limit, budget, error mapping |
 | The recorded session itself | Hand-written first, in the shape of real messages; re-recorded from a live run once the key exists |
 
-The key is needed at exactly two points: the first live end-to-end check at the end of
+A key is needed at exactly two points: the first live end-to-end check at the end of
 M3, and the deployed site's environment in M5. Whoever implements M3 does everything
-above first, then **stops and asks the owner for the key**, saying what was built and
-what the key unlocks. They ask through the environment's secure credential mechanism
+above first, then **stops and asks the owner for the Claude key**, saying what was
+built and what the key unlocks, and asks in the same message whether keys for OpenAI
+or Nemotron will follow. They ask through the environment's secure credential mechanism
 (in a Claude Code cloud session, the credential form for the host `api.anthropic.com`,
 header `x-api-key`), never by having the owner paste a key into a chat. Before asking,
 they check whether a credential is already available (`ANTHROPIC_API_KEY` set, or an
@@ -331,29 +348,22 @@ is written, since these move):
 
 ### 4.6 Voice
 
-Voice needs speech turned into text, and **a Claude key does not provide that**: the
-Claude API reference used for §4.5 has no speech-to-text endpoint. So transcription
-must come from somewhere else. `SpeechPort` hides the choice; the candidates are:
-
-| Option | Key needed | Risk |
-| --- | --- | --- |
-| The browser's built-in speech recognition | None | Untested in the Quest browser; cannot be confirmed until the headset session on Nov 17 |
-| A speech model running in the browser | None | A large one-time download and unknown speed on the headset; also unconfirmed until Nov 17 |
-| A hosted transcription service behind `/api/transcribe` | A second key, from a speech provider | The dependable choice; costs little, but the owner must supply that key |
-
-**Decision needed from the owner (§9):** supply a transcription key, or accept that
-voice rests on an option that cannot be verified until the day before the deadline.
-Until that is decided, M3 builds the first option as the live adapter and keeps the
-port ready for the third.
-
-Whatever the source of the text:
+**Decision: the browser's built-in speech recognition.** No key, no server, no
+download. (A Claude key would not have covered speech-to-text in any case.)
 
 - Pinch-and-hold the microphone orb to talk. The recognised text appears in the
   transcript for a beat before it is sent, with a pinchable **Cancel**.
-- Four or five suggested prompts are always pinchable, so a failed microphone never
-  blocks the experience. This also serves accessibility.
-- Voice is built and tested without any key against a fake `SpeechPort` that returns
-  scripted phrases.
+- `SpeechPort` has two adapters: the browser recognition, and a fake that returns
+  scripted phrases. Voice is built and tested on the fake.
+- **Known risk, accepted:** whether recognition works in the Quest browser cannot be
+  confirmed until the headset session on Nov 17. The emulator runs in desktop Chromium,
+  which proves the code path but not the headset. At start-up the app checks that
+  recognition exists and that the microphone is permitted; if either fails it says so
+  once and carries on without voice.
+- Four or five suggested prompts are always pinchable, so the whole bug-fix flow can
+  be completed with no microphone at all. This also serves accessibility.
+- First thing to test on the headset: microphone permission inside an immersive
+  session, and one recognised sentence.
 - The agent's replies are text. Speech output is optional polish.
 
 ### 4.7 Debugger replay
@@ -382,7 +392,7 @@ Every desktop control, and what replaces it. Source for each is under
 | Diff view | Diff panel with Accept and Reject per change | M3 |
 | Run and Debug | Replay panel: play, step, restart; stack cards over buildings | M4 |
 | Problems | Markers on buildings only | M4, cut first |
-| Settings | Text size, seated height | M4 |
+| Settings | Text size, seated height, provider (only those with a key set) | M4 |
 | Loading overlay | A ring at the galaxy's centre | M1 |
 | Camera controls, shortcuts | Grab gestures; "Home" on the palm menu | M1 |
 | Activity history, atlas, attachments, workspace files | Not ported | — |
@@ -411,7 +421,7 @@ selected. The agent's `show_code` drives both at once.
 | M0 Migration | Nov 10–11 | Repo builds; copied code runs in a browser from baked data; assets built | No | `docs/plans/m0-migration.md` |
 | M1 Galaxy in XR | Nov 11–13 | XR scene kit and host; galaxy on the table; ray, pinch, grab; globe stand; labels | No | written after M0 |
 | M2 Reading code | Nov 13–14 | Code panel, town-to-code linking, palm menu, sample picker, tutorial | No | |
-| M3 Agent and voice | Nov 14–16 | Server function, browser loop and tools, transcript, diff, push-to-talk, recorded fallback | Only its last step, the live check | |
+| M3 Agent and voice | Nov 14–16 | Server function with three provider adapters, browser loop and tools, transcript, diff, push-to-talk, recorded fallback | Only its last step, the live check | |
 | M4 Replay and polish | Nov 16–17 | Debugger replay, Quest asset tier, frame-rate pass, sound | No | |
 | M5 Headset and submit | Nov 17–18 | Hosting with the key in its environment, two-hour Quest session, fixes, video, Devpost entry | Yes | |
 
@@ -419,7 +429,8 @@ M1 through M5 each get their own plan, written when the milestone before it land
 because each depends on what the previous one showed.
 
 **Cut order if a milestone slips:** Problems markers, settings, speech output,
-the replay, live agent (ship the recorded run). Never cut:
+live OpenAI and Nemotron (ship Claude only), the replay, live agent (ship the
+recorded run). Never cut:
 the tutorial, the code panel, hands-only operation.
 
 ## 8. Risks
@@ -427,11 +438,12 @@ the tutorial, the code panel, hands-only operation.
 | Risk | Mitigation |
 | --- | --- |
 | Frame rate unknown until the headset session | Quest asset tier and draw-call caps in M4; emulator frame times tracked from M1; headset session on Nov 17 leaves a day to cut detail |
-| No confirmed source of speech-to-text: the Claude key does not cover it, and the browser's recognition is untested on a Quest | Owner decision in §9; `SpeechPort` allows switching; suggested prompts keep the experience usable without voice |
+| The browser's speech recognition is untested on a Quest until Nov 17 | Start-up check with a clear message; suggested prompts complete the flow without voice; `SpeechPort` allows another source later |
 | IWSDK is a release candidate | Scene-kit boundary allows falling back to plain `renderer.xr` |
 | Porting camera-writing modules takes longer than planned | M1 ports the constellation first, the planet second; the globe stand can ship with a simpler town view |
 | The agent endpoint is abused or runs over budget during judging | Per-visitor rate limit, daily spend cap, recorded run as fallback |
 | The key arrives late | Everything except the live check is built against a recorded fake; the key is asked for once, at the end of M3 |
+| OpenAI and Nemotron ship without a live check | They stay switched off unless their keys arrive in time to check them; Claude alone is a complete experience |
 | Hosting is set up late | The flat view and build are verified locally in M0; deploy as soon as the account exists, since size limits and headers are untested |
 | Asset download too large for a fast start | Lazy loading per planet already exists; initial-load budget of 40 MB set in M4 |
 | The sample's corporate copyright notices read as brand names | Neutral project title, no logos, only the notices the licence requires; a community-owned project can replace it with one command |
@@ -441,15 +453,13 @@ the tutorial, the code panel, hands-only operation.
 1. **Confirm the product name** (proposed: Orrery).
 2. **The Claude API key and a daily spend cap.** Not needed yet: the implementer asks
    for the key at the end of M3, through a secure credential form, and it goes into
-   the hosting environment in M5.
-3. **Where speech-to-text comes from.** A Claude key does not cover it (§4.6). Either
-   supply a key for a transcription service, or accept the browser's built-in
-   recognition, which cannot be verified on a Quest until Nov 17. Needed for M3.
-4. **The bug to fix** in the editor-core sample. Needed for M2.
-5. **Hosting account**, when ready. The first deployment should happen well before
+   the hosting environment in M5. Keys for OpenAI and Nemotron are optional; without
+   them those two providers are built but stay switched off.
+3. **The bug to fix** in the editor-core sample. Needed for M2.
+4. **Hosting account**, when ready. The first deployment should happen well before
    Nov 17, because it has not been tested.
-6. **Start programme membership** confirmed, since it gates submission.
-7. **Asset provenance sheet.** The rules let the sponsor ask for written proof of
+5. **Start programme membership** confirmed, since it gates submission.
+6. **Asset provenance sheet.** The rules let the sponsor ask for written proof of
    ownership or licence for any material. One page listing each asset family, how it
    was made (which generator, which account or plan) or where it came from, and its
    licence. Only the owner knows the plan terms behind the generated models.
