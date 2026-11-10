@@ -11,6 +11,32 @@
   </head>
   <body style="margin: 0">
     <div id="scene-container"></div>
+    <!-- The page elements the copied galaxy code looks up by id (the same ids as flat.html). Never shown. -->
+    <div id="legacy" hidden>
+      <div id="stage" aria-busy="false">
+        <div id="labels"></div>
+      </div>
+      <div id="hud">
+        <span id="sceneFps">— FPS</span>
+        <div id="sceneError" hidden><span></span> <button type="button">Reload view</button></div>
+        <div id="busy" hidden><span id="sceneLoadingTitle"></span> <span id="sceneLoadingDetail"></span></div>
+        <button id="trafficBtn" type="button"></button>
+        <label><span id="orbitLabel"></span> <input id="speed" type="range" min="0" max="3" step="0.1" value="1" /></label>
+        <section id="cameraOptions" hidden>
+          <select id="cameraInputDevice"><option value="trackpad">Trackpad</option><option value="mouse">Mouse</option></select>
+          <select id="cameraDragMode"><option value="orbit">Orbit</option><option value="pan">Pan</option></select>
+          <button id="cameraHome" type="button">Fit view</button>
+          <button id="cameraFocus" type="button">Focus selected</button>
+          <button id="cameraZoomIn" type="button">Zoom in</button>
+          <button id="cameraZoomOut" type="button">Zoom out</button>
+          <p id="trackpadHelp">Two-finger swipe pans. Pinch zooms.</p>
+          <p id="mouseHelp" hidden>Scroll to zoom. Shift-scroll pans.</p>
+        </section>
+        <div id="extra"></div>
+        <div id="legendExtra"></div>
+        <pre id="info"></pre>
+      </div>
+    </div>
     <script type="module" src="/src/index.ts"></script>
   </body>
 </html>

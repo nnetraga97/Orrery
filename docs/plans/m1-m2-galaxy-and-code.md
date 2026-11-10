@@ -145,13 +145,13 @@ public/data/index.json                  the list of projects
 - Delete: `src/robot.ts`, `src/robot-component.ts`, `src/panel.ts`, `src/scene-assets/`, `public/ui/*.uikitml`, `public/audio/chime.mp3`
 - Modify: `src/index.ts`, `src/components.ts`, `src/assets.ts`, `public/scenes/main.iwsdk.scene.json`, `index.html`
 
-- [ ] **Step 1.** Read `.claude/rules/scene-json.md` and `.claude/rules/assets-and-manifest.md`. Empty the scene to the document shape those rules give (no nodes that reference the robot, panels or decor; keep the environment components on the level root if the starter put them there). Empty the asset and component manifests to match. `src/assets.ts` and `src/components.ts` must still export what `iwsdk.config.json` expects.
-- [ ] **Step 2.** `src/index.ts` becomes the composition root: create the world from `virtual:iwsdk-project`, then set `window.__orrery = { world, ready: true }`. Add a `src/globals.d.ts` declaring `__orrery` on `Window`.
-- [ ] **Step 3.** In `index.html`, add inside `<body>` a block `<div id="legacy" hidden>…</div>` containing every element with an `id` that `flat.html` has inside `#stage` and `#hud` (copy them; keep the ids; drop the styles).
-- [ ] **Step 4. Check.** `npm run verify`. Then:
+- [x] **Step 1.** Read `.claude/rules/scene-json.md` and `.claude/rules/assets-and-manifest.md`. Empty the scene to the document shape those rules give (no nodes that reference the robot, panels or decor; keep the environment components on the level root if the starter put them there). Empty the asset and component manifests to match. `src/assets.ts` and `src/components.ts` must still export what `iwsdk.config.json` expects.
+- [x] **Step 2.** `src/index.ts` becomes the composition root: create the world from `virtual:iwsdk-project`, then set `window.__orrery = { world, ready: true }`. Add a `src/globals.d.ts` declaring `__orrery` on `Window`.
+- [x] **Step 3.** In `index.html`, add inside `<body>` a block `<div id="legacy" hidden>…</div>` containing every element with an `id` that `flat.html` has inside `#stage` and `#hud` (copy them; keep the ids; drop the styles).
+- [x] **Step 4. Check.** `npm run verify`. Then:
   `npm run smoke:xr -- --wait="window.__orrery?.ready" --read="!!document.getElementById('cameraOptions') && !!document.getElementById('labels')"`
   Expected: `"read": true` and `SMOKE PASSED`, with no error about a `robot` asset.
-- [ ] **Step 5. Commit:** `Replace the starter scene with an empty room`
+- [x] **Step 5. Commit:** `Replace the starter scene with an empty room`
 
 ### Task 2: The pose math
 
