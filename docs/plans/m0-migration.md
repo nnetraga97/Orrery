@@ -130,7 +130,7 @@ git clone https://github.com/nnetraga97/orrery.git .
 git checkout -b m0-migration
 git log --oneline -1
 ```
-Expected: the clone finishes (about 125 MB) and you are on a new branch `m0-migration`.
+Expected: the clone finishes (about 90 MB to download) and you are on a new branch `m0-migration`.
 
 - [ ] **Step 3: Check the contents**
 
@@ -252,7 +252,8 @@ npm install --save-dev typescript@^5.9.3 ignore@^7.0.12 @types/d3@^7.4.3 \
 The `SHARP` line reads the version the scaffold pins in `overrides` and installs
 exactly that, because npm refuses a direct dependency that conflicts with an override.
 
-Expected: both commands end with `added N packages` and no `ERR!` lines.
+Expected: each command prints `added N packages` and no `ERR!` lines. Lines about
+`npm audit` or deprecated packages are normal; do not run `npm audit fix`.
 
 | Package | Used by |
 | --- | --- |
@@ -268,11 +269,14 @@ Expected: `1`.
 If it is greater than 1, stop and report: a dependency brought its own three.js,
 which breaks the scene code.
 
-- [ ] **Step 3: Check the browser runtime was copied**
+- [ ] **Step 3: Copy the browser runtime**
 
-Run: `ls public/vendor/runtime`
-Expected: `typescript.LICENSE  typescript.js`. If the folder is missing, run
-`npm run postinstall`.
+Run: `npm run postinstall && ls public/vendor/runtime`
+Expected: `Copied the TypeScript runtime to public/vendor/runtime/.` and then
+`typescript.LICENSE  typescript.js`.
+
+(npm runs this script by itself on a plain `npm install`, but not when packages are
+named on the command line, as they were in Step 1.)
 
 - [ ] **Step 4: Install the test browser**
 
@@ -399,8 +403,9 @@ Open the three files in `docs/migration/`.
 - Overview: a starfield, a black hole with small planets around it and file-name
   labels (`java.js`, `code-model.js`), and near the middle a station, a satellite and
   a cratered moon.
-- Town: a planet's surface, roads with lane markings, small buildings along them, and
-  a label beginning `L20 · Return ·`.
+- Town: a planet with a town on it, the function label `validLayoutMemory`, and a
+  label beginning `L20 · Return ·`. With the camera close you also see roads with lane
+  markings and small buildings along them.
 - Demo dataset: many small systems spread across the view, with group labels such as
   `cursor`, `model`, `languages` and `diff`, and file labels such as `range.ts`.
 

@@ -113,13 +113,17 @@ try {
   const startError = await page.evaluate(() => window.__flatError || null);
   if (startError) errors.push(`start: ${startError}`);
   if (land) {
-    // A landing is finished when the loading notice has been gone for eight seconds (the camera is still flying in); --settle is the longest wait.
+    // A landing is finished when the loading notice has been gone, and the camera at rest, for eight seconds; --settle is the longest wait.
     const deadline = Date.now() + settle;
     let quietSince = 0;
     while (Date.now() < deadline) {
       await page.waitForTimeout(1000);
       const ready = await page.evaluate(
-        () => !!window.__flat?.view.landed && document.getElementById('busy').hidden && document.querySelectorAll('#labels > div').length > 20,
+        () =>
+          !!window.__flat?.view.landed &&
+          !window.__flat.view.flying &&
+          document.getElementById('busy').hidden &&
+          document.querySelectorAll('#labels > div').length > 20,
       );
       quietSince = ready ? quietSince || Date.now() : 0;
       if (quietSince && Date.now() - quietSince >= 8000) break;

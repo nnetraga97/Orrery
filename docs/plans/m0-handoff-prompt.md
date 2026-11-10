@@ -37,7 +37,7 @@ begin the next milestone.
 ## Before you start
 
 - Node 22.12 or newer (or Node 24), npm and git installed.
-- About 2 GB of free disk: the clone is roughly 125 MB and `node_modules` about 700 MB.
+- About 3 GB of free disk: the clone is roughly 300 MB on disk and `node_modules` about 1.2 GB.
 - If the agent asks for permission to run `npm create @iwsdk@1.1.0-rc.2 ...` or
   `npx playwright install chromium`, approve it: both are steps of the plan.
 - Nothing in this milestone needs a key or an account.
