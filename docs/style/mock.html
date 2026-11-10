@@ -93,12 +93,16 @@
       const bg = x.createRadialGradient(860, 470, 60, 860, 520, 950);
       bg.addColorStop(0, '#0a1a30'); bg.addColorStop(1, '#02060d'); x.fillStyle = bg; x.fillRect(0, 0, 1600, 1000);
 
-      // The table and the model: most of the view stays empty.
-      const TX = 900, TY = 660;
-      const rim = new Path2D(); rim.ellipse(TX, TY, 380, 108, 0, 0, Math.PI * 2); glowStroke(x, rim, T.white, 2, 1.4);
-      for (const k of [0.34, 0.62, 0.84]) { const g = new Path2D(); g.ellipse(TX, TY, 380 * k, 108 * k, 0, 0, Math.PI * 2); glowStroke(x, g, T.grid, 1, 0.8); }
+      // The floor: a faint grid far below, so the room has a horizon. There is no table.
+      x.save(); x.globalCompositeOperation = 'lighter'; x.strokeStyle = T.grid; x.lineWidth = 1;
+      for (let i = 0; i <= 12; i++) { const yy = 800 + (i / 12) ** 2 * 200; x.globalAlpha = 0.12 + (i / 12) * 0.5; x.beginPath(); x.moveTo(0, yy); x.lineTo(1600, yy); x.stroke(); }
+      for (let i = -16; i <= 16; i++) { x.globalAlpha = 0.28; x.beginPath(); x.moveTo(800 + i * 26, 800); x.lineTo(800 + i * 150, 1000); x.stroke(); }
+      x.restore();
+
+      // The model floats in the middle of the view; most of the view stays empty.
+      const TX = 880;
       const bodies = [[TX, 470], [TX - 110, 505], [TX + 120, 452], [TX - 190, 430], [TX + 215, 525]];
-      [[130, 38], [190, 54], [260, 74], [290, 84]].forEach(([rx, ry]) => { const o = new Path2D(); o.ellipse(TX, 482, rx, ry, -0.12, 0, Math.PI * 2); glowStroke(x, o, T.lineDim, 1, 0.7); });
+      [[130, 38], [190, 54], [260, 74], [290, 84], [350, 104]].forEach(([rx, ry]) => { const o = new Path2D(); o.ellipse(TX, 482, rx, ry, -0.12, 0, Math.PI * 2); glowStroke(x, o, T.lineDim, 1, 0.7); });
       bodies.forEach(([bx, by], i) => { const b = new Path2D(); b.arc(bx, by, i ? 9 - i : 13, 0, Math.PI * 2); x.fillStyle = i ? '#17385c' : '#000'; x.fill(b); glowStroke(x, b, i ? T.line : T.white, 1.5, 1.5); });
 
       // The selected file: a label and a diamond, nothing more.

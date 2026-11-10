@@ -403,6 +403,7 @@ These replace the matching rows above and in §5. Details per task are in
 | Replay | Kept, without a timeline. Back, Step and Play sit on the code card |
 | Chat | The desktop chat box's shape, 0.40 m wide, in the new theme, with ordinary Approve and Decline buttons |
 | Charts | None anywhere |
+| Table | Removed. The model floats in the air at an invisible anchor, larger and more central; a dark floor with a faint grid gives the room a horizon |
 
 ## 5. Desktop UI to VR
 

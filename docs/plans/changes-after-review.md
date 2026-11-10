@@ -21,21 +21,24 @@ in one commit named `Apply the design review changes` before your next task, and
 7. **The chat keeps the shape of the desktop chat box**, narrow, in the new theme, with
    ordinary Approve and Decline buttons.
 8. **No charts or graphs anywhere.**
-9. **Unchanged:** towns are still laid out with one building per statement, and buildings
+9. **No table.** The model floats in the air in front of the user. A dark floor with a
+   faint grid is the only fixed thing in the room, for comfort.
+10. **Unchanged:** towns are still laid out with one building per statement, and buildings
    and code lines are still linked in both directions.
 
 ## M1 + M2 plan (`m1-m2-galaxy-and-code.md`)
 
 | Task | Change |
 | --- | --- |
+| 5 The galaxy system, Step 3 | The anchor is an invisible point in the air, not a table top: position `[0, 1.05, -0.95]`, orientation pitched 20° down from level, width `1.0`, `minScale 0.0005`, `maxScale 5`. The names `tablePose` and `TableAnchor` in `src/core/table-frame.ts` stay as they are; only the numbers change. Screenshots now show the model floating, larger, in the middle of the view. |
 | 6 Labels | The selected file's or function's label is a marker: micro label over a small diamond. No pointer triangle. |
 | 10 Info cards, loading, errors | `CanvasPanel` becomes a **window**: glass panel, close mark, and a grab bar beneath it that moves the window when pinched and dragged (give the window's entity a grab component for translate and rotate, constrained to 0.5–1.4 m from the seat; pressing the close mark hides it). Do **not** show a card when a file is pinned or hovered: ignore context items whose key starts with `file:`. Keep cards for the other context items the copied code raises (the cannon, the station, the moon) as **attached cards**: placed 12 cm above and 8 cm to the side of their anchor, no line. Loading and error cards are unchanged. |
-| 11 The room | The table is a bright rim with faint ring guides, as in the style page. |
+| 11 The room | **No table.** Build only the floor: a large dark disc at height 0 with a faint grid in `grid` that fades with distance, and keep the star field. Nothing sits under the model. The check becomes: the screenshot shows the model floating above a faint floor grid, with no disc or rim under it. Commit: `Add a floor so the room has a stable frame`. |
 | 14 The code page | Becomes the **code card**: 0.46 × 0.34 m, about 12 rows (`rows: 12`, `columns: 56`), on a 1380 × 1020 canvas with 26 px code text. It opens to the right of the model when `codeView` gains a selected function or range, and closes when the selection clears or its close mark is pressed. Footer: `More` toggles 12 and 24 rows (the card grows downward). Remove the `Function / Whole file`, `Page up` and `Page down` buttons; a vertical drag still scrolls, and the range shown is always the selected function with 3 lines of context. Update the tests in `code-view.test.ts` to these numbers. In `layout.ts`, `codePage` becomes `codeCard` at its new size and the test's limits still apply. |
 | 15 Linking | Unchanged, except that there are no page buttons to wire. `showCode(path, line)` opens the card. |
 | 16 Dock and palm menu | **Replaced.** Build the **chat window shell** now, so navigation has a home: a window 0.40 × 0.72 m at `agentPanel`, titled "Agent", with an empty transcript area showing "The agent arrives in the next milestone", and the **tab strip** on its left edge with four icons: Home (calls `goHome()`), Chat (shows the window if hidden), Replay (disabled for now), Settings (disabled for now). Do not build a dock, a ring menu or a palm menu, and do not add `state.palmMenu`. Files: `src/panels/draw-chat-shell.ts`, `src/panels/draw-tab-strip.ts`, `src/systems/chat-window-system.ts`. Check: in the emulator, pinch the Home tab and see the phase return to `overview`; pinch the window's grab bar, move, and see the window follow. Commit: `Add the chat window shell and its tab strip`. |
 | 17 Choosing a project | **Replaced.** With no `?dataset=`, the app opens `editor-core` directly. Still write `public/data/index.json` and `DatasetPort.list()`; the settings tab uses them in the next plan. Do not build picker cards. The check becomes: without a query the phase reaches `overview` with 229 files. Commit: `Open the demo project directly`. |
-| 18 Tutorial | The tutorial card is 0.30 × 0.10 m above the table. `Help` no longer exists; the tutorial restarts from Settings in the next plan, and from `__orrery.commands.restartTutorial()` now. |
+| 18 Tutorial | The tutorial card is 0.30 × 0.10 m above the model. `Help` no longer exists; the tutorial restarts from Settings in the next plan, and from `__orrery.commands.restartTutorial()` now. |
 | 19 Review | Drop the palm-menu line from the report. Add: confirm the code card is absent until a function is picked and gone after the selection is cleared. |
 
 ## M3 + M4 plan (`m3-m4-agent-and-polish.md`)

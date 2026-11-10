@@ -12,10 +12,11 @@ The reference sheet is `docs/style/hologram-reference.png`, and the code that dr
 
 ## The room stays empty
 
-The model on the table is the subject. Everything else is small and leaves when it is
-not needed.
+The model floating in front of you is the subject. Everything else is small and leaves
+when it is not needed.
 
-- **One standing window: the chat.** It is narrow and sits to the left of the table.
+- **No table.** The model floats in the air at chest height. Nothing sits under it.
+- **One standing window: the chat.** It is narrow and sits to the left of the model.
 - **Code is not a standing window.** A small code card appears only while a function is
   picked or the agent points at code, and goes away afterwards.
 - **No menus in the room.** Navigation is a slim strip on the chat window's edge.
@@ -29,7 +30,7 @@ not needed.
 
 The owner's reference is the ship interfaces in the film *Passengers* (2016), made by
 the team at MPC London. All 34 frames in the gallery listed under Sources were studied.
-What we take is a **design language**: a see-through model floating over a table, fine
+What we take is a **design language**: a see-through model floating in the room, fine
 lines of cool light on dark glass, red for a fault, small capital labels, and thin white
 text on glass. Window behaviour follows the conventions of spatial computers such as
 visionOS: a window floats where you put it, is moved by a short bar beneath it, and
@@ -62,7 +63,7 @@ colour or a font anywhere else.
 | Token | Value | Used for |
 | --- | --- | --- |
 | `ink` | `#06101f` at 88% opacity | The backing of every window |
-| `grid` | `#1b3b5c` | Faint rules, the table's ring guides, dividers |
+| `grid` | `#1b3b5c` | Faint rules, the floor's grid, dividers |
 | `lineDim` | `#2f6f9f` | Resting outlines, line numbers, orbits, placeholder text |
 | `line` | `#7fd4ff` | Active outlines, labels, keywords in code, secondary text |
 | `glow` | `#2aa7ff` | The fill of a hovered or pressed control, selection bands |
@@ -97,7 +98,7 @@ first window is drawn. Sizes scale with the `textScale` setting.
 | Chat | 0.40 m wide, 0.72 m tall | Always, unless closed from its close mark; the Chat tab or a spoken "open chat" brings it back |
 | Code card | 0.46 m wide, 0.34 m tall, about 12 lines | Only while a function is picked, the agent points at code, or a replay is running |
 | Fault card and "show me" card | 0.24 m wide, 0.09 m tall | While the fault is unfixed; while the agent's pointer is active |
-| Tutorial card | 0.30 m wide, 0.10 m tall | During the tutorial only |
+| Tutorial card | 0.30 m wide, 0.10 m tall, above the model | During the tutorial only |
 
 ## Components
 
@@ -110,7 +111,7 @@ first window is drawn. Sizes scale with the `textScale` setting.
 | **Band** | A full-width strip at 16–18% opacity with a 3 px solid edge on the left: selected lines (`glow`), the bug line (`alert`), added (`ok`) and removed (`alert`) lines in a diff |
 | **Marker** | A micro label over a small diamond, above the selected file or function. No pointer triangle, no card |
 | **Fault dot** | A red dot with a halo on the model at the bug's location |
-| **The table** | A bright elliptical rim with faint ring guides inside it; the model floats a hand's width above |
+| **The floor** | A dark plane at floor level with a faint `grid` pattern that fades with distance. It is the only fixed thing in the room besides the stars, and it is there so the user has a horizon |
 
 ### The chat window
 
@@ -152,8 +153,10 @@ or from its close mark.
 
 ## In the room
 
-Additive light looks right against darkness, so the room stays dark: the star field, a
-dark floor, and the table's bright rim as the only "lighting". On three.js materials use
+Additive light looks right against darkness, so the room stays dark: the star field and
+a dark floor with a faint grid. The floor matters for comfort: a model floating among
+stars with no floor or horizon can make people feel unanchored. There is no table and
+no other furniture; the model's position is an invisible anchor. On three.js materials use
 additive blending with `depthWrite: false` and `toneMapped: false` for glowing lines, and
 keep window textures ordinary so their backing stays dark. Do not add a bloom
 post-process: it costs too much on a headset. The two-pass stroke is the glow.
