@@ -16,6 +16,8 @@ import { Panel } from '../components/panel.ts';
 import { regionAt, uvToPixel } from '../core/panel-hit.ts';
 import type { HitRegion } from '../core/panel-hit.ts';
 
+const DRAG_PX = 24;
+
 export type DrawPanel = (ctx: CanvasRenderingContext2D, width: number, height: number) => HitRegion[];
 
 interface UvEvent {
@@ -44,6 +46,8 @@ export class CanvasPanel {
   onHover: (id: string | null) => void = () => {};
   onDrag: (dxPx: number, dyPx: number) => void = () => {};
   private down: { x: number; y: number } | null = null;
+  // Pixels moved since the pinch began: a pinch that moved further is a drag, and its closing click is swallowed.
+  private travel = 0;
 
   constructor(options: CanvasPanelOptions) {
     const { name, widthPx, heightPx, widthM, heightM, renderer } = options;
@@ -69,6 +73,7 @@ export class CanvasPanel {
       const p = at(e);
       if (!p) return;
       if (this.down) {
+        this.travel += Math.hypot(p[0] - this.down.x, p[1] - this.down.y);
         this.onDrag(p[0] - this.down.x, p[1] - this.down.y);
         this.down.x = p[0];
         this.down.y = p[1];
@@ -82,6 +87,7 @@ export class CanvasPanel {
     target.addEventListener('pointerdown', e => {
       const p = at(e);
       this.down = p ? { x: p[0], y: p[1] } : null;
+      this.travel = 0;
     });
     target.addEventListener('pointerup', () => {
       this.down = null;
@@ -94,6 +100,7 @@ export class CanvasPanel {
       }
     });
     target.addEventListener('click', e => {
+      if (this.travel > DRAG_PX) return;
       const p = at(e);
       const id = p ? (regionAt(this.regions, p[0], p[1])?.id ?? null) : null;
       if (id) this.onPress(id);

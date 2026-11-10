@@ -8,6 +8,8 @@ import type { Placement, Seat } from '../core/layout.ts';
 import type { ContextItem } from '../ports/host.ts';
 import { loadCodeFont } from '../panels/code-font.ts';
 import { CODE_LAYOUT, CODE_PAGE, drawCodePage } from '../panels/draw-code-page.ts';
+import { dragScroll } from '../core/scroll.ts';
+import { hoverLine, page, pageMaxScroll, pressLine, toggleMode } from '../galaxy-bridge/inspector.ts';
 import { CanvasPanel } from '../panels/canvas-panel.ts';
 import { INFO_CARD, drawInfoCard } from '../panels/draw-info-card.ts';
 import type { InfoCard } from '../panels/draw-info-card.ts';
@@ -64,7 +66,19 @@ export class PanelSystem extends createSystem({}) {
     this.code = panel('code-page', CODE_PAGE);
     this.code.visible = false;
     place(this.code, PLACEMENTS.codePage);
-    this.code.onHover = () => this.drawCode();
+    this.code.onHover = id => {
+      hoverLine(id?.startsWith('line:') ? Number(id.slice(5)) : null);
+      this.drawCode();
+    };
+    this.code.onPress = id => {
+      if (id.startsWith('line:')) pressLine(Number(id.slice(5)));
+      else if (id === 'mode') toggleMode();
+      else if (id === 'pageUp') page(-1);
+      else if (id === 'pageDown') page(1);
+    };
+    this.code.onDrag = (_dx, dy) => {
+      codeScroll.value = dragScroll(codeScroll.peek(), dy, CODE_LAYOUT.lineHeight, pageMaxScroll());
+    };
     void loadCodeFont().then(() => {
       this.fontReady = true;
       this.drawCode();

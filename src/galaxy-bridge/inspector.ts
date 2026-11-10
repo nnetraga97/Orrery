@@ -1,8 +1,11 @@
 // The planet inspector contract (host.inspector.create), for the XR app. The desktop mounts a React panel; here the
 // inspector turns what the landed planet asks to show into one signal, codeView, which the code page draws. The
 // options (callbacks such as onStatement and onMethod, and data such as towns) are kept for the page to call back.
+import { maxScrollTop, scrollToRange, shownRange } from '../core/code-view.ts';
+import { pageScroll } from '../core/scroll.ts';
+import { CODE_LAYOUT } from '../panels/draw-code-page.ts';
 import type { InspectorOptions, InspectorPort } from '../ports/host.ts';
-import { codeView, inspectorExtras } from '../state/app-state.ts';
+import { codeRequest, codeScroll, codeView, inspectorExtras } from '../state/app-state.ts';
 import type { CodeRegion, CodeView, LineRange, Segment } from '../state/app-state.ts';
 
 /** A town element (a building, fork or loop): its source item's lines and its region. */
@@ -35,6 +38,15 @@ function publish(patch: Partial<CodeView>) {
   if (view) codeView.value = { ...view, ...patch };
 }
 
+/** Scrolls the page so the selected statement (or the selected function) sits a third of the way down. */
+function scrollToSelection() {
+  const view = codeView.peek();
+  if (!view) return;
+  const region = view.selectedRegion != null ? view.regions[view.selectedRegion] : null;
+  const range = view.selectedRange ?? region ?? null;
+  codeScroll.value = range ? scrollToRange(view, range, CODE_LAYOUT.rows) : 0;
+}
+
 const keep = (name: string) => (...args: unknown[]) => {
   inspectorExtras.value = { ...inspectorExtras.peek(), [name]: args };
 };
@@ -53,7 +65,23 @@ export function createInspector(options: InspectorOptions): InspectorPort {
     hoveredRange: null,
     mode: 'function',
   };
-  const selectRegion = (k: number | null) => publish({ selectedRegion: k != null && k >= 0 ? k : null });
+  codeScroll.value = 0;
+  const selectRegion = (k: number | null) => {
+    const next = k != null && k >= 0 ? k : null;
+    if (next !== codeView.peek()?.selectedRegion) publish({ selectedRegion: next, selectedRange: null });
+    // A line asked for by showCode: select what holds it once its function is selected.
+    const request = codeRequest.peek(),
+      view = codeView.peek();
+    if (request && view && request.path === view.file && next != null) {
+      const r = view.regions[next];
+      if (request.line >= r.start && request.line <= r.end) {
+        codeRequest.value = null;
+        if (!view.selectedRange || request.line < view.selectedRange.start || request.line > view.selectedRange.end)
+          publish({ selectedRange: smallestHolding(next, request.line) ?? { start: request.line, end: request.line } });
+      }
+    }
+    scrollToSelection();
+  };
   return {
     setRegion: k => selectRegion(k),
     openMethod: k => selectRegion(k),
@@ -61,6 +89,7 @@ export function createInspector(options: InspectorOptions): InspectorPort {
       const range = rangeOfElement(element);
       const k = (element as TownElement | null)?.k;
       publish({ selectedRange: range, ...(typeof k === 'number' && k >= 0 ? { selectedRegion: k } : {}) });
+      scrollToSelection();
     },
     hover(element) {
       publish({ hoveredRange: rangeOfElement(element) });
@@ -78,3 +107,75 @@ export function createInspector(options: InspectorOptions): InspectorPort {
     },
   };
 }
+
+// ---- the code page's own actions (called by the panel system) ----
+
+interface TownsLike {
+  elementsOf(k: number): TownElement[];
+}
+
+/** The region (function) whose lines contain `line`, the innermost when they nest. */
+function regionOfLine(view: CodeView, line: number): number | null {
+  let best: number | null = null;
+  view.regions.forEach((r, k) => {
+    if (line < r.start || line > r.end) return;
+    if (best == null || r.end - r.start < view.regions[best].end - view.regions[best].start) best = k;
+  });
+  return best;
+}
+
+/** The line range of the smallest town element in region k that holds `line`. */
+function smallestHolding(k: number, line: number): LineRange | null {
+  const towns = current?.towns as TownsLike | undefined;
+  const l = (towns?.elementsOf(k) ?? [])
+    .filter(e => e.it.line <= line && (e.it.end ?? e.it.line) >= line)
+    .sort((a, b) => (a.it.end ?? a.it.line) - a.it.line - ((b.it.end ?? b.it.line) - b.it.line))[0];
+  return l ? rangeOfElement(l) : null;
+}
+
+/** A pinch on line `n`: select the smallest building holding it, switching function first when needed. */
+export function pressLine(n: number) {
+  const view = codeView.peek(),
+    options = current;
+  if (!view || !options) return;
+  const k = regionOfLine(view, n);
+  if (k == null) {
+    publish({ selectedRange: { start: n, end: n } });
+    return;
+  }
+  if (k !== view.selectedRegion) options.onMethod?.(k);
+  const towns = options.towns as TownsLike | undefined;
+  const holding = (towns?.elementsOf(k) ?? [])
+    .filter(l => l.it.line <= n && (l.it.end ?? l.it.line) >= n)
+    .sort((a, b) => (a.it.end ?? a.it.line) - a.it.line - ((b.it.end ?? b.it.line) - b.it.line))[0];
+  if (holding) options.onStatement?.(holding, true);
+  else publish({ selectedRegion: k, selectedRange: { start: n, end: n } });
+}
+
+/** Hovering line `n` (or nothing) on the page. */
+export function hoverLine(n: number | null) {
+  publish({ hoveredRange: n == null ? null : { start: n, end: n } });
+}
+
+/** Function / Whole file. */
+export function toggleMode() {
+  const view = codeView.peek();
+  if (!view) return;
+  publish({ mode: view.mode === 'function' ? 'file' : 'function' });
+  scrollToSelection();
+}
+
+/** Page up (-1) or down (1). */
+export function page(direction: 1 | -1) {
+  const view = codeView.peek();
+  if (!view) return;
+  codeScroll.value = pageScroll(codeScroll.peek(), direction, CODE_LAYOUT.rows, maxScrollTop(view, CODE_LAYOUT.rows));
+}
+
+/** The largest scroll for the page as it is now. */
+export const pageMaxScroll = () => {
+  const view = codeView.peek();
+  return view ? maxScrollTop(view, CODE_LAYOUT.rows) : 0;
+};
+
+export { shownRange };

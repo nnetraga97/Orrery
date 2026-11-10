@@ -21,6 +21,8 @@ export const error = signal<string | null>(null);
 export type { CodeRegion, CodeView, LineRange, Segment } from '../core/code-view.ts';
 export const codeView = signal<CodeView | null>(null);
 /** Inspector calls kept for the next plan (debugger tabs, transport, stack, evidence). */
+/** A line the app asked to show (commands.showCode), until the code page has selected it. */
+export const codeRequest = signal<{ path: string; line: number } | null>(null);
 /** Lines scrolled from the top of what the code page shows. */
 export const codeScroll = signal(0);
 /** Whether the code page is shown when there is code to show (the dock's Code button). */
@@ -39,6 +41,7 @@ export const appState = {
   codeView,
   codeScroll,
   codePageOpen,
+  codeRequest,
   inspectorExtras,
 };
 export type AppState = typeof appState;

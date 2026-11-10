@@ -349,14 +349,14 @@ A landed planet is an "overlay": an object with `scene`, `camera`, `frame()` ret
 
 **Files:** Modify `src/galaxy-bridge/inspector.ts`, `src/systems/panel-system.ts`, `src/state/commands.ts`.
 
-- [ ] **Step 1. Building to page.** When `showStatement` or `setRegion` changes the selection, set the page's `scrollTop` with `scrollToRange`. (A pinch on a building already reaches `showStatement` through the copied `planet-interaction.js`.)
-- [ ] **Step 2. Page to building.** A press on `line:<n>` calls the stored `options.onStatement(element, true)` with the smallest town element containing that line (`options.towns.elementsOf(region)` gives a region's elements with their line ranges); if the line is outside the selected function, call `options.onMethod(k)` for the region containing it first. Hovering a line sets `hoveredRange`.
-- [ ] **Step 3. Buttons.** `Function / Whole file` toggles `mode`; `Page up` and `Page down` use `pageScroll`; a vertical drag on the page uses `dragScroll`.
-- [ ] **Step 4. Commands.** Add `showCode(path, line)`: lands on the file if needed, selects the function containing the line, and scrolls there. The agent uses this in the next plan.
-- [ ] **Step 5. Check.** `npm run verify`, then:
+- [x] **Step 1. Building to page.** When `showStatement` or `setRegion` changes the selection, set the page's `scrollTop` with `scrollToRange`. (A pinch on a building already reaches `showStatement` through the copied `planet-interaction.js`.)
+- [x] **Step 2. Page to building.** A press on `line:<n>` calls the stored `options.onStatement(element, true)` with the smallest town element containing that line (`options.towns.elementsOf(region)` gives a region's elements with their line ranges); if the line is outside the selected function, call `options.onMethod(k)` for the region containing it first. Hovering a line sets `hoveredRange`.
+- [x] **Step 3. Buttons.** `Function / Whole file` toggles `mode`; `Page up` and `Page down` use `pageScroll`; a vertical drag on the page uses `dragScroll`.
+- [x] **Step 4. Commands.** Add `showCode(path, line)`: lands on the file if needed, selects the function containing the line, and scrolls there. The agent uses this in the next plan.
+- [x] **Step 5. Check.** `npm run verify`, then:
   `npm run smoke:xr -- --wait="window.__orrery?.ready" --settle=4000 --read="(__orrery.commands.showCode('core/range.ts', 90), new Promise(r => { const t = setInterval(() => { const c = __orrery.state.codeView.value; if (c?.selectedRange) { clearInterval(t); setTimeout(() => r(__orrery.state.codeView.value.selectedRange), 6000); } }, 500); }))" --out=docs/migration/xr-code.png`
   Expected: a range that includes line 90. The screenshot shows the globe with the code page to its right, the function's lines banded.
-- [ ] **Step 6. Commit:** `Link buildings and code lines in both directions`
+- [x] **Step 6. Commit:** `Link buildings and code lines in both directions`
 
 ### Task 16: The dock and the palm menu
 

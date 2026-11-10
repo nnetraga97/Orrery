@@ -1,6 +1,6 @@
 // Typed commands: the only way panels, gestures and tests ask the app to change. The galaxy system connects the
 // handler that carries them out; until it does, a command does nothing.
-import { dataset, pinned } from './app-state.ts';
+import { codePageOpen, codeRequest, dataset, pinned } from './app-state.ts';
 
 export interface CommandHandler {
   openDataset(name: string): void;
@@ -37,6 +37,14 @@ export function goHome(): void {
   handler?.goHome();
 }
 
+/** Shows `line` of `path` on the code page: lands on the file if needed, then selects the function holding the line
+ * and scrolls there (the landed planet focuses the line, and the inspector follows its selection). */
+export function showCode(path: string, line: number): void {
+  codePageOpen.value = true;
+  codeRequest.value = { path, line };
+  handler?.landOn(path, line);
+}
+
 /** Closes the pinned info card. */
 export function closeCard(): void {
   pinned.value = null;
@@ -46,5 +54,5 @@ export function retry(): void {
   if (dataset.peek()) openDataset(dataset.peek()!);
 }
 
-export const commands = { openDataset, selectFile, landOn, leavePlanet, goHome, closeCard, retry };
+export const commands = { openDataset, selectFile, landOn, leavePlanet, goHome, showCode, closeCard, retry };
 export type Commands = typeof commands;
