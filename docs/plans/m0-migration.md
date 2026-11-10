@@ -2,7 +2,7 @@
 
 > **How to use this plan.** Do the tasks in order, one step at a time. Run each command exactly as written, compare
 > its output with "Expected", and tick the step's checkbox (`- [ ]` to `- [x]`) only when it matches. No plugin, skill
-> or workflow tool is required. When something does not match, follow rule 7 under "Rules": stop and report.
+> or workflow tool is required. When something does not match, follow rule 8 under "Rules": stop and report.
 
 **Goal:** Turn `metavrviz` into a building IWSDK project in which the galaxy code copied from `codebase-viz` runs in a browser from baked data and optimized assets.
 
@@ -52,7 +52,7 @@ fifteen (one run takes three minutes), Task 8 ten, Task 10 ten.
    `galaxy/viewer/app/static-data.js` and `galaxy/viewer/app/project-store.ts`. A
    change to copied code goes into `tools/migrate/apply-patches.mjs`.
 2. **Do not change the scripts in `tools/`** unless a step tells you to. They were
-   tested against these exact inputs. If one fails, stop and report (rule 7).
+   tested against these exact inputs. If one fails, stop and report (rule 8).
 3. **Do not start XR work.** Leave the scaffold's `src/index.ts`, `src/panel.ts`,
    `src/robot.ts` and its scene exactly as generated. M1 has its own plan.
 4. **Do not use `rsync`.** It is not installed in the cloud environment. Use `cp`.
@@ -62,7 +62,10 @@ fifteen (one run takes three minutes), Task 8 ten, Task 10 ten.
    `AGENTS.md` and skills written for starting a new experience. They say to begin
    implementing at once and not to write planning files. Here, follow this plan
    instead: read that guidance for how IWSDK's tools work, not for what to build.
-7. **Stop and report instead of improvising** when: a command's output does not match
+7. **No task in this plan needs an API key or any other secret.** Do not ask for one,
+   do not create `.env` files, and do not call any model API. The owner supplies a
+   Claude key later, when a later milestone asks for it (`docs/design.md` §4.5).
+8. **Stop and report instead of improvising** when: a command's output does not match
    "Expected"; a script in `tools/` errors; a permission prompt or classifier blocks
    a command; or a step would need you to edit copied code. Say which task and step,
    paste the output, and wait.
@@ -657,6 +660,12 @@ Hard requirements from the competition rules:
 - No brand names, in text, file names or assets.
 - Design for a seated user: all targets within about 60 cm of the resting hands.
 
+Secrets live only on the server. Today that is the owner's Claude API key, read from
+`ANTHROPIC_API_KEY`. People using the app never enter a key. Build and test against
+the recorded fake first and ask the owner for the key only when a plan's step says a
+live call is required, through a secure credential form, never pasted into a chat.
+Never commit a key or put one in a file git tracks, in client code, or in a log.
+
 The plans in `docs/plans/` say what to build next and outrank the generic IWSDK
 guidance below, which is written for starting a new experience. Use that guidance for
 how IWSDK's tools and APIs work.
@@ -784,7 +793,8 @@ Give, in this order:
 3. That deployment (Task 9) was skipped as instructed.
 4. Anything that differed from "Expected" (for example a different `three` version,
    or `assetsDir` removed).
-5. The open items from the design's section 9.
+5. The open items from the design's section 9. Do not ask for the Claude key: no step
+   here uses it.
 
 Then stop. M1 is planned separately.
 
@@ -806,6 +816,8 @@ Then stop. M1 is planned separately.
   preview server, which the scaffold's plugin could have altered; the scaffold's
   "start implementing" guidance is explicitly outranked; import boundaries are
   enforced by `npm run check`; the starting branch is `main`.
+- **Keys.** The owner supplies one Claude key later; this plan uses none (rule 7), and
+  the project guidance written in Task 8 says how and when to ask.
 - **Not verified ahead of time:** Task 1 (the generator), the scaffold's interaction
   with the `vite.config.ts` edit in Task 4. Each has an explicit fallback or a stop
   condition.
