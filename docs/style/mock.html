@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Orrery hologram style reference</title>
+    <style>
+      html, body { margin: 0; background: #02060d; }
+      canvas { display: block; }
+    </style>
+  </head>
+  <body>
+    <canvas id="c" width="1600" height="1000"></canvas>
+    <script>
+      // Reference drawings for docs/visual-style.md. Each function is written to be copied into a panel's
+      // draw function: it takes a 2D context and plain numbers, and uses only the tokens below.
+      const T = {
+        ink: '#06101f', inkAlpha: 0.88, grid: '#1b3b5c', lineDim: '#2f6f9f', line: '#7fd4ff', glow: '#2aa7ff',
+        white: '#eaf6ff', amber: '#ffb21a', alert: '#ff5a36', ok: '#5fe0c0',
+        label: '600 15px "Barlow Condensed", "Arial Narrow", sans-serif',
+        body: '400 20px "Barlow", system-ui, sans-serif',
+        mono: '400 19px "JetBrains Mono", ui-monospace, monospace',
+      };
+      const c = document.getElementById('c'), x = c.getContext('2d');
+
+      // Light, not paint: strokes are drawn twice, a wide faint pass and a thin bright one, with additive blending.
+      function glowStroke(ctx, path, color, width = 1.5, strength = 1) {
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.strokeStyle = color;
+        ctx.globalAlpha = 0.18 * strength; ctx.lineWidth = width * 6; ctx.stroke(path);
+        ctx.globalAlpha = 0.9; ctx.lineWidth = width; ctx.stroke(path);
+        ctx.restore();
+      }
+
+      // A glass panel: a dark backing dense enough to read text on, a hairline frame, and bracketed corners.
+      function glassPanel(ctx, px, py, w, h, title) {
+        ctx.save();
+        ctx.globalAlpha = T.inkAlpha; ctx.fillStyle = T.ink; ctx.fillRect(px, py, w, h); ctx.globalAlpha = 1;
+        const frame = new Path2D(); frame.rect(px + 0.5, py + 0.5, w - 1, h - 1);
+        ctx.strokeStyle = T.lineDim; ctx.globalAlpha = 0.6; ctx.lineWidth = 1; ctx.stroke(frame); ctx.globalAlpha = 1;
+        const k = 18, corners = new Path2D();
+        for (const [cx, cy, sx, sy] of [[px, py, 1, 1], [px + w, py, -1, 1], [px, py + h, 1, -1], [px + w, py + h, -1, -1]]) {
+          corners.moveTo(cx + sx * k, cy); corners.lineTo(cx, cy); corners.lineTo(cx, cy + sy * k);
+        }
+        glowStroke(ctx, corners, T.line, 2);
+        if (title) microLabel(ctx, title, px + 20, py + 30, T.line);
+        ctx.restore();
+      }
+
+      // Small capitals with wide spacing: used for every label, never for sentences.
+      function microLabel(ctx, text, lx, ly, color = T.amber) {
+        ctx.save(); ctx.font = T.label; ctx.fillStyle = color; ctx.letterSpacing = '2px';
+        ctx.fillText(text.toUpperCase(), lx, ly); ctx.restore();
+      }
+
+      // The marker: label, diamond, pointer. Warm for things that need attention, cool for the current focus.
+      function marker(ctx, mx, my, text, kind = 'attention') {
+        ctx.save();
+        const warm = kind === 'attention';
+        ctx.textAlign = 'center'; microLabel(ctx, text, mx, my - 30, warm ? T.amber : T.line);
+        const d = new Path2D(); d.moveTo(mx, my - 14); d.lineTo(mx + 12, my - 2); d.lineTo(mx, my + 10); d.lineTo(mx - 12, my - 2); d.closePath();
+        ctx.fillStyle = warm ? T.alert : T.ink; ctx.globalAlpha = warm ? 0.9 : 1; ctx.fill(d); ctx.globalAlpha = 1;
+        glowStroke(ctx, d, warm ? T.amber : T.line, 1.5);
+        const p = new Path2D(); p.moveTo(mx - 7, my + 18); p.lineTo(mx + 7, my + 18); p.lineTo(mx, my + 28); p.closePath();
+        ctx.fillStyle = warm ? T.amber : T.line; ctx.fill(p);
+        ctx.restore();
+      }
+
+      // A ridge chart: rows of thin lines stepping back in depth, with soft vertical spikes at the peaks.
+      function ridges(ctx, rx, ry, w, h, rows, peaks) {
+        ctx.save();
+        for (let r = rows - 1; r >= 0; r--) {
+          const depth = r / (rows - 1), baseY = ry + h - depth * h * 0.75, inset = depth * w * 0.12;
+          const path = new Path2D();
+          for (let i = 0; i <= 160; i++) {
+            const u = i / 160, px = rx + inset + u * (w - inset * 2);
+            let y = Math.sin(u * 14 + r * 0.9) * 4 + Math.sin(u * 37 + r * 2.1) * 2;
+            for (const [pu, pr, amp] of peaks) y += amp * Math.exp(-(((u - pu) * 60) ** 2)) * Math.exp(-(((r - pr) / 1.3) ** 2));
+            i ? path.lineTo(px, baseY - y) : path.moveTo(px, baseY - y);
+          }
+          glowStroke(ctx, path, r % 4 === 0 ? T.line : T.lineDim, 1, 1 - depth * 0.6);
+        }
+        ctx.restore();
+      }
+
+      // A button is an outline until it is pointed at; then it fills with light.
+      function button(ctx, bx, by, w, h, text, state = 'idle') {
+        ctx.save();
+        const path = new Path2D(); path.rect(bx + 0.5, by + 0.5, w - 1, h - 1);
+        if (state !== 'idle') { ctx.globalAlpha = state === 'pressed' ? 0.42 : 0.2; ctx.fillStyle = T.glow; ctx.fill(path); ctx.globalAlpha = 1; }
+        glowStroke(ctx, path, state === 'idle' ? T.lineDim : T.line, 1.5, state === 'idle' ? 0.4 : 1.4);
+        ctx.textAlign = 'center'; microLabel(ctx, text, bx + w / 2, by + h / 2 + 5, state === 'idle' ? T.line : T.white);
+        ctx.restore();
+      }
+
+      // ---- the reference sheet ----
+      const bg = x.createRadialGradient(800, 420, 60, 800, 500, 950);
+      bg.addColorStop(0, '#0a1a30'); bg.addColorStop(1, '#02060d'); x.fillStyle = bg; x.fillRect(0, 0, 1600, 1000);
+
+      // Table edge and replay ridge with step markers.
+      ridges(x, 60, 560, 900, 380, 22, [[0.16, 16, 120], [0.36, 9, 150], [0.5, 4, 110], [0.7, 12, 90], [0.86, 2, 170]]);
+      marker(x, 60 + 0.16 * 900 + 60, 640, 'Step 07'); marker(x, 60 + 0.36 * 900 + 20, 690, 'Step 05');
+      marker(x, 60 + 0.5 * 900, 760, 'Step 03'); marker(x, 60 + 0.86 * 900 - 10, 745, 'Step 01', 'focus');
+      microLabel(x, 'Replay · Range.containsPosition · fails', 70, 540, T.line);
+
+      // Code page.
+      glassPanel(x, 1000, 60, 560, 520, 'core/range.ts · containsPosition');
+      const code = [
+        ['90', [['public static ', T.line], ['containsPosition', T.white], ['(range, position) {', T.line]]],
+        ['91', [['  if ', T.line], ['(position.lineNumber < range.startLineNumber', T.white], [' ||', T.line]]],
+        ['92', [['      position.lineNumber > range.endLineNumber) {', T.white]]],
+        ['93', [['    return ', T.line], ['false', T.ok], [';', T.white]]],
+        ['94', [['  }', T.white]]],
+        ['97', [['  if ', T.line], ['(position.column >= range.endColumn) {', T.white]]],
+        ['98', [['    return ', T.line], ['false', T.ok], [';', T.white]]],
+        ['99', [['  }', T.white]]],
+        ['100', [['  return ', T.line], ['true', T.ok], [';', T.white]]],
+      ];
+      x.font = T.mono;
+      x.save(); x.beginPath(); x.rect(1001, 80, 558, 420); x.clip(); // text never leaves its panel
+      code.forEach(([n, runs], i) => {
+        const y = 130 + i * 34;
+        if (n === '97') { x.save(); x.globalAlpha = 0.16; x.fillStyle = T.amber; x.fillRect(1001, y - 23, 558, 32); x.globalAlpha = 1; x.fillStyle = T.amber; x.fillRect(1001, y - 23, 3, 32); x.restore(); }
+        x.fillStyle = T.lineDim; x.textAlign = 'right'; x.fillText(n, 1052, y); x.textAlign = 'left';
+        let cx = 1070; for (const [text, color] of runs) { x.fillStyle = color; x.fillText(text, cx, y); cx += x.measureText(text).width; }
+      });
+      x.restore();
+      button(x, 1020, 510, 150, 48, 'Function', 'hover'); button(x, 1184, 510, 150, 48, 'Whole file'); button(x, 1392, 510, 150, 48, 'Page down');
+
+      // Agent panel.
+      glassPanel(x, 60, 60, 520, 400, 'Agent');
+      x.font = T.body; x.fillStyle = T.white;
+      ['The end edge is excluded by mistake.', 'Line 97 compares with >= where the', 'comment says the edge counts as inside.'].forEach((l, i) => x.fillText(l, 84, 132 + i * 30));
+      x.save(); x.translate(96, 262); x.rotate(0.5); x.font = '28px sans-serif'; x.fillStyle = '#d97757'; x.textAlign = 'center'; x.fillText('✳', 0, 9); x.restore();
+      x.font = T.body; x.fillStyle = T.line; x.fillText('Reading…  12s', 122, 270);
+      button(x, 84, 380, 200, 52, 'Approve once', 'pressed'); button(x, 300, 380, 150, 52, 'Decline');
+
+      // Dock and a focus marker.
+      ['Home', 'Code', 'Agent', 'Help'].forEach((t, i) => button(x, 640 + i * 84, 470, 76, 44, t, i === 1 ? 'hover' : 'idle'));
+      marker(x, 800, 260, 'range.ts', 'focus');
+      const ring = new Path2D(); ring.arc(800, 330, 46, 0, Math.PI * 2); glowStroke(x, ring, T.line, 1.5);
+      const ring2 = new Path2D(); ring2.arc(800, 330, 58, -0.6, 1.9); glowStroke(x, ring2, T.amber, 2);
+      window.__mock = true;
+    </script>
+  </body>
+</html>
