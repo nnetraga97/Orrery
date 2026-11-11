@@ -9,7 +9,10 @@ import { chatMetrics, layoutChat } from '../core/chat/layout.ts';
 import type { ChatModel } from '../core/chat/layout.ts';
 import { answerState, choose } from '../core/chat/requests.ts';
 import { APPROVAL_FIXTURE, CHAT_FIXTURE, CHAT_FIXTURE_OPEN, QUESTION_FIXTURE } from './chat-fixture.ts';
-import { canvasMeasure, chatView, drawTranscript } from './draw-chat.ts';
+import { canvasMeasure, chatView, drawChatWindow, drawTranscript } from './draw-chat.ts';
+import { composerLayout } from './draw-composer.ts';
+import type { ComposerView } from './draw-composer.ts';
+import { enqueue, heard, initialComposer } from '../core/chat/composer.ts';
 import { CHAT_WINDOW, drawChatShell } from './draw-chat-shell.ts';
 import { TAB_STRIP, drawTabStrip } from './draw-tab-strip.ts';
 import { CODE_CARD, CODE_LAYOUT, codeCardSize, drawCodeCard } from './draw-code-card.ts';
@@ -193,6 +196,41 @@ export async function drawAll() {
     open: new Map([['review:a1', true]]),
     footer: 'Waiting for your response',
   }), { title: 'Agent · Range end edge', closable: true, movable: true });
+  // The composer in four states, under a short transcript.
+  const composerView = (over: Partial<ComposerView>): ComposerView => ({
+    state: initialComposer(),
+    prompts: ['Find why the end of a selection is treated as outside it', 'Show me the function', 'Fix it', 'Explain the fix'],
+    project: 'editor-core',
+    changedFiles: 0,
+    looking: 'range.ts:90–101',
+    available: true,
+    mic: 'idle',
+    partial: '',
+    providers: [
+      { id: 'recorded', label: 'Recorded', available: true },
+      { id: 'claude', label: 'Claude', available: false },
+    ],
+    provider: 'recorded',
+    models: [],
+    model: '',
+    ...over,
+  });
+  const withComposer = (over: Partial<ComposerView>, model: Partial<ChatModel> = {}) => (ctx: CanvasRenderingContext2D, w: number, h: number, u: number) => {
+    const m = chatMetrics(w);
+    const composer = composerLayout(ctx, composerView(over), m);
+    const view = chatView(w, h, u, composer.height);
+    const body = layoutChat({ items: CHAT_FIXTURE.slice(0, 2), live: false, messageActions: true, ...model }, { ...m, width: view.w }, canvasMeasure(ctx, m));
+    return drawChatWindow(ctx, w, h, u, body, composer, m, { scrollTop: 0, clock: 0, hovered: 'chip:prompt:2' });
+  };
+  const frame = { title: 'Agent · Range end edge', closable: true, movable: true };
+  show('composerIdle', CHAT_WINDOW, withComposer({}), frame);
+  show('composerHeard', CHAT_WINDOW, withComposer({ state: heard(initialComposer(), 'Fix it, but only the end edge') }), frame);
+  {
+    let running = enqueue(heard(initialComposer({ running: true }), 'Then explain the fix'), 'a');
+    running = enqueue(heard(running, 'And replay the fixed run'), 'b');
+    show('composerRunning', CHAT_WINDOW, withComposer({ state: heard(running, 'Also check the strict version'), changedFiles: 1 }, { live: true, working: { word: 'Editing…', time: '24s' } }), frame);
+    show('composerQueued', CHAT_WINDOW, withComposer({ state: { ...running, queuePaused: true, more: true } }), frame);
+  }
   const loadingCard = { kind: 'loading', title: 'Opening project', detail: 'editor-core' } as const;
   show('loadingCard', STATUS_CARD, (ctx, w, h, u) => drawStatusCard(ctx, w, h, u, loadingCard), {
     title: statusTitle(loadingCard),

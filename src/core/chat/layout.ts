@@ -64,7 +64,7 @@ export type Line = {
   /** Buttons drawn on the line; each also has a region. */
   buttons?: { id: string; label: string; x: number; w: number; tone?: 'ok' | 'alert'; disabled?: boolean }[];
 };
-export type BoxKind = 'bubble' | 'card' | 'code' | 'terminal' | 'band' | 'errorBar' | 'chip' | 'option';
+export type BoxKind = 'bubble' | 'card' | 'code' | 'terminal' | 'band' | 'errorBar' | 'chip' | 'option' | 'field' | 'mic';
 export type Box = { kind: BoxKind; x: number; y: number; w: number; h: number; tone?: Tone; id?: string };
 export type Region = { id: string; x: number; y: number; w: number; h: number };
 export type ChatLayout = { lines: Line[]; boxes: Box[]; regions: Region[]; height: number };
@@ -128,6 +128,8 @@ export type ChatModel = {
   notices?: ReadonlyMap<string, string>;
   /** The "Say your answer" row being held, as its region id. */
   listening?: string | null;
+  /** Reuse under the user's messages and Reply under the agent's (`button:reuse:<id>`, `button:reply:<id>`). */
+  messageActions?: boolean;
   /** Rows after everything else (the composer's queue or follow-up rows may use it). */
   extras?: (b: Builder) => void;
 };
@@ -243,6 +245,31 @@ export class Builder {
     const box: Box = { kind, x, y, w, h, ...extra };
     this.boxes.push(box);
     return box;
+  }
+  /** Chips laid left to right, wrapping onto new lines: rounded outlines with sentence-case text. */
+  chips(defs: { id: string; label: string; lit?: boolean; icon?: string }[], x = this.left, right = this.right) {
+    const h = this.lh('small') + 26,
+      pad = 22,
+      gap = 12;
+    let cx = x;
+    let row: Line | null = null;
+    for (const d of defs) {
+      const iconW = d.icon ? this.icon() + 10 : 0;
+      const w = Math.min(right - x, Math.ceil(this.measure(d.label, 'small')) + pad * 2 + iconW);
+      if (!row || cx + w > right) {
+        if (row) this.y += gap;
+        row = { y: this.y, height: h, kind: 'notice', spans: [] };
+        this.lines.push(row);
+        this.y += h;
+        cx = x;
+      }
+      const label = fitText(d.label, w - pad * 2 - iconW, 'small', this.measure);
+      row.spans.push({ text: label, x: cx + pad + iconW, font: 'small', tone: d.lit === false ? 'dim' : 'line' });
+      if (d.icon) this.lines.push({ y: row.y, height: h, kind: 'notice', spans: [], icon: { name: d.icon, x: cx + pad - 4, tone: d.lit === false ? 'dim' : 'line' } });
+      this.box('chip', cx, row.y, w, h, { id: d.id, tone: d.lit ? 'line' : undefined });
+      this.region(d.id, cx, row.y, w, h);
+      cx += w + gap;
+    }
   }
   /** A button row: buttons laid right to left from the right edge. */
   buttons(defs: { id: string; label: string; tone?: 'ok' | 'alert'; disabled?: boolean }[], right = this.right) {
@@ -637,6 +664,15 @@ function requestCard(b: Builder, request: ChatRequest, model: ChatModel) {
   });
 }
 
+/** A small text action under a message (Reuse, Reply), with a generous target around its label. */
+function messageAction(b: Builder, id: string, label: string, side: 'left' | 'right') {
+  const text = label.toUpperCase(),
+    w = b.measure(text, 'label'),
+    x = side === 'right' ? b.right - w - 8 : b.left + 8,
+    line = b.line('notice', [{ text, x, font: 'label', tone: 'dim' }], 'label');
+  b.region(id, x - 20, line.y - 10, w + 40, line.height + 20);
+}
+
 export function layoutChat(model: ChatModel, metrics: ChatMetrics, measure: Measure): ChatLayout {
   const b = new Builder(metrics, measure);
   const entries = arrange(model.items);
@@ -651,10 +687,15 @@ export function layoutChat(model: ChatModel, metrics: ChatMetrics, measure: Meas
     else if (entry.kind === 'row') row(b, entry.item, entry.key, b.left, model);
     else {
       const item = entry.item;
-      if (item.type === 'userMessage' || item.role === 'user') userMessage(b, item);
-      else if (item.type === 'plan') planCard(b, item);
+      if (item.type === 'userMessage' || item.role === 'user') {
+        userMessage(b, item);
+        if (model.messageActions) messageAction(b, `button:reuse:${item.id ?? entry.key}`, 'Reuse', 'right');
+      } else if (item.type === 'plan') planCard(b, item);
       else if (item.type === 'turnDiff') turnDiff(b, item, entry.key, model);
-      else markdown(b, parseMarkdown(textOf(item)), b.left);
+      else {
+        markdown(b, parseMarkdown(textOf(item)), b.left);
+        if (model.messageActions && textOf(item).trim()) messageAction(b, `button:reply:${item.id ?? entry.key}`, 'Reply', 'left');
+      }
     }
   });
   for (const request of model.requests ?? []) {

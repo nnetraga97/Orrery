@@ -230,3 +230,9 @@ test('the chat list: New chat first, then a row per chat with its badge', () => 
   const rows = layout.lines.filter(l => l.kind === 'option').map(text);
   assert.deepEqual(rows, ['New chat', 'Fix itNEEDS INPUT', 'New chat']);
 });
+
+test('message actions: Reuse under the user, Reply under the agent', () => {
+  const layout = lay({ items: [{ id: 'u', type: 'userMessage', text: 'Fix it' }, { id: 'a', type: 'agentMessage', text: 'Done' }], messageActions: true });
+  assert.deepEqual(layout.regions.map(r => r.id), ['button:reuse:u', 'button:reply:a']);
+  assert.deepEqual(lay({ items: [{ id: 'u', type: 'userMessage', text: 'x' }] }).regions, []);
+});

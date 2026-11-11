@@ -49,3 +49,7 @@ the review wins; where both name something that no longer exists, the replacemen
 - The occasional "error during build" (also seen on the M1 + M2 merge) was Vite failing to empty `dist/data` with
   ENOTEMPTY while macOS wrote a `.DS_Store` into it. `npm run build` now removes `dist/` first with retries
   (`tools/clean-dist.mjs`).
+- Task 8: the composer's state and effects are `src/core/chat/composer.ts`; its layout is
+  `src/core/chat/composer-layout.ts` (pure and tested), drawn by the same code as the transcript. Stop also pauses
+  the queue (Resume queue sends it), as the desktop does after an interruption. Reuse and Reply are small labels under
+  the messages. The window's pinch wiring is Task 11 (the chat window system), not `panel-system.ts`.

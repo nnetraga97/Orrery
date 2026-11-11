@@ -104,9 +104,29 @@ function drawBox(ctx: CanvasRenderingContext2D, box: Box, u: number, hovered: st
     case 'errorBar':
       band(ctx, box.x, box.y, box.w, box.h, u, THEME.alert, 0.14);
       break;
+    case 'field': {
+      const tone = box.tone === 'failed' ? THEME.alert : box.tone === 'line' ? THEME.line : THEME.lineDim;
+      glowStroke(ctx, roundedOutline(box.x, box.y, box.w, box.h, Math.min(box.h / 2, 34)), tone, 1.5, box.tone ? 1 : 0.5);
+      break;
+    }
+    case 'mic': {
+      const lit = box.tone === 'line' || hovered === box.id,
+        r = box.w / 2,
+        ring = new Path2D();
+      ring.arc(box.x + r, box.y + r, r - 1, 0, Math.PI * 2);
+      if (lit) {
+        ctx.save();
+        ctx.globalAlpha = box.tone === 'line' ? 0.42 : 0.2;
+        ctx.fillStyle = THEME.glow;
+        ctx.fill(ring);
+        ctx.restore();
+      }
+      glowStroke(ctx, ring, box.tone === 'amber' ? THEME.amber : lit ? THEME.line : THEME.lineDim, 2, lit ? 1.4 : 0.6);
+      break;
+    }
     case 'chip':
     case 'option': {
-      const lit = !!box.id && hovered === box.id;
+      const lit = (!!box.id && hovered === box.id) || box.tone === 'line';
       const path = roundedOutline(box.x, box.y, box.w, box.h, box.kind === 'chip' ? box.h / 2 : 10);
       if (lit) {
         ctx.save();
@@ -247,4 +267,25 @@ export const isAnimated = (layout: ChatLayout) =>
 export function chatView(w: number, h: number, u: number, composerHeight = 0) {
   const y = Math.round(46 * u);
   return { x: 0, y, w, h: h - y - composerHeight };
+}
+
+/** The chat window's body: the transcript (or the chat list) scrolling above, the composer against the bottom edge. */
+export function drawChatWindow(
+  ctx: CanvasRenderingContext2D,
+  w: number,
+  h: number,
+  u: number,
+  body: ChatLayout,
+  composer: ChatLayout,
+  m: ChatMetrics,
+  state: TranscriptState,
+): HitRegion[] {
+  const view = chatView(w, h, u, composer.height);
+  const regions = drawTranscript(ctx, view.x, view.y, view.w, view.h, body, m, u, state);
+  ctx.save();
+  ctx.fillStyle = THEME.grid;
+  ctx.fillRect(m.pad / 2, view.y + view.h, w - m.pad, Math.max(1, u * 0.5));
+  ctx.restore();
+  regions.push(...drawTranscript(ctx, 0, view.y + view.h, w, composer.height, composer, m, u, { ...state, scrollTop: 0 }));
+  return regions;
 }
