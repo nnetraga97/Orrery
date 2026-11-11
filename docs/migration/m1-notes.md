@@ -1,4 +1,4 @@
-# M1 notes: the galaxy on the table
+# M1 notes: the galaxy in the room
 
 Recorded on 2026-11-10 at the end of Part 1 of `docs/plans/m1-m2-galaxy-and-code.md` (Task 12).
 
@@ -108,3 +108,47 @@ landed count with cars shown was 3.18 million, not the 2.43 million the change l
 landed planet's detail had been built. What remains: town buildings and props about 1,140,000, the island's
 landmarks and houses about 530,000, dependency arcs about 220,000, the other planets about 200,000. The island and the
 rest of the budget belong to the next plan's Task 18; hiding the other planets while landed waits for the owner.
+
+# After the design review
+
+Recorded on 2026-11-11, after `docs/plans/changes-after-review.md` was applied (commits "Apply the design review
+changes", "Link towns and code in both directions", "Add the chat window shell and its tab strip").
+
+## Hand-only walk-through (emulator)
+
+Desktop emulator, Quest 3 profile, hand input, headset at a seated 1.2 m and both hands resting at 0.95 m (the layout's
+seat; standing at 1.6 m the tutorial card sits on the ray from a resting hand to the model). Orbits paused. Every step
+by hand ray and pinch only.
+
+| Step | Result |
+| --- | --- |
+| Open the app (no `?dataset=`) | `editor-core` opens directly; 229 files; tutorial step 1 shown |
+| Point at the glowing planet and pinch | `config/editorOptions.ts` selected; its marker shown; no card for the file; tutorial step 2 |
+| Pinch in the air and drag | The model turned; selection kept; tutorial step 3 |
+| Pinch the planet again | Landed; globe 0.64 m; code card **absent** (the copied code's own start town is not the user's pick); tutorial step 4 |
+| Pinch a town on the globe | Town 72 selected; code card opened on its function; tutorial done, "seen" stored, card hidden (the town outline was checked in a browser tab) |
+| Pinch another town | Town 75 (`computeLayout`); the card shows it instead |
+| Pinch a line on the card (line 3016) | That statement selected on the globe |
+| Drag the card's text up | Scrolled 5.9 lines; the card did not move |
+| `More` | 24 rows; the card grew downward |
+| The card's close mark | Card gone; the town stays selected |
+| `Home` on the tab strip | Phase `overview`; nothing selected; no code card |
+| Chat window: grab bar, close mark, Chat tab | Moved with the ray, strip following; hidden; brought back |
+
+Two fixes came out of this walk-through: with both hands resting, the idle hand's ray reached the model too and
+wiped out the pointing hand's hover each frame, and a window under the idle hand's ray blocked the other hand's
+orbit. The scene kit now keeps one ray per hand and gives the hover to the hand that hits something, and the orbit
+check asks only the pinching hand's own ray.
+
+## Draw calls and triangles
+
+`__orrery.stats()` in a browser tab (`npm run smoke:xr`, built page, 1440 × 900), road cars hidden:
+
+| View | Draw calls | Triangles |
+| --- | --- | --- |
+| Overview | 116 | 210,556 |
+| Landed globe (`core/range.ts`, no code card) | 161 | 2,285,087 |
+| Landed globe with the code card (`showCode('core/range.ts', 90)`) | 136 | 2,225,664 |
+
+The landed counts vary between runs with how much detail the copied code has built and where its camera flew (the
+card view flies to another town, so fewer buildings are drawn than in the plain landing).

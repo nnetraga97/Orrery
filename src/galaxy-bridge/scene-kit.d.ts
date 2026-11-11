@@ -18,9 +18,10 @@ export interface XrSceneKit extends SceneKitPort {
   environment: Texture;
   anchor: TableAnchor | null;
   tick(nowMs: number): void;
-  pointerMove(ray: Ray): void;
-  pointerLeave(): void;
-  pointerClick(ray: Ray): void;
+  /** One ray per pointer (a hand, the mouse), told apart by its id. */
+  pointerMove(ray: Ray, pointerId?: number): void;
+  pointerLeave(pointerId?: number): void;
+  pointerClick(ray: Ray, pointerId?: number): void;
   virtual(): VirtualCamera;
   orbit(dAzimuth: number, dPolar: number): void;
   dolly(factor: number): void;

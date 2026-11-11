@@ -46,9 +46,14 @@ export class ManipulationSystem extends createSystem({ hoveredPanels: { required
     return this.world.getSystem(GalaxySystem)?.host.kit ?? null;
   }
 
-  /** The ray is over a panel or something the scene picks: the pinch belongs to it, not to the model. */
-  private overTarget() {
-    return !!this.kit?.pointing || this.queries.hoveredPanels.entities.size > 0;
+  /** The ray is over a panel or something the scene picks: the pinch belongs to it, not to the model. In a headset
+   * only the pinching hand's own ray counts, so an idle hand resting on a window does not block the other's orbit. */
+  private overTarget(side?: Side) {
+    if (!side) return !!this.kit?.pointing || this.queries.hoveredPanels.entities.size > 0;
+    const hit = this.input.xr.multiPointers[side].getPointer('ray').getIntersection()?.object;
+    if (!hit) return false;
+    if (hit.name.startsWith('panel-')) return true;
+    return hit.name === 'galaxy-hit-volume' && !!this.kit?.pointing;
   }
 
   private handPosition(side: Side, out: Vector3) {
@@ -68,7 +73,7 @@ export class ManipulationSystem extends createSystem({ hoveredPanels: { required
       const drag = this.hands[side];
       if (pad?.getSelectStart()) {
         drag.active = true;
-        drag.onTarget = this.overTarget();
+        drag.onTarget = this.overTarget(side);
         drag.orbiting = false;
         drag.travel = 0;
         kit.swallowClick(false);

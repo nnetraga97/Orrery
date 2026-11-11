@@ -65,9 +65,14 @@ export function createInspector(options: InspectorOptions): InspectorPort {
   codeScroll.value = 0;
   // A landing picks its start town by itself: the card waits for the user's pick, unless showCode asked for a line.
   codeCardOpen.value = codeRequest.peek() != null;
+  // The first town picked after landing is the copied code's own start town; any later change of town is the user's.
+  let picks = 0;
   const selectRegion = (k: number | null) => {
     const next = k != null && k >= 0 ? k : null;
-    if (next !== codeView.peek()?.selectedRegion) publish({ selectedRegion: next, selectedRange: null });
+    if (next !== codeView.peek()?.selectedRegion) {
+      publish({ selectedRegion: next, selectedRange: null });
+      if (next != null && ++picks > 1) codeCardOpen.value = true;
+    }
     // A line asked for by showCode: select what holds it once its function is selected.
     const request = codeRequest.peek(),
       view = codeView.peek();

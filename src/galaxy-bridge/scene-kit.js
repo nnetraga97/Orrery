@@ -67,9 +67,12 @@ export function createSceneKit({ camPos, host, renderer, anchor = null, labels =
   // On the desktop the sun aims at the world origin, which was the model's origin; here that is the group's origin.
   scene.add(sun.target);
 
-  // Hover picking on an InstancedMesh (instanceId -> file index), at most one raycast per frame. The pointer arrives
-  // as a ray in the model's own space (pointerMove / pointerClick); picking tests objects by their world matrices,
-  // which include the model's pose on the table, so the ray is carried back into the room before it is cast.
+  // Hover picking on an InstancedMesh (instanceId -> file index), once per frame. Each pointer (a hand, the mouse)
+  // arrives as a ray in the model's own space (pointerMove / pointerClick); picking tests objects by their world
+  // matrices, which include the model's pose in the room, so the ray is carried back into the room before it is cast.
+  // With two hands both rays reach the model; the desktop code has one hover, so each frame the hand that hovered last
+  // is tried first and the first ray that hits something owns the hover. An idle hand resting on the model then cannot
+  // wipe out what the other hand points at.
   const ray = new THREE.Raycaster(),
     modelRay = new THREE.Ray();
   let pickMesh = null,
@@ -79,22 +82,50 @@ export function createSceneKit({ camPos, host, renderer, anchor = null, labels =
     lastPick = -1,
     pickBlock = null,
     blocked = false,
-    hasRay = false;
+    hasRay = false,
+    owner = null;
+  /** The latest model-space ray of each pointer. */
+  const rays = new Map();
   // Other clickable things (black holes, ships, lanes, the cannon…): { objects() -> Object3D[], describe(hit) -> context-window spec | null }.
   const pickers = [];
   let hoverItem = null;
-  function updatePick() {
-    pending = false;
-    if (!hasRay) return;
-    camera.updateMatrixWorld();
-    scene.updateMatrixWorld();
-    ray.ray.copy(modelRay).applyMatrix4(scene.matrixWorld);
+  /** Picks along one model-space ray; no side effects. */
+  function pickAlong(r) {
+    ray.ray.copy(r).applyMatrix4(scene.matrixWorld);
     // Fat lines and sprites in the pickers need a camera to be hit-tested; the virtual camera stands in.
     ray.camera = camera;
     // Line and point hit thresholds are in world units and ignore parent scale; keep the desktop's one model unit.
     ray.params.Line.threshold = ray.params.Points.threshold = scene.scale.x;
-    blocked = !!pickBlock?.(ray);
-    const { id, item } = blocked ? { id: -1, item: null } : pickScene(ray, pickMesh, pickMap, pickers);
+    const isBlocked = !!pickBlock?.(ray);
+    const { id, item } = isBlocked ? { id: -1, item: null } : pickScene(ray, pickMesh, pickMap, pickers);
+    return { id, item, isBlocked };
+  }
+  /** Picks for the frame; with `only`, along that pointer's ray alone (a click). */
+  function updatePick(only = null) {
+    pending = false;
+    if (!hasRay) return;
+    camera.updateMatrixWorld();
+    scene.updateMatrixWorld();
+    let chosen = null,
+      chosenId = null;
+    const tryRay = (pointerId, r) => {
+      if (chosen && (chosen.id !== -1 || chosen.item)) return;
+      const result = pickAlong(r);
+      if (!chosen || result.id !== -1 || result.item) {
+        chosen = result;
+        chosenId = pointerId;
+        modelRay.copy(r);
+      }
+    };
+    if (only != null) tryRay(only, rays.get(only));
+    else {
+      if (owner != null && rays.has(owner)) tryRay(owner, rays.get(owner));
+      for (const [pointerId, r] of rays) if (pointerId !== owner) tryRay(pointerId, r);
+    }
+    if (!chosen) return;
+    owner = chosen.id !== -1 || chosen.item ? chosenId : null;
+    blocked = chosen.isBlocked;
+    const { id, item } = chosen;
     if (id !== lastPick) {
       lastPick = id;
       if (!blocked) onPick(id === -1 ? null : id);
@@ -145,12 +176,21 @@ export function createSceneKit({ camPos, host, renderer, anchor = null, labels =
     }
   }
 
-  function pointerMove(r) {
+  function pointerMove(r, pointerId = 0) {
+    let own = rays.get(pointerId);
+    if (!own) rays.set(pointerId, (own = new THREE.Ray()));
+    own.copy(r);
     modelRay.copy(r);
     hasRay = true;
     pending = true;
   }
-  function pointerLeave() {
+  function pointerLeave(pointerId = 0) {
+    rays.delete(pointerId);
+    if (owner === pointerId) owner = null;
+    if (rays.size) {
+      pending = true;
+      return;
+    }
     hasRay = false;
     pending = false;
     if (lastPick !== -1) {
@@ -164,14 +204,15 @@ export function createSceneKit({ camPos, host, renderer, anchor = null, labels =
   }
   // A drag that turned the model ends in a click the pointer library still sends; the gesture owner swallows it.
   let swallowClick = false;
-  function pointerClick(r) {
+  function pointerClick(r, pointerId = 0) {
     if (swallowClick) {
       swallowClick = false;
       return;
     }
-    // A fast pinch or a moving model may not have produced a hover frame.
-    pointerMove(r);
-    updatePick();
+    // A fast pinch or a moving model may not have produced a hover frame; the pinching hand owns the pick.
+    pointerMove(r, pointerId);
+    owner = pointerId;
+    updatePick(pointerId);
     clickPlanet();
     if (blocked) return;
     if (lastPick === -1 && hoverItem) {

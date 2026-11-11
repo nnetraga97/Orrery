@@ -20,6 +20,7 @@ export const HIT_VOLUME = { center: [0.15, 1.1, -1.15] as const, size: [1.5, 0.8
 
 interface RayEvent {
   ray: Ray;
+  pointerId: number;
 }
 
 export function bridgePointer(world: World, group: Object3D, kit: XrSceneKit): () => void {
@@ -39,9 +40,10 @@ export function bridgePointer(world: World, group: Object3D, kit: XrSceneKit): (
     inverse.copy(group.matrixWorld).invert();
     return ray.copy(event.ray).applyMatrix4(inverse);
   };
-  const move = (event: unknown) => kit.pointerMove(toModel(event as RayEvent));
-  const leave = () => kit.pointerLeave();
-  const click = (event: unknown) => kit.pointerClick(toModel(event as RayEvent));
+  // Each pointer (hand, mouse) is passed with its id: the kit keeps one ray per pointer.
+  const move = (event: unknown) => kit.pointerMove(toModel(event as RayEvent), (event as RayEvent).pointerId);
+  const leave = (event: unknown) => kit.pointerLeave((event as RayEvent).pointerId);
+  const click = (event: unknown) => kit.pointerClick(toModel(event as RayEvent), (event as RayEvent).pointerId);
   // The pointer-event types are not part of three's Object3D event map, hence the loose listener type.
   const target = volume as unknown as {
     addEventListener(type: string, listener: (event: unknown) => void): void;
