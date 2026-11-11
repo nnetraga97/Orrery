@@ -160,8 +160,8 @@ docs/headset-session.md             the two-hour device checklist
 
 `layoutChat(model, metrics, measure)` turns the arranged transcript into drawable lines. `measure(text, font)` is passed in, so the function is pure; tests use a fake that returns `text.length × 10`.
 
-- [ ] **Step 1. Tests first.** The result is `{ lines, regions, height }`. Each line has `y`, `height`, `kind` and its runs. Cover: word wrap at the panel width; a code block keeps its lines and never wraps mid-word; a user bubble is right-aligned and at most 80% wide; a collapsed group is one line and an expanded one lists its rows; each expandable row yields a region `toggle:<itemId>`; option rows yield `option:<requestId>:<questionId>:<index>`; buttons yield `button:<name>:<id>`; `visibleSlice(layout, scrollTop, viewHeight)` returns only lines in view; `stickToBottom(previousScrollTop, previousHeight, newHeight, viewHeight)` follows new output only when within 90 px of the bottom.
-- [ ] **Step 2. Implement, check, commit:** `Lay out the chat transcript for a canvas`
+- [x] **Step 1. Tests first.** The result is `{ lines, regions, height }`. Each line has `y`, `height`, `kind` and its runs. Cover: word wrap at the panel width; a code block keeps its lines and never wraps mid-word; a user bubble is right-aligned and at most 80% wide; a collapsed group is one line and an expanded one lists its rows; each expandable row yields a region `toggle:<itemId>`; option rows yield `option:<requestId>:<questionId>:<index>`; buttons yield `button:<name>:<id>`; `visibleSlice(layout, scrollTop, viewHeight)` returns only lines in view; `stickToBottom(previousScrollTop, previousHeight, newHeight, viewHeight)` follows new output only when within 90 px of the bottom.
+- [x] **Step 2. Implement, check, commit:** `Lay out the chat transcript for a canvas`
 
 ### Task 4: Drawing the transcript
 

@@ -22,3 +22,7 @@ the review wins; where both name something that no longer exists, the replacemen
 ## Deviations found while building
 
 - Task 1: branch `m3-m4` was made from `main`, which already holds the merged first plan (`origin/m1-m2` is merged).
+- Task 3: the layout also returns `boxes` (bubbles, cards, code and terminal blocks, bands) beside `lines`, `regions`
+  and `height`. A group's toggle key is `group:<first item id>`, so it never collides with its first row's
+  `toggle:<itemId>`. Option and button regions (`option:…`, `button:…`) are laid out by the request cards and tested
+  in Task 5, where their answer state exists.
