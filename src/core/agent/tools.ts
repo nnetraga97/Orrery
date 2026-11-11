@@ -34,8 +34,8 @@ const SCHEMAS: Record<string, { description: string; schema: Schema }> = {
     schema: obj({ path: str('The file, relative to the project root.'), start_line: int('First line to read.'), end_line: int('Last line to read.') }, ['path']),
   },
   search: {
-    description: 'Find lines containing text in the project. Plain text, or a regular expression written between slashes. At most 200 results.',
-    schema: obj({ pattern: str('Text or /regular expression/ to find.', { minLength: 1 }), path: str('A folder to search under.') }, ['pattern']),
+    description: 'Find lines containing some exact text in the project (plain text, matched as written; no regular expressions). At most 200 results.',
+    schema: obj({ pattern: str('The exact text to find.', { minLength: 1 }), path: str('A folder to search under.') }, ['pattern']),
   },
   replace_in_file: {
     description: 'Replace text that occurs exactly once in a file. Include enough surrounding text to make old_text unique.',

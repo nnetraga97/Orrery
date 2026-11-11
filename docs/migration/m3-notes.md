@@ -135,8 +135,10 @@ the review wins; where both name something that no longer exists, the replacemen
 - A stream that ends without its message or an error fails the turn instead of leaving it running.
 - Calls the loop answers itself (invalid, refused by mode or permission) settle as failed; nothing is left running at
   the end of any turn.
-- The search's regular-expression guard also rejects quantified groups with alternation (`(a|a)*`), and long lines
-  are matched as text.
+- The agent's `search` tool is plain text only. Two rounds of automated security review showed that any guard over
+  model-written regular expressions could be bypassed (nested groups, bounded or adjacent quantifiers backtracking on
+  long lines), and a stuck regex freezes the headset's page. Substring search is linear; the tool's description says
+  so, so the model does not try patterns.
 - The relay builds the system prompt itself from the project name, allowlists the Nemotron model, counts a call the
   browser cut off against the budget, and exports web-standard `POST` / `GET` handlers.
 - Saved permission and mode survive opening a project; a model is cleared when its provider changes; a turn's ending

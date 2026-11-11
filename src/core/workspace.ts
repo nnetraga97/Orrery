@@ -7,36 +7,12 @@ export type SearchHit = { path: string; line: number; text: string };
 export type Workspace = ReturnType<typeof createWorkspace>;
 
 const MAX_HITS = 200;
-const MAX_REGEX_LINE = 2000;
 
 /** Rejects absolute paths, drive letters, backslashes, empty segments and `..`. */
 export function checkPath(path: string): string {
   if (!path || path.startsWith('/') || /^[a-zA-Z]:/.test(path) || path.includes('\\') || path.split('/').some(s => !s || s === '..' || s === '.'))
     throw new Error(`Invalid path: ${path || '(empty)'}`);
   return path;
-}
-
-/**
- * A pattern written between slashes (`/^\s+if/i`) as a regular expression, when it is safe to run: short, and with no
- * quantified group that is itself quantified (the shape that can take exponential time). Otherwise null, and the
- * pattern is searched as plain text.
- */
-export function safePattern(pattern: string): RegExp | null {
-  const m = pattern.match(/^\/(.+)\/([imsu]*)$/);
-  if (!m || m[1].length > 200) return null;
-  // Catastrophic backtracking needs a repeated group ((a+)+, (a|a)*, ((a|a))*) or a backreference. Rather than analyse
-  // the group's contents (which nested groups can hide), no group may be quantified at all, at any depth, and
-  // backreferences are refused. Groups themselves (for alternation) are fine.
-  const source = m[1].replace(/\\./g, 'x'); // escaped characters are plain text here
-  if (/\)\s*[*+?{]/.test(source)) return null;
-  if (/\\[1-9]|\\k</.test(m[1])) return null;
-  // Many unbounded quantifiers in a row can still be slow on a long line (polynomial); a few are plenty for search.
-  if ((source.match(/[*+]|\{\d+,\}/g) ?? []).length > 4) return null;
-  try {
-    return new RegExp(m[1], m[2]);
-  } catch {
-    return null;
-  }
 }
 
 export function createWorkspace(readOriginal: (path: string) => Promise<string | null>, paths: readonly string[]) {
@@ -84,9 +60,9 @@ export function createWorkspace(readOriginal: (path: string) => Promise<string |
     read,
     /** Every file, sorted: the baked ones and any the agent wrote. */
     list: () => [...new Set([...baked, ...edits.keys()])].sort(),
-    /** Lines containing the pattern (plain text, or a safe /regular expression/), under a folder if given. */
+    /** Lines containing the text, under a folder if given. Plain text only: a regular expression from the model could
+     * backtrack for minutes on the main thread, and substring search cannot. */
     async search(pattern: string, under?: string): Promise<SearchHit[]> {
-      const regex = safePattern(pattern);
       const prefix = under ? checkPath(under).replace(/\/?$/, '/') : '';
       const hits: SearchHit[] = [];
       for (const path of [...new Set([...baked, ...edits.keys()])].sort()) {
@@ -95,9 +71,7 @@ export function createWorkspace(readOriginal: (path: string) => Promise<string |
         if (text == null) continue;
         const lines = text.split('\n');
         for (let k = 0; k < lines.length; k++) {
-          // A regular expression runs only on lines of reasonable length; longer ones are matched as text.
-          const useRegex = regex && lines[k].length <= MAX_REGEX_LINE;
-          if (useRegex ? (regex.lastIndex = 0, regex.test(lines[k])) : lines[k].includes(pattern)) {
+          if (lines[k].includes(pattern)) {
             hits.push({ path, line: k + 1, text: lines[k] });
             if (hits.length >= MAX_HITS) return hits;
           }

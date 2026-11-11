@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createWorkspace, safePattern } from './workspace.ts';
+import { createWorkspace } from './workspace.ts';
 
 const files: Record<string, string> = {
   'core/range.ts': 'export class Range {\n  a = 1;\n  b = 2;\n}\n',
@@ -33,22 +33,12 @@ test('search finds substrings with their line numbers', async () => {
   assert.deepEqual(await ws.search('nothing here'), []);
 });
 
-test('search takes a safe regular expression between slashes', async () => {
-  const ws = make();
-  assert.deepEqual((await ws.search('/^\\s+[ab] =/')).map(r => r.line), [2, 3]);
-  // A pattern that could take exponential time is searched as plain text instead.
-  assert.equal(safePattern('/(a+)+$/'), null);
-  assert.equal(safePattern('/(a|a)*$/'), null);
-  assert.equal(safePattern('/(a|aa)+$/'), null);
-  assert.ok(safePattern('/(get|set)Value/') instanceof RegExp);
-  // Nested groups no longer hide a repeated group; any quantified group is refused.
-  for (const bad of ['/((a|a))*$/', '/(?:(a+))+$/', '/((a+)b)+/', '/(ab)?c/', '/(a){2,}/', '/(a)\\1/', '/(?<x>a)\\k<x>/', '/a*b*c*d*e*/'])
-    assert.equal(safePattern(bad), null, bad);
-  // Escaped parentheses are text.
-  assert.ok(safePattern('/f\\(x\\)+/') instanceof RegExp);
-  assert.ok(safePattern('/^\\s*if \\(\\w+/') instanceof RegExp);
-  assert.ok(safePattern('/^\\s+[ab] =/') instanceof RegExp);
-  assert.equal(safePattern('plain'), null);
+test('search is plain text: a regular expression is matched as written, so it cannot backtrack', async () => {
+  const ws = createWorkspace(async () => 'a = 1;\n/(a|a)*$/ in a comment\n' + 'a'.repeat(5000) + '!', ['x.ts']);
+  const t = Date.now();
+  assert.deepEqual((await ws.search('/(a|a)*$/')).map(h => h.line), [2]);
+  assert.deepEqual(await ws.search('/^a/'), []);
+  assert.ok(Date.now() - t < 100);
 });
 
 test('search stops at 200 results', async () => {
