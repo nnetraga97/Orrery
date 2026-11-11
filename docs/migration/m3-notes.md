@@ -35,3 +35,9 @@ the review wins; where both name something that no longer exists, the replacemen
 - Task 5: request cards are laid out by `layoutChat` from `model.requests` and `model.answers` (no separate hook). The
   "Say your answer" row has the region `say:<requestId>:<questionId>`; holding it records the spoken answer (Task 9).
   Approval buttons read left to right `Decline`, `Approve once` (outlined in `ok`). Chat buttons are about 2.3 cm tall.
+- Task 6: the scenario's `breakPatch` starts at the start-edge check (three lines above the end-edge line): the strict
+  version of the function already contains the broken `>=` line, so a shorter patch would leave "fixed" undecidable.
+  The scenario also carries `shortTitle` and `function` for the problem card. `planet.js`'s earlier "source text is a
+  static file" patch was rewritten (not stacked) so `loadSource` asks `sourceOverride` first and reads through
+  `readSource`; `tools/migrate/apply-patches.mjs` applies it to the copied original. Edited files bypass the source
+  cache, so a rebuild always sees the latest text.

@@ -47,18 +47,29 @@ import { graphUrl, symbolsFor } from './static-data.js';`,
   },
   {
     file: 'galaxy/viewer/planet/planet.js',
-    why: 'source text is a static file',
-    find: `    sourceCache[key] = fetch(
+    why: 'source text is a static file, or the in-memory workspace\'s edited text (static-data.js, setSourceOverride)',
+    find: `  const key = getDataset() + '/' + path;
+  if (!sourceCache[key])
+    sourceCache[key] = fetch(
       \`/api/projects/\${getDataset()}/source/\${path.split('/').map(encodeURIComponent).join('/')}\`,
-    )`,
-    replace: `    sourceCache[key] = fetch(sourceUrl(getDataset(), path))`,
+    )
+      .then(r => (r.ok ? r.text() : null))
+      .catch(() => null)
+      .then(text => {`,
+    replace: `  // An edited file is read from the workspace every time; the baked text is cached.
+  const own = sourceOverride(getDataset(), path);
+  if (own != null) return Promise.resolve(own);
+  const key = getDataset() + '/' + path;
+  if (!sourceCache[key])
+    sourceCache[key] = readSource(getDataset(), path)
+      .then(text => {`,
   },
   {
     file: 'galaxy/viewer/planet/planet.js',
     why: 'import the static data helpers',
     find: `import { languageOf } from '../../source-model/languages.js';`,
     replace: `import { languageOf } from '../../source-model/languages.js';
-import { sourceUrl } from '../app/static-data.js';`,
+import { readSource, sourceOverride } from '../app/static-data.js';`,
   },
 ];
 

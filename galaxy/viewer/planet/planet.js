@@ -1,7 +1,7 @@
 // Owns the planet entry points, body host, source caches and detail lifetime.
 import * as THREE from 'three';
 import { languageOf } from '../../source-model/languages.js';
-import { sourceUrl } from '../app/static-data.js';
+import { readSource, sourceOverride } from '../app/static-data.js';
 import { loadTypeScript } from '../towns/towns.js';
 import { planetSeed } from './planet-appearance.js';
 import { buildPlanetDetail } from './planet-detail.js';
@@ -199,11 +199,12 @@ export async function loadFileSymbols(paths, host) {
 }
 const sourceCache = {};
 export function loadSource(path, getDataset) {
+  // An edited file is read from the workspace every time; the baked text is cached.
+  const own = sourceOverride(getDataset(), path);
+  if (own != null) return Promise.resolve(own);
   const key = getDataset() + '/' + path;
   if (!sourceCache[key])
-    sourceCache[key] = fetch(sourceUrl(getDataset(), path))
-      .then(r => (r.ok ? r.text() : null))
-      .catch(() => null)
+    sourceCache[key] = readSource(getDataset(), path)
       .then(text => {
         // A failed read is retried on the next request instead of being cached as missing.
         if (text == null) delete sourceCache[key];

@@ -32,3 +32,20 @@ export async function symbolsFor(name, paths) {
   );
   return Object.fromEntries(entries);
 }
+
+// The host's own text for a file (the XR app's in-memory workspace), consulted before the baked file: an edited file
+// is read from there, so the scene always shows edited text. Returns a string, or null to read the baked file.
+let override = null;
+export function setSourceOverride(fn) {
+  override = fn;
+}
+export const sourceOverride = (name, path) => (override ? override(name, path) : null);
+
+/** A file's text: the override's when it has one, else the baked file's; null when neither has it. */
+export function readSource(name, path) {
+  const own = sourceOverride(name, path);
+  if (own != null) return Promise.resolve(own);
+  return fetch(sourceUrl(name, path))
+    .then(r => (r.ok ? r.text() : null))
+    .catch(() => null);
+}
