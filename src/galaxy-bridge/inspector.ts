@@ -2,6 +2,7 @@
 // inspector turns what the landed planet asks to show into one signal, codeView, which the code card draws. The
 // options (callbacks such as onStatement and onMethod, and data such as towns) are kept for the card to call back.
 import { maxScrollTop, scrollToRange } from '../core/code-view.ts';
+import { STATEMENT_TYPES, statementType } from './galaxy-session.js';
 import type { InspectorOptions, InspectorPort } from '../ports/host.ts';
 import { codeCardOpen, codeCardRows, codeRequest, codeScroll, codeView, inspectorExtras } from '../state/app-state.ts';
 import type { CodeRegion, CodeView, LineRange, Segment } from '../state/app-state.ts';
@@ -183,3 +184,74 @@ export const cardMaxScroll = () => {
   return view ? maxScrollTop(view, codeCardRows.peek()) : 0;
 };
 
+
+// ---- ships: the selected function's outbound routes, flown by the copied spaceport transport ----
+
+/** A route from the selected function's spaceport: the file it leads to, and whether a ship can fly it. */
+export interface ShipRoute {
+  path: string;
+  canFly: boolean;
+}
+type RouteRecord = { path?: string; canFly?: boolean; [member: string]: unknown };
+const routeRecords = (k: number | null): RouteRecord[] => {
+  if (k == null || !current) return [];
+  const all = current.routes as RouteRecord[][] | undefined;
+  return Array.isArray(all?.[k]) ? all[k] : [];
+};
+
+/** The routes leaving function `k` of the landed planet. */
+export const routesOf = (k: number | null): ShipRoute[] => routeRecords(k).map(r => ({ path: String(r.path ?? ''), canFly: !!r.canFly }));
+
+/** Flies route `i` of function `k`: a preview departure, or travel that lands on the destination file. */
+export function startShip(k: number, i: number, travel: boolean) {
+  const route = routeRecords(k)[i];
+  const fly = current?.onTransport as ((route: unknown, travel: boolean) => void) | undefined;
+  if (route?.canFly) fly?.(route, travel);
+}
+
+/** Cancels the flight in progress. */
+export function cancelShip() {
+  (current?.onCancelTransport as (() => void) | undefined)?.();
+}
+
+/** Phases in which a flight is under way and another cannot start (as on the desktop). */
+const BUSY = ['loading', 'boarding', 'lifting off', 'departing', 'approaching', 'landing'];
+
+/** The flight's phase and route, from the transport's last status report. */
+export function shipStatus(): { phase: string; path: string | null; busy: boolean } {
+  const status = (inspectorExtras.peek().transportStatus?.[0] ?? null) as { phase?: string | null; route?: { path?: string } | null } | null;
+  const phase = status?.phase || 'idle';
+  return { phase, path: status?.route?.path ?? null, busy: BUSY.includes(phase) };
+}
+
+// ---- flow: the selected function's statements in order, as the desktop's Flow list shows them ----
+
+/** One statement of a function: its lines, its kind (label, glyph and colour), and its index for pressFlow. */
+export interface FlowRow {
+  index: number;
+  start: number;
+  end: number;
+  label: string;
+  glyph: string;
+  color: string;
+}
+
+const flowElements = (k: number | null): TownElement[] => {
+  if (k == null || !current) return [];
+  const towns = current.towns as TownsLike | undefined;
+  return [...(towns?.elementsOf(k) ?? [])].filter(l => typeof l.it?.line === 'number').sort((a, b) => a.it.line - b.it.line);
+};
+
+/** The statements of function `k`, in line order. */
+export function flowOf(k: number | null): FlowRow[] {
+  return flowElements(k).map((l, index) => {
+    const type = STATEMENT_TYPES[statementType(l.it)] ?? STATEMENT_TYPES.statement;
+    return { index, start: l.it.line, end: Math.max(l.it.line, l.it.end ?? l.it.line), label: type.label, glyph: type.glyph, color: type.color };
+  });
+}
+
+/** A pinch on a Flow row: select that statement's building, as a pinch on its line does. */
+export function pressFlow(k: number, index: number) {
+  const element = flowElements(k)[index];
+  if (element) current?.onStatement?.(element, true);
+}

@@ -1,12 +1,12 @@
 // The tab strip (docs/visual-style.md): a slim rounded column of icons on the chat window's left edge. Home, Chat,
-// Replay, Settings; the current tab is lit, a hovered tab brightens, a disabled tab is drawn faint and takes no pinch.
+// Find, Activity, Replay, Settings; the current tab is lit, a hovered tab brightens, a disabled tab is drawn faint and takes no pinch.
 // Icons are drawn here from plain strokes (adapted from docs/style/mock.html).
 import type { HitRegion } from '../core/panel-hit.ts';
 import { STYLE_PX_PER_M } from './canvas-panel.ts';
 import { THEME, glowStroke } from './paint.ts';
 
-export type TabId = 'home' | 'chat' | 'replay' | 'settings';
-export const TABS: readonly TabId[] = ['home', 'chat', 'replay', 'settings'];
+export type TabId = 'home' | 'chat' | 'search' | 'activity' | 'replay' | 'settings';
+export const TABS: readonly TabId[] = ['home', 'chat', 'search', 'activity', 'replay', 'settings'];
 
 /** In style pixels: 44 wide, a 46-pixel cell per tab (5.4 cm in the room), 5 pixels of margin top and bottom. */
 const W = 44,
@@ -38,6 +38,20 @@ const ICONS: Record<TabId, (p: Path2D) => void> = {
     p.moveTo(-4, 6);
     p.lineTo(-7, 11);
     p.lineTo(1, 6);
+  },
+  search: p => {
+    p.moveTo(3, -2);
+    p.arc(-2, -2, 5, 0, Math.PI * 2);
+    p.moveTo(2, 2);
+    p.lineTo(8, 8);
+  },
+  activity: p => {
+    p.moveTo(-10, 0);
+    p.lineTo(-5, 0);
+    p.lineTo(-2, -7);
+    p.lineTo(3, 7);
+    p.lineTo(6, 0);
+    p.lineTo(10, 0);
   },
   replay: p => {
     p.moveTo(-5, -8);

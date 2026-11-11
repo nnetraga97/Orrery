@@ -34,6 +34,11 @@ export const importUse: HostPort['graph']['importUse'];
 export const importsIndexed: HostPort['graph']['importsIndexed'];
 export const membersOf: HostPort['graph']['membersOf'];
 export const nodeOf: HostPort['graph']['nodeOf'];
+/** The kind of a town statement (branch, loop, call, state, return, throw, statement), as the desktop's Flow names it. */
+export function statementType(it: unknown): 'branch' | 'loop' | 'call' | 'state' | 'return' | 'throw' | 'statement';
+export const STATEMENT_TYPES: Record<string, { label: string; color: string; glyph: string }>;
+/** The copied file search: up to 12 files whose name or path matches, best first. */
+export function searchFiles(query: string): { path: string; name: string }[];
 export const fileAppearance: HostPort['memory']['fileAppearance'];
 export const townKeys: HostPort['memory']['townKeys'];
 export const galaxyLayoutNotice: HostPort['memory']['layoutNotice'];

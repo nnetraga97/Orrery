@@ -3,42 +3,24 @@
 // process's environment (ANTHROPIC_API_KEY, OPENAI_API_KEY, NEBIUS_API_KEY); nothing is read from files.
 // Usage: node --experimental-strip-types tools/dev-api.mjs [--port=8787]
 import http from 'node:http';
-import { Readable } from 'node:stream';
+import { toNodeHandler } from './api-bridge.mjs';
 
 const port = Number(process.argv.find(a => a.startsWith('--port='))?.slice(7) ?? process.env.API_PORT ?? 8787);
 const routes = {
   '/api/agent': () => import('../api/agent.ts'),
   '/api/providers': () => import('../api/providers.ts'),
 };
+const handlers = new Map();
 
 const server = http.createServer(async (req, res) => {
-  const url = new URL(req.url ?? '/', `http://localhost:${port}`);
-  const load = routes[url.pathname];
+  const path = new URL(req.url ?? '/', `http://localhost:${port}`).pathname;
+  const load = routes[path];
   if (!load) {
     res.writeHead(404).end('Not found');
     return;
   }
-  try {
-    // The functions export one web-standard handler per method (GET, POST).
-    const handler = (await load())[req.method ?? 'GET'];
-    if (!handler) {
-      res.writeHead(405).end('Method not allowed');
-      return;
-    }
-    const abort = new AbortController();
-    res.on('close', () => abort.abort());
-    const body = req.method === 'GET' || req.method === 'HEAD' ? undefined : Readable.toWeb(req);
-    const request = new Request(url, { method: req.method, headers: req.headers, body, duplex: 'half', signal: abort.signal });
-    const response = await handler(request);
-    res.writeHead(response.status, Object.fromEntries(response.headers));
-    if (response.body) for await (const chunk of response.body) res.write(chunk);
-    res.end();
-  } catch (e) {
-    // Never print request contents: only that something failed.
-    console.error(`[dev-api] ${url.pathname} failed: ${e instanceof Error ? e.name : 'error'}`);
-    if (!res.headersSent) res.writeHead(500);
-    res.end();
-  }
+  if (!handlers.has(path)) handlers.set(path, toNodeHandler(await load(), path));
+  await handlers.get(path)(req, res);
 });
 server.listen(port, '127.0.0.1', () => {
   const keys = ['ANTHROPIC_API_KEY', 'OPENAI_API_KEY', 'NEBIUS_API_KEY'].filter(k => process.env[k]?.trim());

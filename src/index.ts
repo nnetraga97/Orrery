@@ -5,6 +5,8 @@ import projectOptions from 'virtual:iwsdk-project';
 import { createBrowserSpeech } from './adapters/browser-speech.ts';
 import { createAgentSwitch } from './adapters/agent-switch.ts';
 import { createFakeAgent } from './adapters/fake-agent.ts';
+import { withRecording } from './adapters/recording-agent.ts';
+import { routesOf } from './galaxy-bridge/inspector.ts';
 import { fetchProviders } from './adapters/http-agent.ts';
 import { createFakeSpeech } from './adapters/fake-speech.ts';
 import { createLocalStorage } from './adapters/local-storage.ts';
@@ -20,6 +22,8 @@ import { GalaxySystem } from './systems/galaxy-system.ts';
 import { ManipulationSystem } from './systems/manipulation-system.ts';
 import { ReplaySystem } from './systems/replay-system.ts';
 import { SettingsSystem } from './systems/settings-system.ts';
+import { SearchSystem } from './systems/search-system.ts';
+import { ActivitySystem } from './systems/activity-system.ts';
 import { SoundSystem } from './systems/sound-system.ts';
 import './galaxy-bridge/panel-icons.ts';
 import { chooseTier, installAssetTier } from './galaxy-bridge/asset-tier.ts';
@@ -44,7 +48,9 @@ World.create(document.getElementById('scene-container') as HTMLDivElement, proje
     composer.value = { ...composer.peek(), notice: message };
     provider.value = { ...provider.peek(), id: 'recorded', label: 'Recorded', available: true };
   });
-  world.globals.agent = agents.port;
+  // Usage per request (window.__orrery.usage) always; with ?record=1, the run in the recorded-session format.
+  const recorder = withRecording(agents.port, { record: query.get('record') === '1', id: query.get('scenario') ?? 'range-edge' });
+  world.globals.agent = recorder.port;
   const recorded = { id: 'recorded', label: 'Recorded', available: true };
   let known: { id: string; label: string; models: string[]; model: string; available: boolean }[] = [];
   const choose = (id: string) => {
@@ -82,6 +88,8 @@ World.create(document.getElementById('scene-container') as HTMLDivElement, proje
   world.registerSystem(ReplaySystem);
   world.registerSystem(SoundSystem);
   world.registerSystem(SettingsSystem);
+  world.registerSystem(SearchSystem);
+  world.registerSystem(ActivitySystem);
   world.registerSystem(PauseSystem);
   const agent = world.getSystem(AgentSystem)!;
   const galaxy = world.getSystem(GalaxySystem)!;
@@ -112,6 +120,14 @@ World.create(document.getElementById('scene-container') as HTMLDivElement, proje
       const p = kit.bodyPos(i).clone().applyMatrix4(kit.scene.matrixWorld);
       return { x: p.x, y: p.y, z: p.z };
     },
+    /** Token usage of each agent request (cache reads show whether prompt caching works). */
+    get usage() {
+      return recorder.recording.usageLog;
+    },
+    /** The run recorded with ?record=1. */
+    recording: recorder.recording,
+    /** The ship routes leaving function k of the landed planet (tests find a function with ships with it). */
+    routes: (k: number) => routesOf(k),
     regions: (panel: string) => PANELS.get(panel)?.regions.map(r => r.id) ?? [],
     /** The chat transcript's scroll position (tests drag it with an emulated hand). */
     get chatScroll() {
