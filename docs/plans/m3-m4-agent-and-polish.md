@@ -274,9 +274,9 @@ Functions use the web-standard shape `export default async function handler(requ
 
 **Files:** Create `src/core/replay.ts` + test, `public/scenarios/range-edge.failing.json`, `range-edge.fixed.json`.
 
-- [ ] **Step 1. Tests first.** A replay is `{ title, outcome: 'fails' | 'passes', steps: [{ file, line, label, stack: [{ file, line, label }], variables: [{ name, value }], note? }] }`. `createReplay(data)` gives `current()`, `step()`, `back()`, `restart()`, `play(intervalMs)` driven by a clock passed in, `atEnd()`. Validate that every `file` exists in the dataset and every `line` is in range (the test loads the baked sources).
-- [ ] **Step 2. Author the two replays** for the scenario by reading the code: a caller checks whether position (line 3, column 9) lies in the range (3,1)–(3,9); step through `containsPosition` line by line with the variable values; the failing replay returns `false` with the note "Expected true: the end edge counts as inside"; the fixed one returns `true`.
-- [ ] **Step 3. Check and commit.** `npm run verify`. Commit: `Add the replay engine and the scenario's two recorded runs`
+- [x] **Step 1. Tests first.** A replay is `{ title, outcome: 'fails' | 'passes', steps: [{ file, line, label, stack: [{ file, line, label }], variables: [{ name, value }], note? }] }`. `createReplay(data)` gives `current()`, `step()`, `back()`, `restart()`, `play(intervalMs)` driven by a clock passed in, `atEnd()`. Validate that every `file` exists in the dataset and every `line` is in range (the test loads the baked sources).
+- [x] **Step 2. Author the two replays** for the scenario by reading the code: a caller checks whether position (line 3, column 9) lies in the range (3,1)–(3,9); step through `containsPosition` line by line with the variable values; the failing replay returns `false` with the note "Expected true: the end edge counts as inside"; the fixed one returns `true`.
+- [x] **Step 3. Check and commit.** `npm run verify`. Commit: `Add the replay engine and the scenario's two recorded runs`
 
 ### Task 14: The replay in the world
 

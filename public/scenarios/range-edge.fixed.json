@@ -1,0 +1,155 @@
+{
+  "title": "A cursor at the end of a selection, with the fix",
+  "outcome": "passes",
+  "steps": [
+    {
+      "file": "core/range.ts",
+      "line": 84,
+      "label": "A selection asks whether the cursor is inside it",
+      "stack": [
+        {
+          "file": "core/range.ts",
+          "line": 84,
+          "label": "Range#containsPosition"
+        }
+      ],
+      "variables": [
+        {
+          "name": "this",
+          "value": "(3, 1) – (3, 9)"
+        },
+        {
+          "name": "position",
+          "value": "(3, 9)"
+        }
+      ],
+      "note": "The cursor sits exactly at the end of the selection."
+    },
+    {
+      "file": "core/range.ts",
+      "line": 91,
+      "label": "Is the cursor on a line outside the range?",
+      "stack": [
+        {
+          "file": "core/range.ts",
+          "line": 84,
+          "label": "Range#containsPosition"
+        },
+        {
+          "file": "core/range.ts",
+          "line": 91,
+          "label": "Range.containsPosition"
+        }
+      ],
+      "variables": [
+        {
+          "name": "range",
+          "value": "(3, 1) – (3, 9)"
+        },
+        {
+          "name": "position",
+          "value": "(3, 9)"
+        },
+        {
+          "name": "3 < 3 || 3 > 3",
+          "value": "false"
+        }
+      ]
+    },
+    {
+      "file": "core/range.ts",
+      "line": 94,
+      "label": "Is it before the start column?",
+      "stack": [
+        {
+          "file": "core/range.ts",
+          "line": 84,
+          "label": "Range#containsPosition"
+        },
+        {
+          "file": "core/range.ts",
+          "line": 94,
+          "label": "Range.containsPosition"
+        }
+      ],
+      "variables": [
+        {
+          "name": "range",
+          "value": "(3, 1) – (3, 9)"
+        },
+        {
+          "name": "position",
+          "value": "(3, 9)"
+        },
+        {
+          "name": "9 < 1",
+          "value": "false"
+        }
+      ]
+    },
+    {
+      "file": "core/range.ts",
+      "line": 97,
+      "label": "Is it past the end column?",
+      "stack": [
+        {
+          "file": "core/range.ts",
+          "line": 84,
+          "label": "Range#containsPosition"
+        },
+        {
+          "file": "core/range.ts",
+          "line": 97,
+          "label": "Range.containsPosition"
+        }
+      ],
+      "variables": [
+        {
+          "name": "range",
+          "value": "(3, 1) – (3, 9)"
+        },
+        {
+          "name": "position",
+          "value": "(3, 9)"
+        },
+        {
+          "name": "9 > 9",
+          "value": "false"
+        }
+      ],
+      "note": "With >, the end column itself is not past the end."
+    },
+    {
+      "file": "core/range.ts",
+      "line": 100,
+      "label": "Returns true",
+      "stack": [
+        {
+          "file": "core/range.ts",
+          "line": 84,
+          "label": "Range#containsPosition"
+        },
+        {
+          "file": "core/range.ts",
+          "line": 100,
+          "label": "Range.containsPosition"
+        }
+      ],
+      "variables": [
+        {
+          "name": "range",
+          "value": "(3, 1) – (3, 9)"
+        },
+        {
+          "name": "position",
+          "value": "(3, 9)"
+        },
+        {
+          "name": "result",
+          "value": "true"
+        }
+      ],
+      "note": "The end edge counts as inside, as the comment says."
+    }
+  ]
+}
