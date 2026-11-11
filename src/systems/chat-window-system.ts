@@ -29,6 +29,7 @@ import {
   codeView,
   composer,
   dataset,
+  layoutResets,
   provider,
   scenario,
   speech,
@@ -67,6 +68,15 @@ export class ChatWindowSystem extends createSystem({}) {
   settingsPage: { layout(m: ChatMetrics, ctx: CanvasRenderingContext2D): ChatLayout; press(id: string): void } | null = null;
   /** Text scale for the chat (a setting). */
   textScale = 1;
+  /** Reduce motion (a setting): the working glyph and plan rings stay still. */
+  reduceMotion = false;
+  /** Left-handed (a setting): the microphone at the composer's left end. */
+  micLeft = false;
+
+  /** Redraws with the current settings. */
+  refresh() {
+    this.dirty = true;
+  }
 
   init() {
     this.head = new Vector3();
@@ -121,6 +131,11 @@ export class ChatWindowSystem extends createSystem({}) {
       codeView.subscribe(touch),
       changedFiles.subscribe(touch),
       scenario.subscribe(touch),
+      layoutResets.subscribe(n => {
+        if (!n) return;
+        this.chat.moved = false;
+        place(this.chat, PLACEMENTS.agentPanel);
+      }),
       () => {
         this.chat.dispose();
         this.tabs.dispose();
@@ -217,6 +232,7 @@ export class ChatWindowSystem extends createSystem({}) {
       provider: p.id,
       models: p.models,
       model: p.model,
+      micLeft: this.micLeft,
     };
   }
 
@@ -240,7 +256,7 @@ export class ChatWindowSystem extends createSystem({}) {
       this.viewTop = view.y;
       this.scrollTop = clampScroll(this.scrollTop, body.height, view.h);
       this.animated = isAnimated(body) || isAnimated(composer);
-      const regions = drawChatWindow(ctx, w, h, u, body, composer, m, { scrollTop: this.scrollTop, clock: this.clock, hovered: this.chat.hovered });
+      const regions = drawChatWindow(ctx, w, h, u, body, composer, m, { scrollTop: this.scrollTop, clock: this.clock, hovered: this.chat.hovered, reduceMotion: this.reduceMotion });
       // The chat list button, left of the close mark.
       const size = 26 * u,
         x = w - 19 * u - 18 * u - 14 * u - size,
@@ -286,8 +302,8 @@ export class ChatWindowSystem extends createSystem({}) {
     this.chat.tick(delta, this.head);
     this.clock += delta;
     this.since += delta;
-    // Ten frames a second while anything moves; otherwise only on change.
-    if (this.dirty || (this.animated && this.since >= FRAME_SECONDS)) {
+    // Ten frames a second while anything moves (nothing moves with reduce motion); otherwise only on change.
+    if (this.dirty || (this.animated && !this.reduceMotion && this.since >= FRAME_SECONDS)) {
       this.dirty = false;
       this.since = 0;
       this.draw();

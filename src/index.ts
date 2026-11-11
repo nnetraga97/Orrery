@@ -18,6 +18,7 @@ import { ChatWindowSystem } from './systems/chat-window-system.ts';
 import { GalaxySystem } from './systems/galaxy-system.ts';
 import { ManipulationSystem } from './systems/manipulation-system.ts';
 import { ReplaySystem } from './systems/replay-system.ts';
+import { SettingsSystem } from './systems/settings-system.ts';
 import { SoundSystem } from './systems/sound-system.ts';
 import './galaxy-bridge/panel-icons.ts';
 import { PanelSystem } from './systems/panel-system.ts';
@@ -74,6 +75,7 @@ World.create(document.getElementById('scene-container') as HTMLDivElement, proje
   world.registerSystem(CalloutSystem);
   world.registerSystem(ReplaySystem);
   world.registerSystem(SoundSystem);
+  world.registerSystem(SettingsSystem);
   const agent = world.getSystem(AgentSystem)!;
   const galaxy = world.getSystem(GalaxySystem)!;
   window.__orrery = {

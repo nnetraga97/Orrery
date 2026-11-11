@@ -28,6 +28,8 @@ export type ComposerView = {
   provider: string;
   models: readonly string[];
   model: string;
+  /** Left-handed: the microphone at the row's left end. */
+  micLeft?: boolean;
 };
 
 const MODES: [Mode, string][] = [
@@ -115,7 +117,8 @@ export function layoutComposer(view: ComposerView, metrics: ChatMetrics, measure
   const top = b.y,
     pad = 24,
     micD = b.lh('body') + 28,
-    rowRight = b.right - micD - 14;
+    rowLeft = view.micLeft ? b.left + micD + 14 : b.left,
+    rowRight = view.micLeft ? b.right : b.right - micD - 14;
   let textRight = rowRight - pad;
   const pending = s.pending.trim();
   const listening = view.mic === 'listening';
@@ -124,9 +127,9 @@ export function layoutComposer(view: ComposerView, metrics: ChatMetrics, measure
   const words = !view.available ? UNAVAILABLE : listening ? view.partial || 'Listening…' : pending || PLACEHOLDER;
   const tone = !view.available ? 'failed' : listening || pending ? 'text' : 'dim';
   b.gap(14);
-  const wrapped = wrapRuns([{ text: words, font: 'body', tone }], textRight - (b.left + pad), measure).slice(0, 4);
+  const wrapped = wrapRuns([{ text: words, font: 'body', tone }], textRight - (rowLeft + pad), measure).slice(0, 4);
   for (const spans of wrapped) {
-    for (const span of spans) span.x += b.left + pad;
+    for (const span of spans) span.x += rowLeft + pad;
     b.line('text', spans, 'body');
   }
   if (buttonsLine) {
@@ -142,9 +145,9 @@ export function layoutComposer(view: ComposerView, metrics: ChatMetrics, measure
   b.gap(14);
   const h = Math.max(b.y - top, micD);
   b.y = top + h;
-  b.box('field', b.left, top, rowRight - b.left, h, { tone: !view.available ? 'failed' : listening ? 'line' : undefined });
+  b.box('field', rowLeft, top, rowRight - rowLeft, h, { tone: !view.available ? 'failed' : listening ? 'line' : undefined });
   // The microphone: a round button at the row's right end, as tall as one line of the row.
-  const micX = b.right - micD,
+  const micX = view.micLeft ? b.left : b.right - micD,
     micY = top + h - micD;
   b.box('mic', micX, micY, micD, micD, { id: 'mic', tone: view.mic === 'unavailable' || !view.available ? 'amber' : listening ? 'line' : 'dim' });
   b.lines.push({ y: micY, height: micD, kind: 'notice', spans: [], icon: { name: 'mic', x: micX + (micD - b.icon()) / 2, tone: view.mic === 'unavailable' ? 'amber' : listening ? 'text' : 'line' } });

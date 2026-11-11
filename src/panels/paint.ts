@@ -2,7 +2,7 @@
 // panels with corner brackets, micro labels, buttons, chips and bands. Adapted from docs/style/mock.html. Every size is
 // in "style pixels" (the reference sheet's units) times `u`, the canvas pixels per style pixel of the panel drawn.
 import type { HitRegion } from '../core/panel-hit.ts';
-import { FONTS, THEME, font } from '../core/theme.ts';
+import { FONTS, THEME, font, highContrast } from '../core/theme.ts';
 
 export { THEME, font };
 
@@ -163,6 +163,11 @@ export function button(
 /** A band: a full-width strip at 17% with a 3-pixel solid edge on the left. */
 export function band(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, u: number, color: string, alpha = 0.17) {
   ctx.save();
+  // High contrast: denser bands with a thicker edge.
+  if (highContrast()) {
+    alpha = Math.min(0.45, alpha * 2.2);
+    u = Math.max(u, 1) * 2;
+  }
   ctx.globalAlpha = alpha;
   ctx.fillStyle = color;
   ctx.fillRect(x, y, w, h);

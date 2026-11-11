@@ -1,6 +1,6 @@
 // Typed commands: the only way panels, gestures and tests ask the app to change. The galaxy system connects the
 // handler that carries them out; until it does, a command does nothing.
-import { agentOpen, chatPage, codeCardOpen, codeRequest, dataset, pinned, tutorialRestarts } from './app-state.ts';
+import { agentOpen, chatPage, codeCardOpen, codeRequest, dataset, layoutResets, pinned, tutorialRestarts } from './app-state.ts';
 import type { SoundEvent } from '../core/sound.ts';
 import type { ChatPage, VoiceTarget } from './app-state.ts';
 
@@ -158,6 +158,10 @@ export function restartTutorial(): void {
   tutorialRestarts.value = tutorialRestarts.peek() + 1;
 }
 
+/** Puts every window back where it starts (Settings, Reset layout). */
+export function resetLayout(): void {
+  layoutResets.value = layoutResets.peek() + 1;
+}
 /** Closes the pinned info card. */
 export function closeCard(): void {
   pinned.value = null;
@@ -190,6 +194,7 @@ export const commands = {
   newChat,
   openThread,
   restartTutorial,
+  resetLayout,
   closeCard,
   retry,
 };

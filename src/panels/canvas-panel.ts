@@ -37,6 +37,8 @@ export const STYLE_PX_PER_M = 850;
 const BAR_STRIP = 26;
 const REACH = { min: 0.5, max: 1.4 };
 const APPEAR_SECONDS = 0.25;
+/** Reduce motion (a setting): windows appear at once instead of fading in. */
+export const MOTION = { reduce: false };
 const TURN_RATE = 6;
 
 export type DrawPanel = (ctx: CanvasRenderingContext2D, width: number, height: number) => HitRegion[];
@@ -384,6 +386,11 @@ export class CanvasPanel {
     this.texture.needsUpdate = true;
   }
 
+  /** Draws again with the last drawing (after a theme change). */
+  refresh() {
+    this.redrawLast();
+  }
+
   private redrawLast() {
     if (this.lastDraw && this.mesh.visible) this.redraw(this.lastDraw);
   }
@@ -392,7 +399,7 @@ export class CanvasPanel {
   tick(delta: number, head?: Vector3) {
     const material = this.mesh.material as MeshBasicMaterial;
     if (this.shown && this.appear < 1) {
-      this.appear = Math.min(1, this.appear + delta / APPEAR_SECONDS);
+      this.appear = MOTION.reduce ? 1 : Math.min(1, this.appear + delta / APPEAR_SECONDS);
       material.opacity = this.appear;
     }
     if (head && this.mesh.visible) {

@@ -98,3 +98,13 @@ the review wins; where both name something that no longer exists, the replacemen
 - Task 15: sounds play for hover (at most ten ticks a second), press (every window, through `CanvasPanel`), send, the
   first words of a reply, an accepted edit, an error and each replay step. The audio context starts on the first press.
   Volume and mute live in `soundLevel`, which the settings set (Task 16). Not heard on a device yet.
+- Task 16: settings live in the Settings tab of the chat window (review), as rows of choices; `palmMenu` is gone;
+  "Project", "Restart tutorial" and "Reset layout" are added. Text size relays out the chat and grows the cards
+  (the code card's mesh scales: the code keeps its 56 columns). Seat height moves the player's origin. Handedness
+  puts the microphone at the composer's left end. High contrast switches the theme tokens to black and white and
+  doubles the band density and edge; red, green and amber keep their meaning. Reduce motion stops the working glyph,
+  plan rings, the fault dot's breathing and the windows' fade-in; the copied cannon's camera moves are not touched (it
+  does not move the camera in XR). Effort is a setting kept for a chat, so a provider's cache holds. Emulator check
+  (Quest 3 profile, seated): opened Settings and chose 140% by pinch, then completed the scenario with the right hand
+  only and no voice, starting from the problem card; it turned green and the agent's replay of the fixed run started.
+  At 140% the code card overlaps the globe from the seat: a device-session item.

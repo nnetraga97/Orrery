@@ -83,3 +83,10 @@ test('an unavailable provider says so, and the microphone takes no pinch', () =>
   assert.ok(layout.lines.some(l => text(l) === UNAVAILABLE));
   assert.ok(!layout.regions.some(r => r.id === 'mic'));
 });
+
+test('left-handed: the microphone at the left end of the row', () => {
+  const right = layoutComposer(view(), metrics, measure).regions.find(r => r.id === 'mic')!;
+  const left = layoutComposer(view({ micLeft: true }), metrics, measure).regions.find(r => r.id === 'mic')!;
+  assert.ok(left.x < right.x);
+  assert.equal(left.x, metrics.pad);
+});

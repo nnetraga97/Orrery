@@ -5,6 +5,8 @@ import type { ComposerState } from '../core/chat/composer.ts';
 import type { AnswerState } from '../core/chat/requests.ts';
 import type { StoredThread, ThreadSummary } from '../core/chat/threads.ts';
 import type { Scenario } from '../core/scenario.ts';
+import { DEFAULT_SETTINGS } from '../core/settings.ts';
+import type { Settings } from '../core/settings.ts';
 import { idleSpeech } from '../core/speech.ts';
 import type { SpeechState } from '../core/speech.ts';
 import type { CodeView } from '../core/code-view.ts';
@@ -106,6 +108,10 @@ export type ReplayView = {
 export const replay = signal<ReplayView | null>(null);
 /** The master volume (0 to 1) and mute, set from the settings. */
 export const soundLevel = signal({ volume: 0.6, mute: false });
+/** The settings (src/core/settings.ts), kept on this device. */
+export const settings = signal<Settings>(DEFAULT_SETTINGS);
+/** Bumped by Reset layout: every window goes back to its place. */
+export const layoutResets = signal(0);
 /** Inspector calls kept for the next plan (debugger tabs, transport, stack, evidence). */
 export const inspectorExtras = signal<Record<string, unknown[]>>({});
 
@@ -144,5 +150,7 @@ export const appState = {
   provider,
   replay,
   soundLevel,
+  settings,
+  layoutResets,
 };
 export type AppState = typeof appState;

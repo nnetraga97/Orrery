@@ -18,7 +18,7 @@ import { STATUS_CARD, drawStatusCard, statusTitle } from '../panels/draw-status-
 import type { StatusCard } from '../panels/draw-status-card.ts';
 import { loadFonts } from '../panels/fonts.ts';
 import { cardFromItem } from '../panels/info-card-content.ts';
-import { codeCardOpen, codeCardRows, codeScroll, codeView, error, loading, pinned, replay } from '../state/app-state.ts';
+import { codeCardOpen, codeCardRows, codeScroll, codeView, error, layoutResets, loading, pinned, replay } from '../state/app-state.ts';
 import { closeCard, replayBack, replayPlay, replayStep, retry } from '../state/commands.ts';
 import { GalaxySystem, TABLE_ANCHOR } from './galaxy-system.ts';
 import { headPosition } from './head.ts';
@@ -123,6 +123,14 @@ export class PanelSystem extends createSystem({}) {
       codeScroll.subscribe(() => this.drawCode()),
       codeCardOpen.subscribe(() => this.drawCode()),
       replay.subscribe(() => this.drawCode()),
+      layoutResets.subscribe(n => {
+        if (!n) return;
+        for (const [panel, spec] of [[this.code, PLACEMENTS.codeCard]] as const) {
+          panel.moved = false;
+          place(panel, spec);
+        }
+        this.info.moved = false;
+      }),
       pinned.subscribe(item => {
         this.item = cardless(item) ? null : item;
         this.card = this.item ? cardFromItem(this.item) : null;

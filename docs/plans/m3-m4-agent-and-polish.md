@@ -299,10 +299,10 @@ Functions use the web-standard shape `export default async function handler(requ
 
 **Files:** Create `src/panels/draw-settings.ts`, `src/core/settings.ts` + test.
 
-- [ ] **Step 1. Tests first.** Settings with defaults and validation: `textScale` (0.85, 1, 1.2, 1.4), `seatHeight` offset (−0.15 to +0.15 m), `handedness` (left or right; swaps the palm menu and the microphone side), `highContrast`, `reduceMotion` (stops the rotating glyph, label pulses and cannon camera moves), `volume`, `mute`, `provider`, `model`, `effort`, `permission`, `mode`, `followAgent`, `palmMenu`. Stored through `StoragePort`.
-- [ ] **Step 2.** A settings panel opened from the dock's `Help` area: each setting is a row of large pinchable choices. `textScale` rescales the code page and chat fonts and relays them out; `highContrast` switches panels to pure black and white with thicker focus bands. `Reset layout` restores panel positions.
-- [ ] **Step 3.** Confirm in the emulator that the whole scenario can be completed (a) with no voice, (b) with the right hand only, (c) with `textScale` 1.4.
-- [ ] **Step 4. Check and commit.** `npm run verify`. Commit: `Add settings, larger text, high contrast and one-handed use`
+- [x] **Step 1. Tests first.** Settings with defaults and validation: `textScale` (0.85, 1, 1.2, 1.4), `seatHeight` offset (−0.15 to +0.15 m), `handedness` (left or right; swaps the palm menu and the microphone side), `highContrast`, `reduceMotion` (stops the rotating glyph, label pulses and cannon camera moves), `volume`, `mute`, `provider`, `model`, `effort`, `permission`, `mode`, `followAgent`, `palmMenu`. Stored through `StoragePort`.
+- [x] **Step 2.** A settings panel opened from the dock's `Help` area: each setting is a row of large pinchable choices. `textScale` rescales the code page and chat fonts and relays them out; `highContrast` switches panels to pure black and white with thicker focus bands. `Reset layout` restores panel positions.
+- [x] **Step 3.** Confirm in the emulator that the whole scenario can be completed (a) with no voice, (b) with the right hand only, (c) with `textScale` 1.4.
+- [x] **Step 4. Check and commit.** `npm run verify`. Commit: `Add settings, larger text, high contrast and one-handed use`
 
 ### Task 17: Pause, resume and a fast start
 

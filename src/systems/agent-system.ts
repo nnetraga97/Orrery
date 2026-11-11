@@ -258,6 +258,8 @@ export class AgentSystem extends createSystem({}) {
     const request: AgentRequest = {
       provider: provider.peek().id,
       ...(provider.peek().model ? { model: provider.peek().model } : {}),
+      // The effort stays the same through a chat, so the provider's cache holds (a setting).
+      ...((this.globals.effort as (() => string) | undefined) ? { effort: (this.globals.effort as () => string)() } : {}),
       system: systemPrompt(name),
       tools: TOOLS,
       messages,
