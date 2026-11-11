@@ -1,7 +1,7 @@
 // Runs the copied galaxy inside IWSDK: opens a dataset through the bridge, attaches the galaxy's scene to the world,
 // steps the scene kit every frame and poses the model in the air from the kit's virtual camera.
 import { Quaternion, Vector3, createSystem } from '@iwsdk/core';
-import type { Entity } from '@iwsdk/core';
+import type { Entity, Object3D } from '@iwsdk/core';
 import { GalaxyRoot } from '../components/galaxy-root.ts';
 import { focusedPose, tablePose } from '../core/table-frame.ts';
 import type { TableAnchor, Vec3 } from '../core/table-frame.ts';
@@ -12,9 +12,10 @@ import type { OverlayLayer } from '../galaxy-bridge/overlay-layer.ts';
 import { bridgePointer } from '../galaxy-bridge/pointer-bridge.ts';
 import { createPointScaler } from '../galaxy-bridge/point-sizes.ts';
 import { fileIndex, galaxyState, installActions, openGalaxy } from '../galaxy-bridge/galaxy-session.js';
+import { outlinePinnedTown } from '../galaxy-bridge/town-outline.ts';
 import { createXrHost } from '../galaxy-bridge/xr-host.ts';
 import type { XrHost } from '../galaxy-bridge/xr-host.ts';
-import { error, landedPath, loading, phase, selectedPath } from '../state/app-state.ts';
+import { codeView, error, landedPath, loading, phase, selectedPath } from '../state/app-state.ts';
 import { connectCommands, openDataset } from '../state/commands.ts';
 import { headObject } from './head.ts';
 import { createRoom } from './room.ts';
@@ -35,6 +36,8 @@ export const LANDED_GLOBE_DIAMETER = 0.64;
 // Where a landed globe's centre floats: a little below a seated eye.
 export const LANDED_CENTER: Vec3 = [0, 1.1, -0.95];
 const ANCHOR_EASE_SECONDS = 0.6;
+/** How often, while landed, to look for newly built road cars to hide. */
+const CAR_SWEEP_SECONDS = 0.5;
 /** The project the app opens on. */
 export const DEMO_DATASET = 'editor-core';
 
@@ -50,6 +53,13 @@ export class GalaxySystem extends createSystem({ roots: { required: [GalaxyRoot]
   private head!: Vector3;
   private gaze!: Vector3;
   private headTurn!: Quaternion;
+  /** Frames to keep looking for the copied code's pin fill after the selected town changes (it is built a moment later). */
+  private outlineFrames = 0;
+  private carSweep = 0;
+  // Road cars on a 0.64 m globe are 2-5 mm long and cost about 920,000 triangles: hidden from the bridge.
+  private readonly hideCar = (o: Object3D) => {
+    if (o.visible && o.name.startsWith('road-car:')) o.visible = false;
+  };
 
   init() {
     this.head = new Vector3();
@@ -65,7 +75,14 @@ export class GalaxySystem extends createSystem({ roots: { required: [GalaxyRoot]
       overlays: this.overlays,
     });
     installActions(this.host, { selected: path => (selectedPath.value = path) });
+    let lastRegion: number | null = null;
     this.cleanupFuncs.push(
+      codeView.subscribe(view => {
+        const region = view?.selectedRegion ?? null;
+        if (region === lastRegion) return;
+        lastRegion = region;
+        this.outlineFrames = 30;
+      }),
       connectCommands({
         openDataset: name => void this.open(name),
         selectFile: path => {
@@ -184,5 +201,16 @@ export class GalaxySystem extends createSystem({ roots: { required: [GalaxyRoot]
     head.getWorldPosition(this.head);
     this.gaze.set(0, 0, -1).applyQuaternion(head.getWorldQuaternion(this.headTurn));
     this.labels.update(this.head, this.gaze, pose);
+    if (this.outlineFrames > 0) {
+      this.outlineFrames--;
+      if (outlinePinnedTown(group) > 0) this.outlineFrames = 0;
+    }
+    if (this.landed) {
+      this.carSweep += delta;
+      if (this.carSweep >= CAR_SWEEP_SECONDS) {
+        this.carSweep = 0;
+        group.traverse(this.hideCar);
+      }
+    }
   }
 }

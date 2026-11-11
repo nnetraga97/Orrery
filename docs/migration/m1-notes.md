@@ -90,3 +90,21 @@ The tutorial card sits above the model, so it is in view looking straight ahead,
 | Landed globe with the code page | 171 | 2,916,133 |
 
 The landed counts vary by a few percent between runs with what the copied code has built at that moment.
+
+## Road cars hidden (Task 15, after the design review)
+
+On the 0.64 m globe a road car is 2 to 5 mm long. The bridge hides every object under the model whose name starts with
+`road-car:` while landed (`src/systems/galaxy-system.ts`; nothing in `galaxy/` changes). Measured in one browser-tab
+session, landed on `core/range.ts` with `showCode('core/range.ts', 90)`, by showing the cars again for one frame:
+
+| Landed | Triangles |
+| --- | --- |
+| Cars shown | 3,177,452 |
+| Cars hidden | 2,208,900 |
+| Saved | 968,552 |
+
+The saving is above the 800,000 the change list asks for. The total is not below its 1,630,000 target: this session's
+landed count with cars shown was 3.18 million, not the 2.43 million the change list measured, because more of the
+landed planet's detail had been built. What remains: town buildings and props about 1,140,000, the island's
+landmarks and houses about 530,000, dependency arcs about 220,000, the other planets about 200,000. The island and the
+rest of the budget belong to the next plan's Task 18; hiding the other planets while landed waits for the owner.
