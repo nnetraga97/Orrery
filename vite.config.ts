@@ -10,7 +10,8 @@ import { defineConfig } from 'vite';
 
 export default defineConfig({
   plugins: [iwsdkDev()],
-  server: { host: '0.0.0.0', port: 8081, open: false },
+  // /api goes to the local server functions (tools/dev-api.mjs) in development.
+  server: { host: '0.0.0.0', port: 8081, open: false, proxy: { '/api': 'http://127.0.0.1:8787' } },
   build: {
     outDir: 'dist',
     assetsDir: 'bundle',

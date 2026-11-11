@@ -2,13 +2,15 @@
 import { World } from '@iwsdk/core';
 import projectOptions from 'virtual:iwsdk-project';
 import { createBrowserSpeech } from './adapters/browser-speech.ts';
+import { createAgentSwitch } from './adapters/agent-switch.ts';
 import { createFakeAgent } from './adapters/fake-agent.ts';
+import { fetchProviders } from './adapters/http-agent.ts';
 import { createFakeSpeech } from './adapters/fake-speech.ts';
 import { createLocalStorage } from './adapters/local-storage.ts';
 import { PANELS } from './panels/canvas-panel.ts';
 import { createStaticDataset } from './adapters/static-dataset.ts';
 import { galaxyState } from './galaxy-bridge/galaxy-session.js';
-import { appState } from './state/app-state.ts';
+import { appState, composer, provider } from './state/app-state.ts';
 import { commands } from './state/commands.ts';
 import { AgentSystem } from './systems/agent-system.ts';
 import { CalloutSystem } from './systems/callout-system.ts';
@@ -28,8 +30,36 @@ World.create(document.getElementById('scene-container') as HTMLDivElement, proje
   // ?say=Fix%20it|Explain%20the%20fix makes each pinch of the microphone hear the next phrase (tests, demos).
   const say = query.get('say');
   world.globals.speech = say != null ? createFakeSpeech(say.split('|')) : createBrowserSpeech();
-  // The recorded agent by default; the live one arrives with the server relay.
-  world.globals.agent = createFakeAgent(query.get('scenario') ?? 'range-edge');
+  // The recorded agent by default; with ?agent=live, the server relay to a provider it holds a key for.
+  const agents = createAgentSwitch(createFakeAgent(query.get('scenario') ?? 'range-edge'), message => {
+    composer.value = { ...composer.peek(), notice: message };
+    provider.value = { ...provider.peek(), id: 'recorded', label: 'Recorded', available: true };
+  });
+  world.globals.agent = agents.port;
+  const recorded = { id: 'recorded', label: 'Recorded', available: true };
+  let known: { id: string; label: string; models: string[]; model: string; available: boolean }[] = [];
+  const choose = (id: string) => {
+    const p = known.find(x => x.id === id);
+    if (id === 'recorded' || !p) {
+      agents.choose('recorded', 'Recorded');
+      provider.value = { ...provider.peek(), ...recorded, models: [], model: '' };
+    } else {
+      agents.choose(p.id, p.label);
+      provider.value = { ...provider.peek(), id: p.id, label: p.label, available: p.available, models: p.models, model: p.model };
+    }
+  };
+  world.globals.chooseProvider = (kind: string, value: string) => {
+    if (kind === 'provider') choose(value);
+    else if (kind === 'model') provider.value = { ...provider.peek(), model: value };
+  };
+  if (query.get('agent') === 'live')
+    void fetchProviders().then(list => {
+      // Only providers the server holds a key for are offered.
+      known = (list ?? []).filter(p => p.available);
+      provider.value = { ...provider.peek(), choices: [recorded, ...known.map(p => ({ id: p.id, label: p.label, available: true }))] };
+      if (known.length) choose(known[0].id);
+      else composer.value = { ...composer.peek(), notice: 'No live provider is set up on the server, so the recorded agent answers.' };
+    });
   // ?auto=1 (tests): say the first phrase, send it, choose the first option of every question, approve every edit.
   world.globals.auto = query.get('auto') === '1';
   world.registerSystem(GalaxySystem);

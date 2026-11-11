@@ -75,3 +75,16 @@ the review wins; where both name something that no longer exists, the replacemen
   pinched the first option and Send answer, pinched Approve once; the problem card turned green ("Fixed"). Again with
   `?say=Fix it|Fix only this function`: held the microphone, then held "Say your answer"; the answer reached the model
   and the card turned green. The test hook gains `__orrery.target(panel, region)` and `__orrery.regions(panel)`.
+- Task 12: provider APIs were checked against current documentation (2026-11). Claude: `claude-opus-5-5`, adaptive
+  thinking with `display: "summarized"` (thinking text is hidden by default on this model family), effort explicit in
+  `output_config` (default `medium`), strict tools with `eager_input_streaming`, `fallbacks: "default"` with the beta
+  `server-side-fallback-2026-07-01`, the system prompt and tool list cached plus top-level automatic caching for the
+  conversation. Strict tools reject `minLength`, `maxLength`, `minimum` and `maxItems`, so the Claude adapter strips
+  them from the schemas it sends; the browser's validator still enforces them. OpenAI: the Responses API (function
+  calling with its reasoning models goes through it), stateless (`store: false`), reasoning items passed back
+  unchanged as `opaque`, default model `gpt-6-astra`; tools not strict there, because OpenAI's strict mode needs every
+  property required. Nemotron: plain `fetch` to the desktop loop's endpoint and default model, streamed. The relay
+  logic is `api/_lib/relay.ts` with its dependencies injected (tested without keys); `api/agent.ts` wires the real
+  clients. Prices for the budget guard are estimates on the high side (`api/_lib/limits.ts`). `npm run dev:api` runs
+  the functions locally; Vite proxies `/api` to it. `?agent=live` offers only providers the server holds a key for;
+  `rate_limited` or `budget_spent` switches to the recorded agent with a notice.
