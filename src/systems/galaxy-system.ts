@@ -13,6 +13,7 @@ import { bridgePointer } from '../galaxy-bridge/pointer-bridge.ts';
 import { createPointScaler } from '../galaxy-bridge/point-sizes.ts';
 import { fileIndex, galaxyState, installActions, openGalaxy } from '../galaxy-bridge/galaxy-session.js';
 import { outlinePinnedTown } from '../galaxy-bridge/town-outline.ts';
+import { preferWindowsForGaze } from '../galaxy-bridge/gaze-priority.ts';
 import { flushXrFrames, installXrFrames } from '../galaxy-bridge/xr-frames.ts';
 import { createXrHost } from '../galaxy-bridge/xr-host.ts';
 import type { XrHost } from '../galaxy-bridge/xr-host.ts';
@@ -78,6 +79,7 @@ export class GalaxySystem extends createSystem({}) {
     this.gaze = new Vector3();
     this.headTurn = new Quaternion();
     installXrFrames(this.renderer);
+    preferWindowsForGaze(this.input.xr);
     createRoom(this.world);
     this.labels = createLabelLayer(this.world);
     this.overlays = createOverlayLayer();

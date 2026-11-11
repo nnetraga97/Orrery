@@ -16,6 +16,8 @@ import type { XrSceneKit } from './scene-kit.js';
  * z -1.63..-0.88), and a landed globe floats around [0, 1.10, -0.95] (x ±0.32, y 0.78..1.42, z -1.27..-0.63).
  * Double-sided, so a ray from a hand already inside it still hits.
  */
+/** The hit volume's object name (gaze-priority.ts tells it apart from windows). */
+export const HIT_VOLUME_NAME = 'galaxy-hit-volume';
 export const HIT_VOLUME = { center: [0.15, 1.1, -1.15] as const, size: [1.5, 0.8, 1.2] as const };
 
 interface RayEvent {
@@ -29,26 +31,55 @@ export function bridgePointer(world: World, group: Object3D, kit: XrSceneKit): (
   const material = new MeshBasicMaterial({ side: DoubleSide });
   material.visible = false;
   const volume = new Mesh(new BoxGeometry(...HIT_VOLUME.size), material);
-  volume.name = 'galaxy-hit-volume';
+  volume.name = HIT_VOLUME_NAME;
   volume.position.set(...HIT_VOLUME.center);
   // Windows (the chat, cards, the code card) may sit inside this volume; any window on the ray wins over the galaxy.
   (volume as unknown as { pointerEventsOrder: number }).pointerEventsOrder = -1;
   const entity = world.createTransformEntity(volume);
   entity.addComponent(RayInteractable);
 
-  const toModel = (event: RayEvent) => {
+  const toModel = (worldRay: Ray) => {
     inverse.copy(group.matrixWorld).invert();
-    return ray.copy(event.ray).applyMatrix4(inverse);
+    return ray.copy(worldRay).applyMatrix4(inverse);
   };
-  // Each pointer (hand, mouse) is passed with its id: the kit keeps one ray per pointer.
-  const move = (event: unknown) => kit.pointerMove(toModel(event as RayEvent), (event as RayEvent).pointerId);
-  const leave = (event: unknown) => kit.pointerLeave((event as RayEvent).pointerId);
-  const click = (event: unknown) => kit.pointerClick(toModel(event as RayEvent), (event as RayEvent).pointerId);
+  // Each pointer (a hand, the gaze, the mouse) is passed with its id: the kit keeps one ray per pointer.
+  //
+  // A click picks along the ray the pointer was aiming with just before the pinch began, not the click event's own
+  // ray. With gaze, IWSDK moves the gaze pointer onto the pinching hand for the length of the pinch (so a drag follows
+  // the hand), and the press, release and click events carry that hand ray, which no longer points at what the eyes
+  // chose. For a hand ray the two are the same, give or take the pinch's own jitter. While a pinch is held, the
+  // pointer's moves do not change the hover either.
+  const aimed = new Map<number, Ray>(),
+    pressed = new Set<number>();
+  const move = (event: unknown) => {
+    const e = event as RayEvent;
+    if (pressed.has(e.pointerId)) return;
+    let r = aimed.get(e.pointerId);
+    if (!r) aimed.set(e.pointerId, (r = new Ray()));
+    r.copy(e.ray);
+    kit.pointerMove(toModel(e.ray), e.pointerId);
+  };
+  const down = (event: unknown) => pressed.add((event as RayEvent).pointerId);
+  const up = (event: unknown) => pressed.delete((event as RayEvent).pointerId);
+  const leave = (event: unknown) => {
+    const id = (event as RayEvent).pointerId;
+    pressed.delete(id);
+    aimed.delete(id);
+    kit.pointerLeave(id);
+  };
+  const click = (event: unknown) => {
+    const e = event as RayEvent;
+    pressed.delete(e.pointerId);
+    kit.pointerClick(toModel(aimed.get(e.pointerId) ?? e.ray), e.pointerId);
+  };
   // The pointer-event types are not part of three's Object3D event map, hence the loose listener type.
   const target = volume as unknown as {
     addEventListener(type: string, listener: (event: unknown) => void): void;
   };
   target.addEventListener('pointermove', move);
+  target.addEventListener('pointerdown', down);
+  target.addEventListener('pointerup', up);
+  target.addEventListener('pointercancel', up);
   target.addEventListener('pointerleave', leave);
   target.addEventListener('click', click);
   return () => {

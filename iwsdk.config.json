@@ -13,7 +13,8 @@
       "mode": "vr",
       "offer": "always",
       "features": {
-        "handTracking": true
+        "handTracking": true,
+        "gazeTracking": true
       }
     },
     "input": {

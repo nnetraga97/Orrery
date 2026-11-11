@@ -13,6 +13,17 @@ export const TUTORIAL_TEXT: Record<Exclude<TutorialStep, 'done'>, string> = {
   read: 'Pinch a town on the globe to read its code.',
 };
 
+/** On glasses the eyes aim and a pinch selects: the aiming steps say so. */
+const GAZE_TEXT: Partial<Record<Exclude<TutorialStep, 'done'>, string>> = {
+  point: 'Look at the glowing planet and pinch.',
+  read: 'Look at a town on the globe and pinch.',
+};
+
+/** A step's sentence, worded for gaze when the eyes do the aiming. */
+export function tutorialText(step: Exclude<TutorialStep, 'done'>, gaze: boolean): string {
+  return (gaze && GAZE_TEXT[step]) || TUTORIAL_TEXT[step];
+}
+
 const ADVANCES: Record<TutorialStep, TutorialEvent | null> = {
   point: 'selected',
   turn: 'orbited',
