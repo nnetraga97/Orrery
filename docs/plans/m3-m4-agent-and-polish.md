@@ -135,8 +135,8 @@ docs/headset-session.md             the two-hour device checklist
 
 **Files:** Create `src/core/chat/types.ts`, `describe.ts`, `arrange.ts`, each with a test file.
 
-- [ ] **Step 1. Types.** Port `CodexItem`, `CodexChange`, `CodexRequest`, `CodexQuestion` and the thread shape from `reference/desktop-app/viewer/app/codex-chat.ts` (lines 5–60), renamed `ChatItem`, `ChatChange`, `ChatRequest`, `ChatQuestion`, `ChatThread`. Keep the field names and the status values `inProgress`, `running`, `completed`, `failed`, `declined`.
-- [ ] **Step 2. Tests first, then port** from `reference/desktop-app/viewer/app/panels/CodexActions.tsx`, as pure functions returning data instead of React elements:
+- [x] **Step 1. Types.** Port `CodexItem`, `CodexChange`, `CodexRequest`, `CodexQuestion` and the thread shape from `reference/desktop-app/viewer/app/codex-chat.ts` (lines 5–60), renamed `ChatItem`, `ChatChange`, `ChatRequest`, `ChatQuestion`, `ChatThread`. Keep the field names and the status values `inProgress`, `running`, `completed`, `failed`, `declined`.
+- [x] **Step 2. Tests first, then port** from `reference/desktop-app/viewer/app/panels/CodexActions.tsx`, as pure functions returning data instead of React elements:
   - `stat(diff)` → `{ added, removed }` (their `stat`, line 49);
   - `describe(item)` → `{ icon, verb, target, meta, failed, live }` (their `describe`, lines 80–157), with the same wording: "Reading/Read", "Searching for/Searched for … in path", "Listing/Listed", "Running/Ran … exit N", "Created", "Deleted", "Edited … +a −r", "Calling/Called server · tool", "Searching the web for/Searched the web for", "Compacting/Compacted the conversation", and the `show_user` special case;
   - `isAction(item)` (line 160);
@@ -144,8 +144,8 @@ docs/headset-session.md             the two-hour device checklist
   - `thinkingLabel(item, elapsedMs)`: a leading `**bold title**` if present, else "Thinking" while live, else "Thought for 8s" or "Thought";
   - `workingLabel(items, elapsedMs)`: the working line's word ("Thinking…", "Reading…", "Writing…", default "Working…") and time as "12s" or "1m 5s".
   Write at least one test per verb and per summary form, using the desktop wording as the expected strings.
-- [ ] **Step 3. `arrange(items)`** (their `arrange`, `CodexTranscript.tsx` line 102): messages stand alone; consecutive actions between two messages form one group; a single-item group is a plain row. Test with a mixed list.
-- [ ] **Step 4. Check and commit.** `npm run verify`. Commit: `Port the chat's data shapes and wording as pure functions`
+- [x] **Step 3. `arrange(items)`** (their `arrange`, `CodexTranscript.tsx` line 102): messages stand alone; consecutive actions between two messages form one group; a single-item group is a plain row. Test with a mixed list.
+- [x] **Step 4. Check and commit.** `npm run verify`. Commit: `Port the chat's data shapes and wording as pure functions`
 
 ### Task 2: Markdown
 
