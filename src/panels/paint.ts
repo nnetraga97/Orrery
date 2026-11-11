@@ -41,6 +41,14 @@ export function microLabel(
   ctx.restore();
 }
 
+/** A micro label's text shortened with an ellipsis to fit maxWidth. */
+export function fitMicroLabel(ctx: CanvasRenderingContext2D, text: string, px: number, maxWidth: number): string {
+  if (microLabelWidth(ctx, text, px) <= maxWidth) return text;
+  let t = text;
+  while (t.length > 1 && microLabelWidth(ctx, t + '…', px) > maxWidth) t = t.slice(0, -1);
+  return t + '…';
+}
+
 /** The width of a micro label. */
 export function microLabelWidth(ctx: CanvasRenderingContext2D, text: string, px: number) {
   ctx.save();
@@ -59,7 +67,12 @@ export function glassPanel(
   w: number,
   h: number,
   u: number,
-  { title, hue = THEME.line, titlePx = 14 }: { title?: string; hue?: string; titlePx?: number } = {},
+  {
+    title,
+    hue = THEME.line,
+    titlePx = 14,
+    titleRoom = w - 28 * u,
+  }: { title?: string; hue?: string; titlePx?: number; titleRoom?: number } = {},
 ) {
   ctx.save();
   ctx.globalAlpha = THEME.inkAlpha;
@@ -85,7 +98,7 @@ export function glassPanel(
   }
   glowStroke(ctx, corners, hue, 2 * u);
   ctx.restore();
-  if (title) microLabel(ctx, title, x + 14 * u, y + 24 * u, titlePx * u, hue);
+  if (title) microLabel(ctx, fitMicroLabel(ctx, title, titlePx * u, titleRoom), x + 14 * u, y + 24 * u, titlePx * u, hue);
 }
 
 /** The close mark at a window's top right; returns its region. */
@@ -141,7 +154,8 @@ export function button(
   const idleHue = hue === THEME.line ? THEME.lineDim : hue;
   if (state === 'disabled') ctx.globalAlpha = 0.4;
   glowStroke(ctx, path, lit ? hue : idleHue, 1.5 * u, lit ? 1.4 : 0.4);
-  microLabel(ctx, text, x + w / 2, y + h / 2 + px * 0.36 * u, px * u, lit ? THEME.white : hue, 'center');
+  const label = fitMicroLabel(ctx, text, px * u, w - 12 * u);
+  microLabel(ctx, label, x + w / 2, y + h / 2 + px * 0.36 * u, px * u, lit ? THEME.white : hue, 'center');
   ctx.restore();
   return state === 'disabled' ? null : { id, x, y, w, h };
 }
@@ -165,12 +179,31 @@ export function rule(ctx: CanvasRenderingContext2D, x: number, y: number, w: num
   ctx.restore();
 }
 
-/** Splits text into lines no wider than maxWidth with the context's current font. */
+/** Splits a word wider than maxWidth into pieces that fit. */
+function breakWord(ctx: CanvasRenderingContext2D, word: string, maxWidth: number): string[] {
+  const pieces: string[] = [];
+  let piece = '';
+  for (const ch of word) {
+    if (piece && ctx.measureText(piece + ch).width > maxWidth) {
+      pieces.push(piece);
+      piece = ch;
+    } else piece += ch;
+  }
+  if (piece) pieces.push(piece);
+  return pieces;
+}
+
+/** Splits text into lines no wider than maxWidth with the context's current font; a word too long for a line is
+ * broken across lines. */
 export function wrap(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] {
   const lines: string[] = [];
   for (const paragraph of text.split('\n')) {
     let line = '';
-    for (const word of paragraph.split(/\s+/).filter(Boolean)) {
+    const words = paragraph
+      .split(/\s+/)
+      .filter(Boolean)
+      .flatMap(word => (ctx.measureText(word).width > maxWidth ? breakWord(ctx, word, maxWidth) : [word]));
+    for (const word of words) {
       const next = line ? `${line} ${word}` : word;
       if (ctx.measureText(next).width <= maxWidth || !line) line = next;
       else {

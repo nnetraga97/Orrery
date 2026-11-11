@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { dragScroll } from './scroll.ts';
 
-test('dragging the page down shows earlier lines', () => {
+test('dragging the text down shows earlier lines', () => {
   assert.equal(dragScroll(10, 100, 50, 80), 8);
   assert.equal(dragScroll(10, -100, 50, 80), 12);
 });

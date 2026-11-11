@@ -51,6 +51,7 @@ export function createSceneKit({ camPos, host, renderer, anchor = null, labels =
   }
   // The virtual camera. Never rendered from; it only decides the model's pose on the table.
   const camera = new THREE.PerspectiveCamera(45, ASPECT, 0.5, 3000);
+  const kitCamera = camera;
   camera.position.set(...camPos);
   // Receives no events: it holds the target and keeps camera and target consistent in controls.update(). The copied
   // code reads the element's size as the stage's (bodies are sized in pixels for level of detail), so it reports the
@@ -205,10 +206,8 @@ export function createSceneKit({ camPos, host, renderer, anchor = null, labels =
   // A drag that turned the model ends in a click the pointer library still sends; the gesture owner swallows it.
   let swallowClick = false;
   function pointerClick(r, pointerId = 0) {
-    if (swallowClick) {
-      swallowClick = false;
-      return;
-    }
+    // Every click until the next pinch begins is swallowed: a two-hand zoom ends in two.
+    if (swallowClick) return;
     // A fast pinch or a moving model may not have produced a hover frame; the pinching hand owns the pick.
     pointerMove(r, pointerId);
     owner = pointerId;
@@ -421,6 +420,8 @@ export function createSceneKit({ camPos, host, renderer, anchor = null, labels =
     overlays = new Set();
   let stopped = false,
     lastFrame = null;
+  const virtualRecord = { position: [0, 0, 0], target: [0, 0, 0], up: [0, 1, 0], fovDegrees: 50 };
+  const swingTurn = new THREE.Quaternion();
   const v = new THREE.Vector3(),
     t0 = performance.now(),
     fT = new THREE.Vector3(),
@@ -442,7 +443,7 @@ export function createSceneKit({ camPos, host, renderer, anchor = null, labels =
         camera.position.add(v);
         controls.target.add(v);
       }
-      followPrev = p.clone();
+      followPrev = (followPrev ?? new THREE.Vector3()).copy(p);
     } else followPrev = null;
     frames.run(beforeCamera, t, 'camera animation');
     if (flight) {
@@ -460,7 +461,7 @@ export function createSceneKit({ camPos, host, renderer, anchor = null, labels =
           return out
             .copy(a)
             .divideScalar(la)
-            .applyQuaternion(new THREE.Quaternion().slerp(turn, e))
+            .applyQuaternion(swingTurn.identity().slerp(turn, e))
             .multiplyScalar(la + (lb - la) * e);
         };
         sw(flight.fromT, flight.toT, flight.turnT, fT);
@@ -481,8 +482,8 @@ export function createSceneKit({ camPos, host, renderer, anchor = null, labels =
         flight.velocityC.copy(fC).sub(flight.sampleC).divideScalar(dt);
         flight.velocityT.copy(fT).sub(flight.sampleT).divideScalar(dt);
       }
-      flight.sampleC = fC.clone();
-      flight.sampleT = fT.clone();
+      flight.sampleC = (flight.sampleC ?? new THREE.Vector3()).copy(fC);
+      flight.sampleT = (flight.sampleT ?? new THREE.Vector3()).copy(fT);
       if (flight.frame) {
         const f = flight.frame();
         fT.multiplyScalar(f.scale).add(f.origin);
@@ -534,6 +535,13 @@ export function createSceneKit({ camPos, host, renderer, anchor = null, labels =
       uploadedTextures.set(texture, texture.version);
     },
     async prepareDraw(object, camera, target, checkpoint) {
+      // The copied code calls this as (object, checkpoint) as well as (object, camera, scene, checkpoint).
+      if (typeof camera === 'function') {
+        checkpoint = camera;
+        camera = kitCamera;
+        target = scene;
+      }
+      checkpoint ??= async () => {};
       const textures = new Set();
       object.traverse(o => {
         for (const material of Array.isArray(o.material) ? o.material : o.material ? [o.material] : [])
@@ -627,17 +635,30 @@ export function createSceneKit({ camPos, host, renderer, anchor = null, labels =
     pointerLeave,
     pointerClick,
     /** The virtual camera as plain arrays, for tablePose (src/core/table-frame.ts). */
-    virtual: () => ({
-      position: [camera.position.x, camera.position.y, camera.position.z],
-      target: [controls.target.x, controls.target.y, controls.target.z],
-      up: [camera.up.x, camera.up.y, camera.up.z],
-      fovDegrees: camera.fov,
-    }),
+    /** Reuses one record: read it before the next call. */
+    virtual: () => {
+      const r = virtualRecord;
+      r.position[0] = camera.position.x;
+      r.position[1] = camera.position.y;
+      r.position[2] = camera.position.z;
+      r.target[0] = controls.target.x;
+      r.target[1] = controls.target.y;
+      r.target[2] = controls.target.z;
+      r.up[0] = camera.up.x;
+      r.up[1] = camera.up.y;
+      r.up[2] = camera.up.z;
+      r.fovDegrees = camera.fov;
+      return r;
+    },
     /** Whether the ray is over something the scene picks (a body or another clickable). */
     get pointing() {
       return hasRay && (lastPick !== -1 || !!hoverItem);
     },
-    /** Swallow the click that ends the current drag (true), or stop swallowing (false). */
+    /** Whether this pointer's own ray picks something (the hover belongs to it). */
+    pointingBy(pointerId) {
+      return owner === pointerId && hasRay && (lastPick !== -1 || !!hoverItem);
+    },
+    /** Swallow the clicks that end the current drag (true), or stop swallowing at the next pinch (false). */
     swallowClick(on) {
       swallowClick = on;
     },
@@ -663,7 +684,7 @@ export function createSceneKit({ camPos, host, renderer, anchor = null, labels =
       controls.dispose();
       environment.dispose();
       sky.dispose();
-      ringTex.dispose();
+      markerTex.dispose();
       marker.material.dispose();
       pmat.dispose();
     },

@@ -97,8 +97,10 @@ export class PanelSystem extends createSystem({}) {
     place(this.code, PLACEMENTS.codeCard);
     this.code.onClose = () => (codeCardOpen.value = false);
     this.code.onHover = id => {
-      hoverLine(id?.startsWith('line:') ? Number(id.slice(5)) : null);
-      this.drawCode();
+      const line = id?.startsWith('line:') ? Number(id.slice(5)) : null;
+      // A line hover publishes codeView, which redraws the card; other regions (More, the frame) redraw here.
+      if (line != null || codeView.peek()?.hoveredRange) hoverLine(line);
+      else this.drawCode();
     };
     this.code.onPress = id => {
       if (id.startsWith('line:')) pressLine(Number(id.slice(5)));
@@ -170,6 +172,12 @@ export class PanelSystem extends createSystem({}) {
   drawCode() {
     const view = codeView.peek();
     const show = codeCardOpen.peek() && hasSelection(view) && this.fontReady;
+    // A closed card opens again at 12 rows, where its placement expects it.
+    if (!show && codeCardRows.peek() !== CODE_LAYOUT.rows) {
+      codeCardRows.value = CODE_LAYOUT.rows;
+      const size = codeCardSize(CODE_LAYOUT.rows);
+      this.code.resize(size.heightPx, size.heightM);
+    }
     if (show && !this.code.visible && !this.code.moved) place(this.code, PLACEMENTS.codeCard);
     this.code.visible = show;
     if (!show || !view) return;

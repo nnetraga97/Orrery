@@ -16,7 +16,7 @@ function floorTexture() {
   const ctx = canvas.getContext('2d')!;
   const c = size / 2,
     pxPerM = c / FLOOR_RADIUS;
-  ctx.fillStyle = '#02060d';
+  ctx.fillStyle = THEME.night;
   ctx.fillRect(0, 0, size, size);
   // Grid lines, one pass; the fade is applied afterwards with a radial mask.
   ctx.strokeStyle = THEME.grid;
@@ -33,10 +33,11 @@ function floorTexture() {
   }
   ctx.globalAlpha = 1;
   const fade = ctx.createRadialGradient(c, c, pxPerM * 0.8, c, c, c);
-  fade.addColorStop(0, 'rgba(2, 6, 13, 0.25)');
-  fade.addColorStop(0.45, 'rgba(2, 6, 13, 0.6)');
-  fade.addColorStop(0.8, 'rgba(2, 6, 13, 0.95)');
-  fade.addColorStop(1, 'rgba(2, 6, 13, 1)');
+  const night = (alpha: number) => THEME.night + Math.round(alpha * 255).toString(16).padStart(2, '0');
+  fade.addColorStop(0, night(0.25));
+  fade.addColorStop(0.45, night(0.6));
+  fade.addColorStop(0.8, night(0.95));
+  fade.addColorStop(1, night(1));
   ctx.fillStyle = fade;
   ctx.fillRect(0, 0, size, size);
   const texture = new CanvasTexture(canvas);

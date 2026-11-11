@@ -1,7 +1,7 @@
 // The planet inspector contract (host.inspector.create), for the XR app. The desktop mounts a React panel; here the
 // inspector turns what the landed planet asks to show into one signal, codeView, which the code card draws. The
 // options (callbacks such as onStatement and onMethod, and data such as towns) are kept for the card to call back.
-import { maxScrollTop, scrollToRange, shownRange } from '../core/code-view.ts';
+import { maxScrollTop, scrollToRange } from '../core/code-view.ts';
 import type { InspectorOptions, InspectorPort } from '../ports/host.ts';
 import { codeCardOpen, codeCardRows, codeRequest, codeScroll, codeView, inspectorExtras } from '../state/app-state.ts';
 import type { CodeRegion, CodeView, LineRange, Segment } from '../state/app-state.ts';
@@ -14,9 +14,6 @@ export interface TownElement {
 }
 
 let current: InspectorOptions | null = null;
-
-/** The options of the open inspector (null when no planet is landed). */
-export const inspectorOptions = () => current;
 
 const rangeOfElement = (element: unknown): LineRange | null => {
   const it = (element as TownElement | null)?.it;
@@ -63,28 +60,42 @@ export function createInspector(options: InspectorOptions): InspectorPort {
     hoveredRange: null,
   };
   codeScroll.value = 0;
-  // A landing picks its start town by itself: the card waits for the user's pick, unless showCode asked for a line.
-  codeCardOpen.value = codeRequest.peek() != null;
+  // A landing picks its start town by itself: the card waits for the user's pick, unless showCode asked for a line of
+  // this file. A request for another file is stale (that landing did not happen) and is dropped.
+  const request = codeRequest.peek();
+  const forThisFile = request?.path === options.file.path;
+  if (request && !forThisFile) codeRequest.value = null;
+  codeCardOpen.value = forThisFile;
+  /** A showCode line once something holding it is selected: the request is done. */
+  const settleRequest = (range: LineRange | null) => {
+    const r = codeRequest.peek();
+    if (r && range && r.path === options.file.path && r.line >= range.start && r.line <= range.end) codeRequest.value = null;
+  };
   // The first town picked after landing is the copied code's own start town; any later change of town is the user's.
   let picks = 0;
   const selectRegion = (k: number | null) => {
     const next = k != null && k >= 0 ? k : null;
-    if (next !== codeView.peek()?.selectedRegion) {
+    const changed = next !== codeView.peek()?.selectedRegion;
+    if (changed) {
       publish({ selectedRegion: next, selectedRange: null });
       if (next != null && ++picks > 1) codeCardOpen.value = true;
     }
     // A line asked for by showCode: select what holds it once its function is selected.
     const request = codeRequest.peek(),
       view = codeView.peek();
+    let requested = false;
     if (request && view && request.path === view.file && next != null) {
       const r = view.regions[next];
-      if (request.line >= r.start && request.line <= r.end) {
+      if (r && request.line >= r.start && request.line <= r.end) {
         codeRequest.value = null;
+        requested = true;
         if (!view.selectedRange || request.line < view.selectedRange.start || request.line > view.selectedRange.end)
           publish({ selectedRange: smallestHolding(next, request.line) ?? { start: request.line, end: request.line } });
       }
     }
-    scrollToSelection();
+    // Scroll only when the selection changed: the copied code may set the same town again, which must not undo the
+    // user's own scrolling.
+    if (changed || requested) scrollToSelection();
   };
   return {
     setRegion: k => selectRegion(k),
@@ -97,6 +108,7 @@ export function createInspector(options: InspectorOptions): InspectorPort {
       const range = rangeOfElement(element);
       const k = (element as TownElement | null)?.k;
       publish({ selectedRange: range, ...(typeof k === 'number' && k >= 0 ? { selectedRegion: k } : {}) });
+      settleRequest(range);
       scrollToSelection();
     },
     hover(element) {
@@ -171,4 +183,3 @@ export const cardMaxScroll = () => {
   return view ? maxScrollTop(view, codeCardRows.peek()) : 0;
 };
 
-export { shownRange };

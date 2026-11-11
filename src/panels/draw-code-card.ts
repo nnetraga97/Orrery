@@ -18,14 +18,15 @@ export const CODE_LAYOUT = {
   footer: 150,
   gutter: 120,
   pad: 30,
+  /** Exact (62.5 px), so 12 rows fill the card and More, then Less, restores its size. */
   get lineHeight() {
-    return Math.floor((CODE_CARD.heightPx - this.header - this.footer) / this.rows);
+    return (CODE_CARD.heightPx - this.header - this.footer) / this.rows;
   },
 };
 
 /** The card's glass height for a number of rows, in pixels and metres. */
 export function codeCardSize(rows: number) {
-  const heightPx = CODE_LAYOUT.header + CODE_LAYOUT.footer + rows * CODE_LAYOUT.lineHeight;
+  const heightPx = Math.round(CODE_LAYOUT.header + CODE_LAYOUT.footer + rows * CODE_LAYOUT.lineHeight);
   return { heightPx, heightM: (heightPx / CODE_CARD.heightPx) * CODE_CARD.heightM };
 }
 
@@ -67,8 +68,8 @@ export function drawCodeCard(
     for (const s of row.segments) {
       ctx.fillStyle = codeColor(s.cls);
       // One character at a time on the fixed grid: the font's ligatures (<= as one glyph) would misrepresent code.
-      const text = s.text.replace(/\t/g, '  ');
-      for (const ch of text) {
+      // Tabs were expanded by visibleLines.
+      for (const ch of s.text) {
         if (ch !== ' ') ctx.fillText(ch, x, baseline(y));
         x += charW;
       }

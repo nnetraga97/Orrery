@@ -27,7 +27,8 @@ import type { HitRegion } from '../core/panel-hit.ts';
 import type { Vec3 } from '../core/table-frame.ts';
 import { closeMark, glassPanel, grabBar, THEME } from './paint.ts';
 
-const DRAG_PX = 24;
+/** A pinch that moves less than this on the panel is a press, not a drag. */
+const PRESS_METRES = 0.02;
 /** Style pixels per metre: the reference sheet's chat window is 340 px for 0.40 m. */
 export const STYLE_PX_PER_M = 850;
 /** The strip under a window that holds its grab bar, in style pixels. */
@@ -96,7 +97,11 @@ export class CanvasPanel {
   private widthM: number;
   private heightM: number;
   private lastDraw: DrawPanel | null = null;
-  private down: { x: number; y: number } | null = null;
+  private down: { x: number; y: number; startX: number; startY: number } | null = null;
+  /** The pointer that owns this window's hover and pinch. */
+  private owner: number | null = null;
+  /** Canvas pixels a pinch may move and still be a press: 2 cm on the panel. */
+  private readonly dragPx: number;
   // Pixels moved since the pinch began: a pinch that moved further is a drag, and its closing click is swallowed.
   private travel = 0;
   private moving: { pointerId: number; distance: number; offset: Vector3 } | null = null;
@@ -114,6 +119,7 @@ export class CanvasPanel {
     this.widthM = widthM;
     this.heightM = heightM;
     this.u = widthPx / widthM / STYLE_PX_PER_M;
+    this.dragPx = PRESS_METRES * (widthPx / widthM);
     this.canvas = document.createElement('canvas');
     this.ctx = this.canvas.getContext('2d')!;
     this.texture = new CanvasTexture(this.canvas);
@@ -137,15 +143,23 @@ export class CanvasPanel {
       return uv ? uvToPixel(uv.x, uv.y, this.canvas.width, this.canvas.height) : null;
     };
     const target = this.mesh as unknown as Listenable;
+    const id = (e: unknown) => (e as PointerLike).pointerId;
+    // Two hand rays can rest on one window. The pinching hand owns the window until it lets go; otherwise the ray that
+    // reached it last owns the hover, until it leaves.
+    const owns = (e: unknown) => this.owner == null || this.owner === id(e);
     target.addEventListener('pointermove', e => {
       if (this.moving) {
-        this.moveWith(e as PointerLike);
+        // Only the hand that took the bar moves the window.
+        if (id(e) === this.moving.pointerId) this.moveWith(e as PointerLike);
         return;
       }
+      if (!owns(e)) return;
+      this.owner = id(e);
       const p = at(e);
       if (!p) return;
       if (this.down) {
-        this.travel += Math.hypot(p[0] - this.down.x, p[1] - this.down.y);
+        // Net distance from where the pinch began decides press or drag; a jittering ray adds nothing.
+        this.travel = Math.max(this.travel, Math.hypot(p[0] - this.down.startX, p[1] - this.down.startY));
         this.onDrag(p[0] - this.down.x, p[1] - this.down.y);
         this.down.x = p[0];
         this.down.y = p[1];
@@ -153,8 +167,10 @@ export class CanvasPanel {
       this.setHovered(regionAt(this.regions, p[0], p[1])?.id ?? null);
     });
     target.addEventListener('pointerdown', e => {
+      if (this.down && this.owner !== id(e)) return;
+      this.owner = id(e);
       const p = at(e);
-      this.down = p ? { x: p[0], y: p[1] } : null;
+      this.down = p ? { x: p[0], y: p[1], startX: p[0], startY: p[1] } : null;
       this.travel = 0;
       const event = e as PointerLike;
       if (p && this.window?.movable && regionAt(this.regions, p[0], p[1])?.id === 'grab') {
@@ -168,26 +184,35 @@ export class CanvasPanel {
         this.redrawLast();
       }
     });
-    target.addEventListener('pointerup', () => {
+    target.addEventListener('pointerup', e => {
+      if (this.owner != null && id(e) !== this.owner) return;
       this.down = null;
       if (this.moving) {
-        target.releasePointerCapture(this.moving.pointerId);
-        this.moving = null;
-        this.travel = DRAG_PX + 1; // the closing click is not a press
-        this.redrawLast();
+        this.travel = this.dragPx + 1; // the closing click is not a press
+        this.endMove();
       }
     });
-    target.addEventListener('pointerleave', () => {
+    // A hand lost mid-pinch sends pointercancel and no pointerup.
+    target.addEventListener('pointercancel', e => {
+      if (this.owner != null && id(e) !== this.owner) return;
       this.down = null;
-      if (!this.moving) this.setHovered(null);
+      this.travel = this.dragPx + 1;
+      this.endMove();
+    });
+    target.addEventListener('pointerleave', e => {
+      if (this.moving || (this.owner != null && id(e) !== this.owner)) return;
+      this.down = null;
+      this.owner = null;
+      this.setHovered(null);
     });
     target.addEventListener('click', e => {
-      if (this.travel > DRAG_PX) return;
+      if (this.owner != null && id(e) !== this.owner) return;
+      if (this.travel > this.dragPx) return;
       const p = at(e);
-      const id = p ? (regionAt(this.regions, p[0], p[1])?.id ?? null) : null;
-      if (!id || id === 'grab') return;
-      if (id === 'close' && this.window?.closable) this.onClose();
-      else this.onPress(id);
+      const region = p ? (regionAt(this.regions, p[0], p[1])?.id ?? null) : null;
+      if (!region || region === 'grab') return;
+      if (region === 'close' && this.window?.closable) this.onClose();
+      else this.onPress(region);
     });
   }
 
@@ -240,6 +265,15 @@ export class CanvasPanel {
     this.lastHoverWasFrame = id === 'close' || id === 'grab';
   }
   private lastHoverWasFrame = false;
+  /** A panel attached under another entity turns with it rather than toward the head. */
+  private followsParent = false;
+
+  private endMove() {
+    if (!this.moving) return;
+    (this.mesh as unknown as Listenable).releasePointerCapture(this.moving.pointerId);
+    this.moving = null;
+    this.redrawLast();
+  }
 
   private moveWith(event: PointerLike) {
     const m = this.moving!;
@@ -253,6 +287,7 @@ export class CanvasPanel {
   /** Puts the panel in the world as an entity that takes rays. */
   attach(world: World, parent?: Entity) {
     if (this.entity) return this;
+    this.followsParent = !!parent;
     this.entity = world.createTransformEntity(this.mesh, parent ? { parent } : undefined);
     this.entity.addComponent(RayInteractable);
     this.entity.addComponent(Panel, { name: this.mesh.name });
@@ -271,7 +306,7 @@ export class CanvasPanel {
     } else {
       const hue = (typeof this.window.hue === 'function' ? this.window.hue() : this.window.hue) ?? THEME.line;
       const title = typeof this.window.title === 'function' ? this.window.title() : this.window.title;
-      glassPanel(ctx, 0, 0, w, h, u, { title, hue });
+      glassPanel(ctx, 0, 0, w, h, u, { title, hue, titleRoom: w - 14 * u - (this.window.closable ? 44 * u : 14 * u) });
       const regions = draw(ctx, w, h);
       if (this.window.closable) regions.push(closeMark(ctx, 0, 0, w, u, this.hovered === 'close'));
       if (this.window.movable) {
@@ -295,8 +330,7 @@ export class CanvasPanel {
       material.opacity = this.appear;
     }
     if (head && this.mesh.visible) {
-      const parent = this.mesh.parent;
-      if (parent && parent.type !== 'Scene') return; // a child panel turns with its parent
+      if (this.followsParent) return;
       const before = this.look.copy(this.mesh.quaternion);
       this.mesh.lookAt(head);
       this.lookTarget.copy(this.mesh.quaternion);
@@ -310,6 +344,11 @@ export class CanvasPanel {
   }
 
   set visible(on: boolean) {
+    if (!on) {
+      this.down = null;
+      this.owner = null;
+      this.endMove();
+    }
     if (on && !this.mesh.visible) {
       this.appear = 0;
       (this.mesh.material as MeshBasicMaterial).opacity = 0;

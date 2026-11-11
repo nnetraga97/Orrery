@@ -50,10 +50,12 @@ export class ManipulationSystem extends createSystem({ hoveredPanels: { required
    * only the pinching hand's own ray counts, so an idle hand resting on a window does not block the other's orbit. */
   private overTarget(side?: Side) {
     if (!side) return !!this.kit?.pointing || this.queries.hoveredPanels.entities.size > 0;
-    const hit = this.input.xr.multiPointers[side].getPointer('ray').getIntersection()?.object;
+    const pointer = this.input.xr.multiPointers[side].getPointer('ray');
+    const hit = pointer.getIntersection()?.object;
     if (!hit) return false;
     if (hit.name.startsWith('panel-')) return true;
-    return hit.name === 'galaxy-hit-volume' && !!this.kit?.pointing;
+    // On the model: only if this hand's own ray picks something there.
+    return hit.name === 'galaxy-hit-volume' && !!this.kit?.pointingBy(pointer.id);
   }
 
   private handPosition(side: Side, out: Vector3) {
@@ -80,7 +82,8 @@ export class ManipulationSystem extends createSystem({ hoveredPanels: { required
         this.handPosition(side, drag.last);
       } else if (drag.active && !(side === 'left' ? leftOn : rightOn)) drag.active = false;
     }
-    if (leftOn && rightOn && this.hands.left.active && this.hands.right.active) {
+    const zoomable = !this.hands.left.onTarget && !this.hands.right.onTarget;
+    if (leftOn && rightOn && this.hands.left.active && this.hands.right.active && zoomable) {
       this.handPosition('left', this.position);
       this.handPosition('right', this.other);
       const spread = Math.max(1e-3, this.position.distanceTo(this.other));

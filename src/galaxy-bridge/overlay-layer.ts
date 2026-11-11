@@ -10,6 +10,10 @@ const MIN_OPACITY = 0.02;
 export function createOverlayLayer() {
   let parent: Object3D | null = null;
   const groups = new Map<Overlay, Group>();
+  // The planet scene is built over several frames; its light copies are looked for when it arrives and then every
+  // LIGHT_SWEEP_FRAMES frames, not every frame (a landed planet's scene holds many thousands of objects).
+  const LIGHT_SWEEP_FRAMES = 30;
+  let frame = 0;
   // The planet host scene carries copies of the main lights for its own pass. Inside the model they would light
   // everything twice, and the main lights already light the planet identically.
   const hideLightCopies = (o: Object3D) => {
@@ -24,6 +28,7 @@ export function createOverlayLayer() {
     },
     update(overlays: ReadonlySet<Overlay>) {
       if (!parent) return;
+      const sweep = frame++ % LIGHT_SWEEP_FRAMES === 0;
       for (const [overlay, group] of groups)
         if (!overlays.has(overlay)) {
           group.removeFromParent();
@@ -39,8 +44,8 @@ export function createOverlayLayer() {
           group.add(overlay.scene as unknown as Object3D);
           parent.add(group);
           groups.set(overlay, group);
-        }
-        (overlay.scene as unknown as Object3D).traverse(hideLightCopies);
+          (overlay.scene as unknown as Object3D).traverse(hideLightCopies);
+        } else if (sweep) (overlay.scene as unknown as Object3D).traverse(hideLightCopies);
         const f = overlay.frame();
         group.position.set(f.origin.x, f.origin.y, f.origin.z);
         group.scale.setScalar(f.scale);

@@ -14,7 +14,7 @@ import {
   Vector3,
 } from '@iwsdk/core';
 import type { Entity, Intersection, Raycaster, World } from '@iwsdk/core';
-import { chooseLabels, DEFAULT_LABEL_LIMITS } from '../core/labels.ts';
+import { chooseLabelsInto, createLabelWork, DEFAULT_LABEL_LIMITS } from '../core/labels.ts';
 import { THEME } from '../core/theme.ts';
 import { loadFonts } from '../panels/fonts.ts';
 import { microLabel, microLabelWidth } from '../panels/paint.ts';
@@ -57,16 +57,39 @@ export function createLabelLayer(world: World) {
   const v = new Vector3(),
     q = new Quaternion(),
     position = new Vector3();
-  // A sprite's own raycast needs a camera; a label is hit when the ray passes within its half-height of the centre.
+  // A sprite's own raycast needs a camera. A label is hit where its text is drawn: the ray meets the plane through the
+  // sprite facing the head, inside the text's rectangle (sprite.center places that rectangle), widened to at least
+  // MIN_TARGET radians so a small label is still a fair target for a hand ray.
+  const MIN_TARGET = 0.012;
+  const normal = new Vector3(),
+    right = new Vector3(),
+    up = new Vector3(),
+    worldUp = new Vector3(0, 1, 0),
+    toPoint = new Vector3();
   const slotRaycast = (slot: Slot) =>
     function (this: Sprite, raycaster: Raycaster, intersects: Intersection[]) {
       if (!slot.label || !this.visible) return;
       this.getWorldPosition(v);
-      const radius = this.scale.y / 2;
-      if (raycaster.ray.distanceSqToPoint(v) > radius * radius) return;
-      const distance = raycaster.ray.origin.distanceTo(v);
-      if (distance < raycaster.near || distance > raycaster.far) return;
-      intersects.push({ distance, point: v.clone(), object: this } as Intersection);
+      normal.copy(head).sub(v);
+      const toHead = normal.length();
+      if (toHead < 1e-6) return;
+      normal.divideScalar(toHead);
+      const facing = raycaster.ray.direction.dot(normal);
+      if (facing > -1e-6) return;
+      const t = toPoint.copy(v).sub(raycaster.ray.origin).dot(normal) / facing;
+      if (t < raycaster.near || t > raycaster.far) return;
+      right.crossVectors(worldUp, normal).normalize();
+      up.crossVectors(normal, right);
+      toPoint.copy(raycaster.ray.direction).multiplyScalar(t).add(raycaster.ray.origin).sub(v);
+      const x = toPoint.dot(right),
+        y = toPoint.dot(up);
+      const height = this.scale.y,
+        halfText = ((slot.textWidth / CANVAS_W) * this.scale.x) / 2,
+        margin = Math.max(0, (MIN_TARGET * t - height) / 2);
+      const bottom = -this.center.y * height - margin,
+        top = (1 - this.center.y) * height + margin;
+      if (Math.abs(x) > halfText + margin || y < bottom || y > top) return;
+      intersects.push({ distance: t, point: toPoint.add(v).clone(), object: this } as Intersection);
     };
 
   const slots: Slot[] = [];
@@ -117,6 +140,7 @@ export function createLabelLayer(world: World) {
 
   // Per-frame scratch, reused.
   const candidates: LabelCandidate[] = [];
+  const work = createLabelWork();
   const live: Label[] = [];
   const worldPos: Vec3[] = [];
   const head = new Vector3(),
@@ -183,11 +207,11 @@ export function createLabelLayer(world: World) {
       let n = 0;
       for (const label of fixedLabels) n = collect(label, pose, n);
       for (const label of extraLabels) n = collect(label, pose, n);
-      candidates.length = live.length = n;
-      const chosen = chooseLabels(candidates, gaze, DEFAULT_LABEL_LIMITS);
+      live.length = n;
+      const count = chooseLabelsInto(candidates, n, gaze, DEFAULT_LABEL_LIMITS, work);
       for (let k = 0; k < POOL; k++) {
         const slot = slots[k],
-          pick = chosen[k];
+          pick = k < count ? work.chosen[k] : null;
         if (!pick) {
           slot.sprite.visible = false;
           slot.label = null;

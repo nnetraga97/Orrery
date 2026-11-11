@@ -42,6 +42,25 @@ const RULES = [
     packages: /.*/,
   },
   {
+    name: 'state is signals and commands over core and ports',
+    from: ['src/state/'],
+    only: ['src/core/', 'src/ports/', 'src/state/'],
+    packages: /^(?!@iwsdk\/core$)/,
+  },
+  {
+    name: 'components are plain declarations',
+    from: ['src/components/'],
+    only: ['src/components/'],
+    packages: /^(?!@iwsdk\/core$)/,
+  },
+  {
+    name: 'panels draw state; they do not reach systems or the bridge',
+    from: ['src/panels/'],
+    only: ['src/core/', 'src/ports/', 'src/state/', 'src/components/', 'src/panels/'],
+    // The open-licence fonts are inlined from @fontsource.
+    packages: /^(?!@iwsdk\/core$|@fontsource\/)/,
+  },
+  {
     name: 'adapters are wired in the composition root, not imported by features',
     from: ['src/'],
     except: ['src/adapters/', 'src/index.ts', 'src/flat/'],

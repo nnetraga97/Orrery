@@ -62,3 +62,57 @@ export function chooseLabels(candidates: readonly LabelCandidate[], gaze: Vec3, 
   }
   return chosen;
 }
+
+/** Reused arrays for chooseLabelsInto. */
+export interface LabelWork {
+  order: number[];
+  /** The chosen labels; the first `count` (the return value) are this frame's. Entries are reused. */
+  chosen: ChosenLabel[];
+  groups: Map<string, number>;
+}
+export const createLabelWork = (): LabelWork => ({ order: [], chosen: [], groups: new Map() });
+
+let sorting: readonly LabelCandidate[] = [];
+const byFixedThenPriority = (a: number, b: number) =>
+  Number(sorting[a].avoidOverlap) - Number(sorting[b].avoidOverlap) || sorting[b].priority - sorting[a].priority || a - b;
+
+/** chooseLabels over the first `count` candidates, writing into `work` (no allocation once warm). Returns how many. */
+export function chooseLabelsInto(
+  candidates: readonly LabelCandidate[],
+  count: number,
+  gaze: Vec3,
+  limits: LabelLimits,
+  work: LabelWork,
+): number {
+  const order = work.order;
+  order.length = count;
+  for (let i = 0; i < count; i++) order[i] = i;
+  sorting = candidates;
+  order.sort(byFixedThenPriority);
+  sorting = [];
+  const cone = Math.cos(limits.coneDegrees * RAD),
+    separation = Math.cos(limits.minSeparationDegrees * RAD),
+    tanHalf = Math.tan((limits.angularHeightDegrees * RAD) / 2);
+  const chosen = work.chosen,
+    groups = work.groups;
+  groups.clear();
+  let n = 0;
+  for (let o = 0; o < count; o++) {
+    if (n >= limits.max) break;
+    const i = order[o],
+      c = candidates[i];
+    if (c.avoidOverlap) {
+      if (cosine(c.direction, gaze) < cone) continue;
+      if (c.group && (groups.get(c.group) ?? 0) >= (c.maxVisible ?? Infinity)) continue;
+      let crowded = false;
+      for (let s = 0; s < n && !crowded; s++) crowded = cosine(candidates[chosen[s].index].direction, c.direction) > separation;
+      if (crowded) continue;
+    }
+    if (c.group) groups.set(c.group, (groups.get(c.group) ?? 0) + 1);
+    const slot = (chosen[n] ||= { index: 0, height: 0 });
+    slot.index = i;
+    slot.height = 2 * c.distance * tanHalf;
+    n++;
+  }
+  return n;
+}

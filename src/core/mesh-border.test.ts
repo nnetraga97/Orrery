@@ -36,3 +36,9 @@ test('vertices equal to five decimals count as the same point', () => {
 test('nothing in, nothing out', () => {
   assert.deepEqual(borderOf([]), []);
 });
+
+test('points on either side of zero within five decimals are the same point', () => {
+  const a = [0, 0, 0, 1, 0, 0, 1, 1, 0],
+    b = [-0.000001, 0, 0, 1, 1, 0, 0, 1, 0];
+  assert.equal(borderOf([...a, ...b]).length, 4 * 6);
+});

@@ -3,7 +3,7 @@
 import { Quaternion, Vector3, createSystem } from '@iwsdk/core';
 import type { Entity, Object3D } from '@iwsdk/core';
 import { GalaxyRoot } from '../components/galaxy-root.ts';
-import { focusedPose, tablePose } from '../core/table-frame.ts';
+import { emptyPose, focusedPoseInto, tablePoseInto } from '../core/table-frame.ts';
 import type { TableAnchor, Vec3 } from '../core/table-frame.ts';
 import { createLabelLayer } from '../galaxy-bridge/label-layer.ts';
 import type { LabelLayer } from '../galaxy-bridge/label-layer.ts';
@@ -13,9 +13,21 @@ import { bridgePointer } from '../galaxy-bridge/pointer-bridge.ts';
 import { createPointScaler } from '../galaxy-bridge/point-sizes.ts';
 import { fileIndex, galaxyState, installActions, openGalaxy } from '../galaxy-bridge/galaxy-session.js';
 import { outlinePinnedTown } from '../galaxy-bridge/town-outline.ts';
+import { flushXrFrames, installXrFrames } from '../galaxy-bridge/xr-frames.ts';
 import { createXrHost } from '../galaxy-bridge/xr-host.ts';
 import type { XrHost } from '../galaxy-bridge/xr-host.ts';
-import { codeView, error, landedPath, loading, phase, selectedPath } from '../state/app-state.ts';
+import {
+  codeCardOpen,
+  codeRequest,
+  codeView,
+  error,
+  hovered,
+  landedPath,
+  loading,
+  phase,
+  pinned,
+  selectedPath,
+} from '../state/app-state.ts';
 import { connectCommands, openDataset } from '../state/commands.ts';
 import { headObject } from './head.ts';
 import { createRoom } from './room.ts';
@@ -41,7 +53,7 @@ const CAR_SWEEP_SECONDS = 0.5;
 /** The project the app opens on. */
 export const DEMO_DATASET = 'editor-core';
 
-export class GalaxySystem extends createSystem({ roots: { required: [GalaxyRoot] } }) {
+export class GalaxySystem extends createSystem({}) {
   host!: XrHost;
   private entity: Entity | null = null;
   private loadToken = 0;
@@ -65,6 +77,7 @@ export class GalaxySystem extends createSystem({ roots: { required: [GalaxyRoot]
     this.head = new Vector3();
     this.gaze = new Vector3();
     this.headTurn = new Quaternion();
+    installXrFrames(this.renderer);
     createRoom(this.world);
     this.labels = createLabelLayer(this.world);
     this.overlays = createOverlayLayer();
@@ -115,11 +128,13 @@ export class GalaxySystem extends createSystem({ roots: { required: [GalaxyRoot]
     phase.value = 'loading';
     error.value = null;
     selectedPath.value = landedPath.value = null;
+    pinned.value = hovered.value = codeRequest.value = null;
+    codeCardOpen.value = false;
     loading.value = { title: 'Opening project', detail: name };
     this.detach();
     try {
-      await openGalaxy(this.host, name);
-      if (token !== this.loadToken) return;
+      const view = await openGalaxy(this.host, name, { isCurrent: () => token === this.loadToken });
+      if (!view || token !== this.loadToken) return;
       const kit = this.host.kit!;
       this.entity = this.world.createTransformEntity(kit.scene);
       this.entity.addComponent(GalaxyRoot);
@@ -140,6 +155,8 @@ export class GalaxySystem extends createSystem({ roots: { required: [GalaxyRoot]
   }
 
   private focus: Vec3 = [0, 0, 0];
+  /** The model's pose, rewritten every frame. */
+  private pose = emptyPose();
   // The anchor in use: eased between the model's anchor (overview) and the landed globe's centre.
   private anchor: TableAnchor = { ...TABLE_ANCHOR, position: [...TABLE_ANCHOR.position] as Vec3 };
   private ease = 0;
@@ -156,12 +173,12 @@ export class GalaxySystem extends createSystem({ roots: { required: [GalaxyRoot]
   /** While landed: the whole globe, its centre on the anchor, turned as the virtual camera sees it. */
   private landedPose(kit: NonNullable<XrHost['kit']>) {
     const i = kit.pinned;
-    if (i == null || !kit.bodyPos || !kit.bodySize) return tablePose(kit.virtual(), this.anchor);
+    if (i == null || !kit.bodyPos || !kit.bodySize) return tablePoseInto(kit.virtual(), this.anchor, this.pose);
     const centre = kit.bodyPos(i);
     this.focus[0] = centre.x;
     this.focus[1] = centre.y;
     this.focus[2] = centre.z;
-    return focusedPose(kit.virtual(), this.anchor, this.focus, LANDED_GLOBE_DIAMETER / (2 * kit.bodySize(i)));
+    return focusedPoseInto(kit.virtual(), this.anchor, this.focus, LANDED_GLOBE_DIAMETER / (2 * kit.bodySize(i)), this.pose);
   }
 
   /** Publishes the phase and the landed file when the view lands or leaves. */
@@ -183,15 +200,19 @@ export class GalaxySystem extends createSystem({ roots: { required: [GalaxyRoot]
     this.entity?.dispose();
     this.entity = null;
     this.points = null;
+    // The old kit's sky and environment are disposed with its view.
+    this.scene.background = null;
+    this.scene.environment = null;
   }
 
   update(delta: number, time: number) {
+    flushXrFrames(time * 1000);
     const kit = this.host.kit;
     if (!kit || !this.entity) return;
     kit.tick(time * 1000);
     this.publishLanding();
     this.easeAnchor(delta);
-    const pose = this.landed ? this.landedPose(kit) : tablePose(kit.virtual(), this.anchor);
+    const pose = this.landed ? this.landedPose(kit) : tablePoseInto(kit.virtual(), this.anchor, this.pose);
     const group = kit.scene;
     group.position.set(pose.position[0], pose.position[1], pose.position[2]);
     group.quaternion.set(pose.orientation[0], pose.orientation[1], pose.orientation[2], pose.orientation[3]);

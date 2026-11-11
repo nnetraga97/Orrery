@@ -38,7 +38,7 @@ The plans in `docs/plans/` say what to build next and outrank the generic IWSDK
 guidance below, which is written for starting a new experience. Use that guidance for
 how IWSDK's tools and APIs work.
 
-Before claiming a change works: `npm run typecheck && npm run check && npm run build && npm run smoke`.
+Before claiming a change works: `npm run verify` (typecheck, import rules and checks, core tests, build, and both smoke tests).
 `npm run check` includes the import rules of the code structure (`docs/design.md` §4.0).
 <!-- orrery:project:end -->
 

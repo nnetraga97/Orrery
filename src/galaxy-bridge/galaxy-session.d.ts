@@ -42,7 +42,11 @@ export const saveGalaxyMemory: HostPort['memory']['save'];
 export const remember: HostPort['preferences']['remember'];
 export const remembered: HostPort['preferences']['recall'];
 export function installActions(host: XrHost, publish: { selected(path: string | null): void }): void;
-export function openGalaxy(host: XrHost, dataset: string, options?: { cannon?: boolean }): Promise<GalaxyView>;
+export function openGalaxy(
+  host: XrHost,
+  dataset: string,
+  options?: { cannon?: boolean; isCurrent?: () => boolean },
+): Promise<GalaxyView | null>;
 export function fileIndex(path: string): number;
 export function planetBuildBudget(
   signal?: AbortSignal,

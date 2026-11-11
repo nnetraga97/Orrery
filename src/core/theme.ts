@@ -22,6 +22,8 @@ export const THEME = {
   ok: '#3fe0c5',
   /** The rotating working glyph only. */
   work: '#d97757',
+  /** The room's darkness: the floor under its grid, and the test page. */
+  night: '#02060d',
 } as const;
 
 export type ThemeColor = Exclude<keyof typeof THEME, 'inkAlpha'>;

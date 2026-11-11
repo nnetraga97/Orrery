@@ -70,3 +70,30 @@ test('size is constant in angle', () => {
   assert.ok(Math.abs(far.height - h(2)) < 1e-12);
   assert.ok(Math.abs(far.height / near.height - 4) < 1e-9);
 });
+
+// ---- the allocation-free variant used every frame ----
+import { chooseLabelsInto, createLabelWork } from './labels.ts';
+
+test('chooseLabelsInto chooses what chooseLabels chooses, reusing its arrays', () => {
+  let seed = 3;
+  const r = () => ((seed = (seed * 1664525 + 1013904223) % 4294967296) / 4294967296);
+  const work = createLabelWork();
+  for (let k = 0; k < 200; k++) {
+    const n = Math.floor(r() * 60);
+    const candidates: LabelCandidate[] = Array.from({ length: n }, () => {
+      const a = (r() - 0.5) * 2.4,
+        b = (r() - 0.5) * 1.2;
+      return {
+        direction: [Math.sin(a) * Math.cos(b), Math.sin(b), -Math.cos(a) * Math.cos(b)],
+        distance: 0.5 + r() * 3,
+        priority: Math.floor(r() * 4),
+        avoidOverlap: r() > 0.15,
+        ...(r() > 0.6 ? { group: r() > 0.5 ? 'g1' : 'g2', maxVisible: 1 + Math.floor(r() * 3) } : {}),
+      };
+    });
+    const expected = chooseLabels(candidates, [0, 0, -1], DEFAULT_LABEL_LIMITS);
+    const count = chooseLabelsInto(candidates, n, [0, 0, -1], DEFAULT_LABEL_LIMITS, work);
+    assert.equal(count, expected.length);
+    assert.deepEqual(work.chosen.slice(0, count).map(c => ({ ...c })), expected);
+  }
+});

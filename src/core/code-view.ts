@@ -53,10 +53,14 @@ export function hasSelection(view: CodeView | null): boolean {
 
 const inRange = (n: number, r: LineRange | null) => !!r && n >= r.start && n <= r.end;
 
+/** Tabs are drawn two columns wide. */
+export const TAB = '  ';
+
 function cut(segments: Segment[], columns: number): { segments: Segment[]; truncated: boolean } {
   const out: Segment[] = [];
   let used = 0;
-  for (const s of segments) {
+  for (const raw of segments) {
+    const s = raw.text.includes('\t') ? { ...raw, text: raw.text.replace(/\t/g, TAB) } : raw;
     if (used + s.text.length <= columns) {
       out.push(s);
       used += s.text.length;

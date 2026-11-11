@@ -22,6 +22,8 @@ export interface XrSceneKit extends SceneKitPort {
   pointerMove(ray: Ray, pointerId?: number): void;
   pointerLeave(pointerId?: number): void;
   pointerClick(ray: Ray, pointerId?: number): void;
+  /** Whether this pointer's own ray picks something. */
+  pointingBy(pointerId: number): boolean;
   virtual(): VirtualCamera;
   orbit(dAzimuth: number, dPolar: number): void;
   dolly(factor: number): void;

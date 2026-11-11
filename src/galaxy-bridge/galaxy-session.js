@@ -71,12 +71,17 @@ function fileCard(host, i) {
   };
 }
 
-/** Loads `dataset` and builds its constellation in `host`. Resolves to the view. */
-export async function openGalaxy(host, dataset, { cannon = true } = {}) {
-  state.view?.stop();
-  update({ view: null, selected: null });
+/** Loads `dataset` and builds its constellation in `host`. Resolves to the view, or to null when `isCurrent()` says a
+ * later open has taken over while this one was loading (it then builds nothing). */
+export async function openGalaxy(host, dataset, { cannon = true, isCurrent = () => true } = {}) {
+  try {
+    state.view?.stop();
+  } finally {
+    update({ view: null, selected: null });
+  }
   projects.set(dataset, { version: 1 });
   const [loaded] = await Promise.all([loadDataset(dataset), loadGalaxyMemory(dataset)]);
+  if (!isCurrent()) return null;
   update({ dataset, current: 'constellation', revision: loaded.revision, generation: loaded.generation });
   prepare(loaded.data);
   regroup();

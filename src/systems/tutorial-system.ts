@@ -73,6 +73,8 @@ export class TutorialSystem extends createSystem({}) {
       phase.subscribe(p => {
         if (p === lastPhase) return;
         lastPhase = p;
+        // A new project: the planet the first step points at must be chosen again.
+        if (p === 'loading') this.target = null;
         if (p === 'overview' && this.storage?.get(SEEN_KEY) !== '1' && tutorialStep.peek() === 'done') this.start();
         if (p === 'landed') this.raise('landed');
       }),
@@ -148,9 +150,9 @@ export class TutorialSystem extends createSystem({}) {
     this.panel.tick(delta);
     const step: TutorialStep = tutorialStep.peek();
     const kit = this.world.getSystem(GalaxySystem)?.host.kit;
-    const pulsing = step === 'point' && phase.peek() === 'overview' && !!kit?.bodyPos;
-    this.ring.visible = pulsing;
-    if (!pulsing || !kit?.bodyPos) return;
+    const marking = step === 'point' && phase.peek() === 'overview' && !!kit?.bodyPos;
+    this.ring.visible = marking;
+    if (!marking || !kit?.bodyPos) return;
     this.target ??= this.pickTarget();
     if (this.target == null) return;
     const p = kit.bodyPos(this.target);
@@ -158,6 +160,5 @@ export class TutorialSystem extends createSystem({}) {
     headPosition(this.renderer, this.player, this.camera, this.head);
     this.ring.position.copy(this.at);
     this.ring.lookAt(this.head);
-    this.ring.scale.setScalar(1);
   }
 }

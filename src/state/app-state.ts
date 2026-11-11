@@ -21,7 +21,6 @@ export const error = signal<string | null>(null);
 
 export type { CodeRegion, CodeView, LineRange, Segment } from '../core/code-view.ts';
 export const codeView = signal<CodeView | null>(null);
-/** Inspector calls kept for the next plan (debugger tabs, transport, stack, evidence). */
 /** A line the app asked to show (commands.showCode), until the code card has selected it. */
 export const codeRequest = signal<{ path: string; line: number } | null>(null);
 /** Lines scrolled from the top of what the code card shows. */
@@ -39,6 +38,7 @@ export const tutorialRestarts = signal(0);
 export const orbits = signal(0);
 /** The tutorial's step. */
 export const tutorialStep = signal<TutorialStep>('done');
+/** Inspector calls kept for the next plan (debugger tabs, transport, stack, evidence). */
 export const inspectorExtras = signal<Record<string, unknown[]>>({});
 
 export const appState = {

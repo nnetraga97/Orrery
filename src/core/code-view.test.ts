@@ -86,3 +86,10 @@ test('scrollToRange puts the range a third of the way down, clamped', () => {
   assert.equal(maxScrollTop(v, 30), 70);
   assert.equal(maxScrollTop(view(), 24), 0);
 });
+
+test('a tab counts as two columns, as the card draws it', () => {
+  const lines = [[{ text: '\t\treturn x;' }]];
+  const [row] = visibleLines(view({ lines, regions: [], selectedRegion: null }), { ...options, columns: 8 });
+  assert.equal(row.segments.map(s => s.text).join(''), '    retu');
+  assert.equal(row.truncated, true);
+});

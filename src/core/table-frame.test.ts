@@ -105,3 +105,46 @@ test('focusedPose caps the scale and puts the focus point on the anchor', () => 
   near(capped.orientation, free.orientation);
   near(modelToRoom(focus, capped), anchor.position, 1e-9);
 });
+
+// ---- the allocation-free variants used every frame ----
+import { emptyPose, focusedPoseInto, tablePoseInto } from './table-frame.ts';
+
+function seeded(seed: number) {
+  return () => {
+    seed = (seed * 1664525 + 1013904223) % 4294967296;
+    return seed / 4294967296;
+  };
+}
+const close = (a: number[], b: number[], what: string) =>
+  a.forEach((v, i) => assert.ok(Math.abs(v - b[i]) < 1e-9, `${what}[${i}]: ${v} vs ${b[i]}`));
+
+test('tablePoseInto and focusedPoseInto give the same poses as tablePose and focusedPose, reusing one pose', () => {
+  const r = seeded(7),
+    out = emptyPose();
+  const v = (s = 10): [number, number, number] => [(r() - 0.5) * s, (r() - 0.5) * s, (r() - 0.5) * s];
+  for (let k = 0; k < 500; k++) {
+    const camera = { position: v(), target: v(), up: k % 7 ? v(2) : ([0, 1, 0] as [number, number, number]), fovDegrees: 30 + r() * 60 };
+    if (k % 11 === 0) camera.target = [...camera.position];
+    const h = r() * Math.PI,
+      anchor = {
+        position: v(2),
+        orientation: [Math.sin(h / 2) * 0.6, Math.sin(h / 2) * 0.8, 0, Math.cos(h / 2)] as [number, number, number, number],
+        width: 0.2 + r(),
+        minScale: 0.0005,
+        maxScale: 5,
+      };
+    const a = tablePose(camera, anchor),
+      b = tablePoseInto(camera, anchor, out);
+    assert.equal(b, out);
+    close(b.position, a.position, 'position');
+    close(b.orientation, a.orientation, 'orientation');
+    close([b.scale], [a.scale], 'scale');
+    const focus = v(),
+      cap = r() * 0.01;
+    const c = focusedPose(camera, anchor, focus, cap),
+      d = focusedPoseInto(camera, anchor, focus, cap, out);
+    close(d.position, c.position, 'focused position');
+    close(d.orientation, c.orientation, 'focused orientation');
+    close([d.scale], [c.scale], 'focused scale');
+  }
+});

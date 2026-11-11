@@ -1,5 +1,5 @@
 // The small card in front of the model while a project loads, or with an error and a Retry button. It is a window
-// whose title is "Loading" or "Error" (drawn by CanvasPanel, in `alert` for an error).
+// whose title is "Loading" or "Something went wrong" (drawn by CanvasPanel, in `alert` for an error).
 import type { HitRegion } from '../core/panel-hit.ts';
 import { THEME, button, fit, font, stateOf, wrap } from './paint.ts';
 
@@ -32,9 +32,10 @@ export function drawStatusCard(
   }
   ctx.font = font('body', 15 * u);
   ctx.fillStyle = THEME.white;
-  wrap(ctx, status.text, w - pad * 2)
-    .slice(0, 2)
-    .forEach((line, k) => ctx.fillText(line, pad, 58 * u + k * 21 * u));
+  const lines = wrap(ctx, status.text, w - pad * 2);
+  const shown = lines.slice(0, 2);
+  if (lines.length > 2) shown[1] = fit(ctx, shown[1] + ' …', w - pad * 2);
+  shown.forEach((line, k) => ctx.fillText(line, pad, 58 * u + k * 21 * u));
   const r = button(ctx, 'retry', 'Retry', pad, h - pad - 30 * u, 90 * u, 30 * u, u, {
     state: stateOf(hovered, 'retry'),
     hue: THEME.alert,

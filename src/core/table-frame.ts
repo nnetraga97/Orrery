@@ -137,3 +137,144 @@ export function focusedPose(camera: VirtualCamera, anchor: TableAnchor, focus: V
   const position = sub(anchor.position, scale3(rotate(pose.orientation, focus), scale));
   return { position, orientation: pose.orientation, scale };
 }
+
+// ---- allocation-free variants, for every frame ----
+
+/** A pose to write into with tablePoseInto / focusedPoseInto. */
+export const emptyPose = (): Pose => ({ position: [0, 0, 0], orientation: [0, 0, 0, 1], scale: 1 });
+
+// Scratch, reused by the variants below (core is single-threaded).
+const sx: Vec3 = [0, 0, 0],
+  sy: Vec3 = [0, 0, 0],
+  sz: Vec3 = [0, 0, 0],
+  sq: Quat = [0, 0, 0, 1];
+
+/** quatFromBasis writing into `out`. */
+function quatFromBasisInto(x: Vec3, y: Vec3, z: Vec3, out: Quat): Quat {
+  const m00 = x[0],
+    m10 = x[1],
+    m20 = x[2],
+    m01 = y[0],
+    m11 = y[1],
+    m21 = y[2],
+    m02 = z[0],
+    m12 = z[1],
+    m22 = z[2];
+  const trace = m00 + m11 + m22;
+  if (trace > 0) {
+    const s = 0.5 / Math.sqrt(trace + 1);
+    out[0] = (m21 - m12) * s;
+    out[1] = (m02 - m20) * s;
+    out[2] = (m10 - m01) * s;
+    out[3] = 0.25 / s;
+  } else if (m00 > m11 && m00 > m22) {
+    const s = 2 * Math.sqrt(1 + m00 - m11 - m22);
+    out[0] = 0.25 * s;
+    out[1] = (m01 + m10) / s;
+    out[2] = (m02 + m20) / s;
+    out[3] = (m21 - m12) / s;
+  } else if (m11 > m22) {
+    const s = 2 * Math.sqrt(1 + m11 - m00 - m22);
+    out[0] = (m01 + m10) / s;
+    out[1] = 0.25 * s;
+    out[2] = (m12 + m21) / s;
+    out[3] = (m02 - m20) / s;
+  } else {
+    const s = 2 * Math.sqrt(1 + m22 - m00 - m11);
+    out[0] = (m02 + m20) / s;
+    out[1] = (m12 + m21) / s;
+    out[2] = 0.25 * s;
+    out[3] = (m10 - m01) / s;
+  }
+  const l = Math.hypot(out[0], out[1], out[2], out[3]);
+  out[0] /= l;
+  out[1] /= l;
+  out[2] /= l;
+  out[3] /= l;
+  return out;
+}
+
+/** lookRotation writing into `out`. */
+function lookRotationInto(fx: number, fy: number, fz: number, up: Vec3, out: Quat): Quat {
+  const fl = Math.hypot(fx, fy, fz) || 1;
+  sz[0] = -fx / fl;
+  sz[1] = -fy / fl;
+  sz[2] = -fz / fl;
+  let d = up[0] * sz[0] + up[1] * sz[1] + up[2] * sz[2];
+  sy[0] = up[0] - sz[0] * d;
+  sy[1] = up[1] - sz[1] * d;
+  sy[2] = up[2] - sz[2] * d;
+  if (Math.hypot(sy[0], sy[1], sy[2]) < 1e-9) {
+    const ox = Math.abs(sz[1]) < 0.9 ? 0 : 1,
+      oy = Math.abs(sz[1]) < 0.9 ? 1 : 0;
+    d = ox * sz[0] + oy * sz[1];
+    sy[0] = ox - sz[0] * d;
+    sy[1] = oy - sz[1] * d;
+    sy[2] = -sz[2] * d;
+  }
+  const yl = Math.hypot(sy[0], sy[1], sy[2]);
+  sy[0] /= yl;
+  sy[1] /= yl;
+  sy[2] /= yl;
+  sx[0] = sy[1] * sz[2] - sy[2] * sz[1];
+  sx[1] = sy[2] * sz[0] - sy[0] * sz[2];
+  sx[2] = sy[0] * sz[1] - sy[1] * sz[0];
+  return quatFromBasisInto(sx, sy, sz, out);
+}
+
+/** out = anchor - rotate(q, p) * s. */
+function placeInto(anchor: Vec3, q: Quat, p: Vec3, s: number, out: Vec3) {
+  const ux = q[0],
+    uy = q[1],
+    uz = q[2],
+    w = q[3];
+  const tx = 2 * (uy * p[2] - uz * p[1]),
+    ty = 2 * (uz * p[0] - ux * p[2]),
+    tz = 2 * (ux * p[1] - uy * p[0]);
+  const rx = p[0] + w * tx + (uy * tz - uz * ty),
+    ry = p[1] + w * ty + (uz * tx - ux * tz),
+    rz = p[2] + w * tz + (ux * ty - uy * tx);
+  out[0] = anchor[0] - rx * s;
+  out[1] = anchor[1] - ry * s;
+  out[2] = anchor[2] - rz * s;
+}
+
+/** tablePose writing into `out` (no allocation). Returns `out`. */
+export function tablePoseInto(camera: VirtualCamera, anchor: TableAnchor, out: Pose): Pose {
+  let fx = camera.target[0] - camera.position[0],
+    fy = camera.target[1] - camera.position[1],
+    fz = camera.target[2] - camera.position[2];
+  const len = Math.hypot(fx, fy, fz);
+  const d = Math.max(MIN_DISTANCE, len);
+  if (len < MIN_DISTANCE) {
+    fx = 0;
+    fy = 0;
+    fz = -1;
+  }
+  const halfFov = (camera.fovDegrees * Math.PI) / 360;
+  const raw = anchor.width / (2 * d * Math.tan(halfFov));
+  out.scale = Math.min(anchor.maxScale, Math.max(anchor.minScale, raw));
+  lookRotationInto(fx, fy, fz, camera.up, sq);
+  // orientation = anchor.orientation * conjugate(look)
+  const a = anchor.orientation,
+    bx = -sq[0],
+    by = -sq[1],
+    bz = -sq[2],
+    bw = sq[3];
+  const o = out.orientation;
+  o[0] = a[3] * bx + a[0] * bw + a[1] * bz - a[2] * by;
+  o[1] = a[3] * by - a[0] * bz + a[1] * bw + a[2] * bx;
+  o[2] = a[3] * bz + a[0] * by - a[1] * bx + a[2] * bw;
+  o[3] = a[3] * bw - a[0] * bx - a[1] * by - a[2] * bz;
+  placeInto(anchor.position, o, camera.target, out.scale, out.position);
+  return out;
+}
+
+/** focusedPose writing into `out` (no allocation). Returns `out`. */
+export function focusedPoseInto(camera: VirtualCamera, anchor: TableAnchor, focus: Vec3, maxScale: number, out: Pose): Pose {
+  tablePoseInto(camera, anchor, out);
+  if (out.scale <= maxScale) return out;
+  out.scale = maxScale;
+  placeInto(anchor.position, out.orientation, focus, maxScale, out.position);
+  return out;
+}

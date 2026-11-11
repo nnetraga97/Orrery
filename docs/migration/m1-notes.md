@@ -1,5 +1,8 @@
 # M1 notes: the galaxy in the room
 
+> The walk-through and baseline below record the first build, with a table and a file info card; the design review
+> removed both (see "After the design review").
+
 Recorded on 2026-11-10 at the end of Part 1 of `docs/plans/m1-m2-galaxy-and-code.md` (Task 12).
 
 ## Hand-only walk-through (emulator)
@@ -43,6 +46,9 @@ is not shrunk or moved to fit the glasses.
 | Landed globe (`core/range.ts`, detail ready) | 157 | 2,850,369 |
 
 # M2 notes: reading code
+
+> Superseded by "After the design review" below. This section records the first build: the table, the code page, the
+> dock, the palm menu and the project picker have since been removed or replaced.
 
 Recorded on 2026-11-10 at the end of `docs/plans/m1-m2-galaxy-and-code.md` (Task 19).
 
@@ -111,7 +117,7 @@ rest of the budget belong to the next plan's Task 18; hiding the other planets w
 
 # After the design review
 
-Recorded on 2026-11-11, after `docs/plans/changes-after-review.md` was applied (commits "Apply the design review
+Recorded on 2026-11-10, after `docs/plans/changes-after-review.md` was applied (commits "Apply the design review
 changes", "Link towns and code in both directions", "Add the chat window shell and its tab strip").
 
 ## Hand-only walk-through (emulator)
