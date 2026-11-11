@@ -11,7 +11,7 @@
     "reference:status": "iwsdk reference status",
     "reference:warmup": "iwsdk reference warmup",
     "typecheck": "tsc --noEmit",
-    "build": "vite build",
+    "build": "node tools/clean-dist.mjs && vite build",
     "preview": "vite preview",
     "check": "node tools/check-boundaries.mjs && node tools/run-checks.mjs",
     "bake": "node tools/bake-dataset.mjs",
@@ -20,9 +20,12 @@
     "postinstall": "node tools/copy-runtime.mjs",
     "test:core": "node --experimental-strip-types --test \"src/core/**/*.test.ts\"",
     "smoke:xr": "node tools/smoke-page.mjs --page=index.html",
-    "verify": "npm run typecheck && npm run check && npm run test:core && npm run build && npm run smoke && npm run smoke:xr"
+    "verify": "npm run typecheck && npm run check && npm run test:core && npm run test:api && npm run build && npm run smoke && npm run smoke:xr",
+    "test:api": "node --experimental-strip-types --test \"api/**/*.test.ts\"",
+    "dev:api": "node --experimental-strip-types tools/dev-api.mjs"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^1.8.0",
     "@fontsource/barlow": "^5.3.0",
     "@fontsource/barlow-condensed": "^5.3.0",
     "@fontsource/jetbrains-mono": "^5.3.0",
@@ -33,6 +36,7 @@
     "d3": "^7.9.2",
     "graphology": "^0.25.4",
     "graphology-communities-louvain": "^2.0.2",
+    "openai": "^7.55.0",
     "three": "npm:super-three@0.185.0"
   },
   "devDependencies": {

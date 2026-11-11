@@ -1,0 +1,26 @@
+{
+  "id": "range-edge",
+  "dataset": "editor-core",
+  "title": "A cursor at the end of a selection is reported as outside it",
+  "shortTitle": "End of a selection counts as outside",
+  "problem": "Range.containsPosition says a position exactly at the end of a range is outside it. Its comment says the edges count as inside, and anything that asks whether the cursor sits in a selection gets the wrong answer at the selection end.",
+  "file": "core/range.ts",
+  "line": 97,
+  "function": "Range.containsPosition",
+  "breakPatch": {
+    "file": "core/range.ts",
+    "old": "\t\tif (position.lineNumber === range.startLineNumber && position.column < range.startColumn) {\n\t\t\treturn false;\n\t\t}\n\t\tif (position.lineNumber === range.endLineNumber && position.column > range.endColumn) {",
+    "new": "\t\tif (position.lineNumber === range.startLineNumber && position.column < range.startColumn) {\n\t\t\treturn false;\n\t\t}\n\t\tif (position.lineNumber === range.endLineNumber && position.column >= range.endColumn) {"
+  },
+  "prompts": [
+    "Find why the end of a selection is treated as outside it",
+    "Show me the function",
+    "Fix it",
+    "Explain the fix"
+  ],
+  "recordedSession": "range-edge",
+  "replay": {
+    "failing": "range-edge.failing.json",
+    "fixed": "range-edge.fixed.json"
+  }
+}

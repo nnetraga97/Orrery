@@ -24,6 +24,7 @@ import type { Entity, Ray, WebGLRenderer, World } from '@iwsdk/core';
 import { Panel } from '../components/panel.ts';
 import { clampReach } from '../core/layout.ts';
 import { regionAt, uvToPixel } from '../core/panel-hit.ts';
+import { playSound } from '../state/commands.ts';
 import type { HitRegion } from '../core/panel-hit.ts';
 import type { Vec3 } from '../core/table-frame.ts';
 import { closeMark, glassPanel, grabBar, THEME } from './paint.ts';
@@ -36,6 +37,8 @@ export const STYLE_PX_PER_M = 850;
 const BAR_STRIP = 26;
 const REACH = { min: 0.5, max: 1.4 };
 const APPEAR_SECONDS = 0.25;
+/** Reduce motion (a setting): windows appear at once instead of fading in. */
+export const MOTION = { reduce: false };
 const TURN_RATE = 6;
 
 export type DrawPanel = (ctx: CanvasRenderingContext2D, width: number, height: number) => HitRegion[];
@@ -71,6 +74,9 @@ export interface CanvasPanelOptions {
   window?: WindowOptions;
 }
 
+/** Every panel by name, for the test hook (where a region is in the room). */
+export const PANELS = new Map<string, CanvasPanel>();
+
 export class CanvasPanel {
   canvas: HTMLCanvasElement;
   readonly ctx: CanvasRenderingContext2D;
@@ -89,6 +95,13 @@ export class CanvasPanel {
   onPress: (id: string) => void = () => {};
   onHover: (id: string | null) => void = () => {};
   onDrag: (dxPx: number, dyPx: number) => void = () => {};
+  /** A pinch began on a region (for press-and-hold controls such as the microphone). */
+  onPressStart: (id: string) => void = () => {};
+  /** That pinch ended (let go, the hand was lost, or the window hid), wherever the ray is by then. */
+  onPressEnd: (id: string) => void = () => {};
+  /** Where the current pinch began on the canvas, or null between pinches. */
+  pinchStart: [number, number] | null = null;
+  private held: string | null = null;
   /** Pressing the close mark; by default it hides the window. */
   onClose: () => void = () => (this.visible = false);
   /** Called after the user moves the window. */
@@ -143,6 +156,7 @@ export class CanvasPanel {
     });
     this.mesh = new Mesh(new PlaneGeometry(1, 1), material);
     this.mesh.name = `panel-${name}`;
+    PANELS.set(name, this);
     this.mesh.renderOrder = 30;
     this.layout();
     const at = (event: unknown): [number, number] | null => {
@@ -190,6 +204,12 @@ export class CanvasPanel {
       this.travel = 0;
       const aim = this.aimed ? this.aim : p;
       this.pressed = aim ? (regionAt(this.regions, aim[0], aim[1])?.id ?? null) : null;
+      this.pinchStart = aim ? [aim[0], aim[1]] : null;
+      if (this.pressed && this.pressed !== 'grab' && this.pressed !== 'close') {
+        this.endHold();
+        this.held = this.pressed;
+        this.onPressStart(this.pressed);
+      }
       const event = e as PointerLike;
       if (p && this.window?.movable && this.pressed === 'grab') {
         this.moving = {
@@ -206,6 +226,8 @@ export class CanvasPanel {
     target.addEventListener('pointerup', e => {
       if (this.owner != null && id(e) !== this.owner) return;
       this.down = null;
+      this.pinchStart = null;
+      this.endHold();
       if (this.moving) {
         this.travel = this.dragPx + 1; // the closing click is not a press
         this.endMove();
@@ -215,6 +237,8 @@ export class CanvasPanel {
     target.addEventListener('pointercancel', e => {
       if (this.owner != null && id(e) !== this.owner) return;
       this.down = null;
+      this.pinchStart = null;
+      this.endHold();
       this.travel = this.dragPx + 1;
       this.endMove();
     });
@@ -231,6 +255,7 @@ export class CanvasPanel {
       const region = this.pressed;
       this.pressed = null;
       if (!region || region === 'grab') return;
+      playSound('press');
       if (region === 'close' && this.window?.closable) this.onClose();
       else this.onPress(region);
     });
@@ -280,6 +305,7 @@ export class CanvasPanel {
   private setHovered(id: string | null) {
     if (id === this.hovered) return;
     this.hovered = id;
+    if (id) playSound('hover');
     this.onHover(id);
     if (this.window && (id === 'close' || id === 'grab' || this.lastHoverWasFrame)) this.redrawLast();
     this.lastHoverWasFrame = id === 'close' || id === 'grab';
@@ -287,6 +313,12 @@ export class CanvasPanel {
   private lastHoverWasFrame = false;
   /** A panel attached under another entity turns with it rather than toward the head. */
   private followsParent = false;
+
+  private endHold() {
+    const held = this.held;
+    this.held = null;
+    if (held) this.onPressEnd(held);
+  }
 
   private endMove() {
     if (!this.moving) return;
@@ -354,6 +386,11 @@ export class CanvasPanel {
     this.texture.needsUpdate = true;
   }
 
+  /** Draws again with the last drawing (after a theme change). */
+  refresh() {
+    this.redrawLast();
+  }
+
   private redrawLast() {
     if (this.lastDraw && this.mesh.visible) this.redraw(this.lastDraw);
   }
@@ -362,7 +399,7 @@ export class CanvasPanel {
   tick(delta: number, head?: Vector3) {
     const material = this.mesh.material as MeshBasicMaterial;
     if (this.shown && this.appear < 1) {
-      this.appear = Math.min(1, this.appear + delta / APPEAR_SECONDS);
+      this.appear = MOTION.reduce ? 1 : Math.min(1, this.appear + delta / APPEAR_SECONDS);
       material.opacity = this.appear;
     }
     if (head && this.mesh.visible) {
@@ -382,6 +419,8 @@ export class CanvasPanel {
   set visible(on: boolean) {
     if (!on) {
       this.down = null;
+      this.pinchStart = null;
+      this.endHold();
       this.owner = null;
       this.endMove();
     }
@@ -394,6 +433,16 @@ export class CanvasPanel {
   }
   get visible() {
     return this.mesh.visible;
+  }
+
+  /** The centre of a region in the room, or null if the panel has no such region. For tests. */
+  worldOf(id: string): Vector3 | null {
+    const r = this.regions.find(x => x.id === id);
+    if (!r) return null;
+    const px = r.x + r.w / 2,
+      py = r.y + r.h / 2;
+    this.mesh.updateWorldMatrix(true, false);
+    return new Vector3((px / this.widthPx - 0.5) * this.widthM, this.heightM / 2 - (py / this.heightPx) * this.heightM, 0).applyMatrix4(this.mesh.matrixWorld);
   }
 
   dispose() {

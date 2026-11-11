@@ -1,6 +1,8 @@
 // Typed commands: the only way panels, gestures and tests ask the app to change. The galaxy system connects the
 // handler that carries them out; until it does, a command does nothing.
-import { agentOpen, codeCardOpen, codeRequest, dataset, pinned, tutorialRestarts } from './app-state.ts';
+import { agentOpen, chatPage, codeCardOpen, codeRequest, dataset, layoutResets, pinned, tutorialRestarts } from './app-state.ts';
+import type { SoundEvent } from '../core/sound.ts';
+import type { ChatPage, VoiceTarget } from './app-state.ts';
 
 export interface CommandHandler {
   openDataset(name: string): void;
@@ -11,6 +13,89 @@ export interface CommandHandler {
 }
 
 let handler: CommandHandler | null = null;
+
+/** The chat's commands, carried out by the agent system. */
+export interface ChatHandler {
+  newChat(): void;
+  openThread(id: string): void;
+}
+let chat: ChatHandler | null = null;
+
+/** Everything pinched on the chat window, by region id (src/core/chat/layout.ts and composer-layout.ts name them),
+ * carried out by the agent system. */
+let chatActions: ((id: string) => void) | null = null;
+export function connectChatActions(next: (id: string) => void): () => void {
+  chatActions = next;
+  return () => {
+    if (chatActions === next) chatActions = null;
+  };
+}
+export function chatAction(id: string): void {
+  chatActions?.(id);
+}
+
+/** The replay's controls, carried out by the replay system. */
+export interface ReplayHandler {
+  start(which: 'failing' | 'fixed'): void;
+  step(): void;
+  back(): void;
+  play(): void;
+  stop(): void;
+  follow(on: boolean): void;
+  dismissNotice(): void;
+}
+let replays: ReplayHandler | null = null;
+export function connectReplay(next: ReplayHandler): () => void {
+  replays = next;
+  return () => {
+    if (replays === next) replays = null;
+  };
+}
+export const startReplay = (which: 'failing' | 'fixed') => replays?.start(which);
+export const replayStep = () => replays?.step();
+export const replayBack = () => replays?.back();
+/** Plays, or pauses while playing. */
+export const replayPlay = () => replays?.play();
+export const stopReplay = () => replays?.stop();
+export const followReplay = (on: boolean) => replays?.follow(on);
+export const dismissReplayNotice = () => replays?.dismissNotice();
+
+/** Plays one of the app's quiet sounds (src/core/sound.ts), through the sound system. */
+let sounds: ((event: SoundEvent) => void) | null = null;
+export function connectSound(next: (event: SoundEvent) => void): () => void {
+  sounds = next;
+  return () => {
+    if (sounds === next) sounds = null;
+  };
+}
+export const playSound = (event: SoundEvent) => sounds?.(event);
+
+/** Push-to-talk, carried out by the voice system. */
+export interface VoiceHandler {
+  press(target: VoiceTarget): void;
+  release(): void;
+}
+let voice: VoiceHandler | null = null;
+export function connectVoice(next: VoiceHandler): () => void {
+  voice = next;
+  return () => {
+    if (voice === next) voice = null;
+  };
+}
+/** Starts listening (the microphone pinched); the words go to `target` (the composer unless a question is held). */
+export function pressMic(target: VoiceTarget = { kind: 'composer' }): void {
+  voice?.press(target);
+}
+/** Stops listening (the microphone let go). */
+export function releaseMic(): void {
+  voice?.release();
+}
+export function connectChat(next: ChatHandler): () => void {
+  chat = next;
+  return () => {
+    if (chat === next) chat = null;
+  };
+}
 
 /** Connects the handler; returns the function that disconnects it. */
 export function connectCommands(next: CommandHandler): () => void {
@@ -53,11 +138,30 @@ export function showChat(): void {
 export function hideChat(): void {
   agentOpen.value = false;
 }
+/** Shows the transcript, the chat list or the settings in the chat window, and the window itself. */
+export function showChatPage(page: ChatPage): void {
+  chatPage.value = page;
+  agentOpen.value = true;
+}
+/** Starts a new chat for the current provider and project. */
+export function newChat(): void {
+  chat?.newChat();
+  chatPage.value = 'transcript';
+}
+/** Opens a kept chat. */
+export function openThread(id: string): void {
+  chat?.openThread(id);
+  chatPage.value = 'transcript';
+}
 /** Starts the tutorial again (from Settings in the next plan). */
 export function restartTutorial(): void {
   tutorialRestarts.value = tutorialRestarts.peek() + 1;
 }
 
+/** Puts every window back where it starts (Settings, Reset layout). */
+export function resetLayout(): void {
+  layoutResets.value = layoutResets.peek() + 1;
+}
 /** Closes the pinned info card. */
 export function closeCard(): void {
   pinned.value = null;
@@ -76,7 +180,21 @@ export const commands = {
   showCode,
   showChat,
   hideChat,
+  showChatPage,
+  startReplay,
+  replayStep,
+  replayBack,
+  replayPlay,
+  stopReplay,
+  followReplay,
+  dismissReplayNotice,
+  chatAction,
+  pressMic,
+  releaseMic,
+  newChat,
+  openThread,
   restartTutorial,
+  resetLayout,
   closeCard,
   retry,
 };

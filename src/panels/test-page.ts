@@ -5,6 +5,14 @@ import { visibleLines } from '../core/code-view.ts';
 import type { CodeView, Segment } from '../core/code-view.ts';
 import { TUTORIAL_TEXT } from '../core/tutorial.ts';
 import { STYLE_PX_PER_M } from './canvas-panel.ts';
+import { chatMetrics, layoutChat } from '../core/chat/layout.ts';
+import type { ChatModel } from '../core/chat/layout.ts';
+import { answerState, choose } from '../core/chat/requests.ts';
+import { APPROVAL_FIXTURE, CHAT_FIXTURE, CHAT_FIXTURE_OPEN, QUESTION_FIXTURE } from './chat-fixture.ts';
+import { canvasMeasure, chatView, drawChatWindow, drawTranscript } from './draw-chat.ts';
+import { composerLayout } from './draw-composer.ts';
+import type { ComposerView } from './draw-composer.ts';
+import { enqueue, heard, initialComposer } from '../core/chat/composer.ts';
 import { CHAT_WINDOW, drawChatShell } from './draw-chat-shell.ts';
 import { TAB_STRIP, drawTabStrip } from './draw-tab-strip.ts';
 import { CODE_CARD, CODE_LAYOUT, codeCardSize, drawCodeCard } from './draw-code-card.ts';
@@ -137,6 +145,92 @@ export async function drawAll() {
   show('tabStrip', TAB_STRIP, (ctx, w, h) =>
     drawTabStrip(ctx, w, h, { active: 'chat', hovered: 'tab:home', disabled: ['replay', 'settings'] }),
   );
+  // The transcript: every item kind once, drawn in full, then the window scrolled to its end with the turn running.
+  const transcript = (scrollToEnd: boolean, extra: Partial<ChatModel> = {}) => (ctx: CanvasRenderingContext2D, w: number, h: number, u: number) => {
+    const m = chatMetrics(w);
+    const view = chatView(w, h, u);
+    const layout = layoutChat(
+      {
+        items: CHAT_FIXTURE,
+        live: true,
+        open: CHAT_FIXTURE_OPEN,
+        thinking: new Map([['r1', 8000]]),
+        working: { word: 'Reading…', time: '1m 5s' },
+        ...extra,
+      },
+      { ...m, width: view.w },
+      canvasMeasure(ctx, m),
+    );
+    const scrollTop = scrollToEnd ? Math.max(0, layout.height - view.h) : 0;
+    return drawTranscript(ctx, view.x, view.y, view.w, view.h, layout, m, u, { scrollTop, clock: 0.4, hovered: 'toggle:c1' });
+  };
+  {
+    // Measure first, so the full transcript gets a canvas tall enough.
+    const probe = document.createElement('canvas').getContext('2d')!;
+    const m = chatMetrics(CHAT_WINDOW.widthPx);
+    const full = layoutChat(
+      { items: CHAT_FIXTURE, live: true, open: CHAT_FIXTURE_OPEN, working: { word: 'Reading…', time: '1m 5s' }, error: 'Turn failed: the provider stopped answering.', footer: 'Stopped' },
+      { ...m, width: chatView(CHAT_WINDOW.widthPx, CHAT_WINDOW.heightPx, 1).w },
+      canvasMeasure(probe, m),
+    );
+    const top = chatView(CHAT_WINDOW.widthPx, CHAT_WINDOW.heightPx, CHAT_WINDOW.widthPx / CHAT_WINDOW.widthM / STYLE_PX_PER_M).y;
+    const tall = { ...CHAT_WINDOW, heightPx: full.height + top + 40 };
+    show('chatTranscript', tall, transcript(false, { error: 'Turn failed: the provider stopped answering.', footer: 'Stopped' }), {
+      title: 'Agent · Range end edge',
+      closable: true,
+    });
+  }
+  show('chatWindowEnd', CHAT_WINDOW, transcript(true), { title: 'Agent · Range end edge', closable: true, movable: true });
+  show('chatWelcome', CHAT_WINDOW, transcript(false, { items: [], live: false, working: null, welcome: 'What would you like to fix?' }), {
+    title: 'Agent · New chat',
+    closable: true,
+    movable: true,
+  });
+  show('chatRequests', CHAT_WINDOW, transcript(false, {
+    items: CHAT_FIXTURE.slice(0, 2),
+    live: false,
+    working: null,
+    requests: [QUESTION_FIXTURE, APPROVAL_FIXTURE],
+    answers: new Map([['q1', choose(answerState(QUESTION_FIXTURE), 'scope', 0)]]),
+    notices: new Map([['q1', 'Answer each question before sending.']]),
+    open: new Map([['review:a1', true]]),
+    footer: 'Waiting for your response',
+  }), { title: 'Agent · Range end edge', closable: true, movable: true });
+  // The composer in four states, under a short transcript.
+  const composerView = (over: Partial<ComposerView>): ComposerView => ({
+    state: initialComposer(),
+    prompts: ['Find why the end of a selection is treated as outside it', 'Show me the function', 'Fix it', 'Explain the fix'],
+    project: 'editor-core',
+    changedFiles: 0,
+    looking: 'range.ts:90–101',
+    available: true,
+    mic: 'idle',
+    partial: '',
+    providers: [
+      { id: 'recorded', label: 'Recorded', available: true },
+      { id: 'claude', label: 'Claude', available: false },
+    ],
+    provider: 'recorded',
+    models: [],
+    model: '',
+    ...over,
+  });
+  const withComposer = (over: Partial<ComposerView>, model: Partial<ChatModel> = {}) => (ctx: CanvasRenderingContext2D, w: number, h: number, u: number) => {
+    const m = chatMetrics(w);
+    const composer = composerLayout(ctx, composerView(over), m);
+    const view = chatView(w, h, u, composer.height);
+    const body = layoutChat({ items: CHAT_FIXTURE.slice(0, 2), live: false, messageActions: true, ...model }, { ...m, width: view.w }, canvasMeasure(ctx, m));
+    return drawChatWindow(ctx, w, h, u, body, composer, m, { scrollTop: 0, clock: 0, hovered: 'chip:prompt:2' });
+  };
+  const frame = { title: 'Agent · Range end edge', closable: true, movable: true };
+  show('composerIdle', CHAT_WINDOW, withComposer({}), frame);
+  show('composerHeard', CHAT_WINDOW, withComposer({ state: heard(initialComposer(), 'Fix it, but only the end edge') }), frame);
+  {
+    let running = enqueue(heard(initialComposer({ running: true }), 'Then explain the fix'), 'a');
+    running = enqueue(heard(running, 'And replay the fixed run'), 'b');
+    show('composerRunning', CHAT_WINDOW, withComposer({ state: heard(running, 'Also check the strict version'), changedFiles: 1 }, { live: true, working: { word: 'Editing…', time: '24s' } }), frame);
+    show('composerQueued', CHAT_WINDOW, withComposer({ state: { ...running, queuePaused: true, more: true } }), frame);
+  }
   const loadingCard = { kind: 'loading', title: 'Opening project', detail: 'editor-core' } as const;
   show('loadingCard', STATUS_CARD, (ctx, w, h, u) => drawStatusCard(ctx, w, h, u, loadingCard), {
     title: statusTitle(loadingCard),

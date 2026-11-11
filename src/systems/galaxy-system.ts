@@ -11,7 +11,9 @@ import { createOverlayLayer } from '../galaxy-bridge/overlay-layer.ts';
 import type { OverlayLayer } from '../galaxy-bridge/overlay-layer.ts';
 import { bridgePointer } from '../galaxy-bridge/pointer-bridge.ts';
 import { createPointScaler } from '../galaxy-bridge/point-sizes.ts';
-import { fileIndex, galaxyState, installActions, openGalaxy } from '../galaxy-bridge/galaxy-session.js';
+import { attachCannon, fileIndex, galaxyState, installActions, openGalaxy } from '../galaxy-bridge/galaxy-session.js';
+import type { GalaxyView } from '../galaxy-bridge/galaxy-session.js';
+import { applyHeadsetBudget } from '../galaxy-bridge/budget.js';
 import { outlinePinnedTown } from '../galaxy-bridge/town-outline.ts';
 import { preferWindowsForGaze } from '../galaxy-bridge/gaze-priority.ts';
 import { flushXrFrames, installXrFrames } from '../galaxy-bridge/xr-frames.ts';
@@ -25,9 +27,11 @@ import {
   hovered,
   landedPath,
   loading,
+  paused,
   phase,
   pinned,
   selectedPath,
+  startupMs,
 } from '../state/app-state.ts';
 import { connectCommands, openDataset } from '../state/commands.ts';
 import { headObject } from './head.ts';
@@ -75,6 +79,8 @@ export class GalaxySystem extends createSystem({}) {
   };
 
   init() {
+    // Light rigs, a few ship hulls and a lighter island, within the headset's draw budget.
+    applyHeadsetBudget();
     this.head = new Vector3();
     this.gaze = new Vector3();
     this.headTurn = new Quaternion();
@@ -135,7 +141,8 @@ export class GalaxySystem extends createSystem({}) {
     loading.value = { title: 'Opening project', detail: name };
     this.detach();
     try {
-      const view = await openGalaxy(this.host, name, { isCurrent: () => token === this.loadToken });
+      // The cannon and its island are heavy: they join after the galaxy's first frame (update).
+      const view = await openGalaxy(this.host, name, { cannon: false, isCurrent: () => token === this.loadToken });
       if (!view || token !== this.loadToken) return;
       const kit = this.host.kit!;
       this.entity = this.world.createTransformEntity(kit.scene);
@@ -146,6 +153,7 @@ export class GalaxySystem extends createSystem({}) {
       this.scene.background = kit.sky;
       this.scene.environment = kit.environment;
       phase.value = 'overview';
+      this.cannonPending = view;
     } catch (failure) {
       if (token !== this.loadToken) return;
       console.error(failure);
@@ -156,6 +164,10 @@ export class GalaxySystem extends createSystem({}) {
     }
   }
 
+  private cannonPending: GalaxyView | null = null;
+  private cannonNext: GalaxyView | null = null;
+  private pausedAt: number | null = null;
+  private pausedFor = 0;
   private focus: Vec3 = [0, 0, 0];
   /** The model's pose, rewritten every frame. */
   private pose = emptyPose();
@@ -208,10 +220,32 @@ export class GalaxySystem extends createSystem({}) {
   }
 
   update(delta: number, time: number) {
-    flushXrFrames(time * 1000);
+    // Paused (the session hidden or blurred): the galaxy's time stops, and resumes where it left off.
+    if (paused.peek()) {
+      if (this.pausedAt == null) this.pausedAt = time;
+      return;
+    }
+    if (this.pausedAt != null) {
+      this.pausedFor += time - this.pausedAt;
+      this.pausedAt = null;
+    }
+    const now = (time - this.pausedFor) * 1000;
+    flushXrFrames(now);
     const kit = this.host.kit;
     if (!kit || !this.entity) return;
-    kit.tick(time * 1000);
+    kit.tick(now);
+    // After the first frame with the galaxy: note the start-up time, then bring in the cannon.
+    // (on the next frame of this loop: a browser need not run window frames while a session presents).
+    if (this.cannonNext) {
+      const view = this.cannonNext;
+      this.cannonNext = null;
+      if (galaxyState.view === view) attachCannon(view, this.host);
+    }
+    if (this.cannonPending) {
+      if (startupMs.peek() == null) startupMs.value = Math.round(performance.now());
+      this.cannonNext = this.cannonPending;
+      this.cannonPending = null;
+    }
     this.publishLanding();
     this.easeAnchor(delta);
     const pose = this.landed ? this.landedPose(kit) : tablePoseInto(kit.virtual(), this.anchor, this.pose);

@@ -202,3 +202,79 @@ right side, fall outside the view. Turned about 25° toward either window, the w
 code card 26° × 19°). The overview model's right edge falls outside looking straight ahead. Not changed.
 
 Not checked: real eye-tracking accuracy on small targets (code lines are about 1.2° tall), and comfort, on the device.
+
+## Start-up time (M4, Task 17)
+
+From navigation to the first frame with the galaxy shown and taking input (`__orrery.startupMs`), in the headless
+desktop browser of the smoke test, served from the local build: 552, 460 and 472 ms over three loads. The goal was
+under 5 s. The agent's cannon and its island now join after that first frame (`attachCannon`), and the chat's fonts
+load before its first draw. A served deployment adds network time for `graph.js` and the first models; the headset
+session should measure it there.
+
+## Draw budget (M4, Task 18)
+
+Budgets: at most 300 draw calls and 750,000 triangles at each of three states. `__orrery.stats()` in the smoke test's
+browser tab (1440 × 900, editor-core), the landed state on `core/range.ts`, "all panels" adding the code card, a
+replay, the agent's "Show me" card, the chat and the problem card. The landed counts vary between runs (339 to 391
+calls) with where the copied camera flew.
+
+| State | Before (calls / triangles) | After (calls / triangles) | Budget met |
+| --- | --- | --- | --- |
+| Overview | 121 / 211,266 | 121 / 211,266 | yes |
+| Landed | 339 / 3,394,393 | 348–389 / 2,038,435–2,040,663 | **no** |
+| Landed, all panels | 176 / 1,871,557 | 125 / 1,116,175 | calls yes, triangles **no** |
+
+Reductions applied, in the plan's order: the light (`-lod`) model of every rig (the arc ship alone was 354k triangles);
+at most six ship hulls drawn at once (the rest are engine glints, which still take a pinch); the island's modelled
+buildings only for its first landmark and first house (the rest are simple blocks, and their sheets are not loaded);
+the label pool lowered from 32 to 24. Switches in `src/galaxy-bridge/budget.js`, added to the copied code by
+`tools/migrate/apply-patches.mjs`.
+
+Not met: what remains landed is the landed planet's own towns (about 0.95 million triangles from the copied town
+renderer), the other planets' library models (about 0.3 million) and the cannon's district and moons. Merging static
+town props (the plan's last step) would cut draw calls but not triangles, and was not done: the town renderer builds
+its instanced batches itself. Reaching 750,000 needs one of: lighter towns (fewer or simpler buildings on the landed
+globe), or hiding the rest of the galaxy while landed, which is waiting for the owner's decision
+(`docs/plans/changes-after-review.md`, "Waiting for the owner"). The device session (item 3) will show whether the
+headset holds its frame rate anyway.
+
+## Headset tier (M4, Task 18)
+
+`node tools/assets/build-assets.mjs <codebase-viz> --tier=quest` writes `public/assets-quest/` (99.6 MB): textures at
+most 512 px for the kit, vehicles and buildings and 1024 px elsewhere, and the island's and cannon's geometry quantized
+(KHR_mesh_quantization; three's loader reads it without a decoder). The app uses it in a headset's browser, or with
+`?tier=quest` (`src/galaxy-bridge/asset-tier.ts`, through three's loading manager).
+
+Initial download, before a planet is opened (resource timing in the smoke test's browser, all files):
+
+| Tier | Total | Models and images | Code |
+| --- | --- | --- | --- |
+| Full | 43.1 MB | 39.4 MB | 3.2 MB |
+| Headset | 37.5 MB | 33.8 MB | 3.2 MB |
+
+The budget was under 40 MB: met by the headset tier. The landed towns are identical in both tiers (same triangle
+counts). Fixed foveation is set to a medium level (0.5) each time an immersive session becomes visible; the
+framebuffer scale is left at its default.
+
+## Meta VR Glasses with the agent (M4, Task 20)
+
+Emulator, glasses profile, seated, `gaze-tracking` granted. Every window open (the chat, its tab strip, the code card
+with a replay, the problem card, the agent's "Show me" card, the debugging card, the tutorial card). Angles of each
+window's corners from the eye looking straight ahead (the view is 37° left and right, 25° up, 43° down):
+
+| Window | Horizontal | Vertical | In view looking ahead |
+| --- | --- | --- | --- |
+| Chat | −40.8° to −19.2° | −31.8° to 15.4° | its left edge is cut |
+| Tab strip | −43.6° to −40.8° | −2.1° to 13.1° | no: an 8° head turn left |
+| Code card | 16.7° to 43.3° | −24.5° to 7.4° | its right edge is cut |
+| Problem card | 3.2° to 16.3° | 12.2° to 19.2° | yes |
+| "Show me" card | 3.1° to 16.3° | 18.6° to 25.5° | its top half-degree is cut |
+| Debugging card | 3.0° to 15.5° | 21.1° to 27.5° | its top is cut |
+| Tutorial card | −8.8° to 8.8° | 7.4° to 14.9° | yes |
+
+Every window comes fully into view with a head turn of 10° or less up, or 25° or less to the side, as before. The
+cards stack upward beside the bug's planet; on the glasses the third card reaches past the top of the view.
+
+Gaze and pinch on the new controls: looking at the microphone and holding a pinch heard "Fix it"; Send with a
+left-hand pinch; holding "Say your answer" by gaze heard the answer; an option chosen by gaze; a gaze-started drag on
+the transcript scrolled it.

@@ -61,6 +61,7 @@ export class TutorialSystem extends createSystem({}) {
       }),
     );
     this.ring.renderOrder = 40;
+    this.ring.name = 'tutorial-ring';
     this.ring.visible = false;
     this.world.createTransformEntity(this.ring);
 

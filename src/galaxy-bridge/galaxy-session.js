@@ -23,6 +23,7 @@ export { planetBuildBudget } from '../../galaxy/viewer/shared/build-budget.js';
 export { languageOf } from '../../galaxy/source-model/languages.js';
 export { loadTypeScript } from '../../galaxy/viewer/towns/town-assets.js';
 export { UIIcons } from '../../galaxy/viewer/shared/ui-icons.js';
+export { readSource, setSourceOverride, sourceUrl } from '../../galaxy/viewer/app/static-data.js';
 
 /** The copied code's shared state (files, links, the running view). */
 export const galaxyState = state;
@@ -87,17 +88,22 @@ export async function openGalaxy(host, dataset, { cannon = true, isCurrent = () 
   regroup();
   const view = constellation(host);
   // The agent's cannon and its island sit at the heart of a project.
-  if (cannon) {
-    const shooter = createAgentCannon(view, host),
-      stop = view.stop;
-    view.cannon = shooter;
-    view.stop = () => {
-      shooter.stop();
-      stop();
-    };
-  }
+  if (cannon) attachCannon(view, host);
   update({ view });
   return view;
+}
+
+/** Adds the agent's cannon and its island to a view (once). The XR app does this after the first frame, so its heavy
+ * models do not hold up the first sight of the galaxy. */
+export function attachCannon(view, host) {
+  if (!view || view.cannon) return;
+  const shooter = createAgentCannon(view, host),
+    stop = view.stop;
+  view.cannon = shooter;
+  view.stop = () => {
+    shooter.stop();
+    stop();
+  };
 }
 
 /** The file index of `path`, or -1. */

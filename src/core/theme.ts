@@ -56,3 +56,14 @@ export function codeColor(cls: string | undefined): string {
       return THEME.white;
   }
 }
+
+const NORMAL = { ...THEME };
+/** High contrast: pure black backing and white lines; red, green and amber keep their meaning. */
+const HIGH_CONTRAST = { ink: '#000000', inkAlpha: 1, grid: '#8a8a8a', lineDim: '#d0d0d0', line: '#ffffff', glow: '#ffffff', white: '#ffffff' };
+let contrast = false;
+/** Switches every token to high contrast (or back); the panels then redraw. */
+export function applyContrast(on: boolean) {
+  contrast = on;
+  Object.assign(THEME as Record<string, unknown>, on ? HIGH_CONTRAST : NORMAL);
+}
+export const highContrast = () => contrast;

@@ -18,7 +18,9 @@ export const ShipScale = Object.freeze({
 export const RiggedAssets = (() => {
   const cache = new Map();
   const keys = new Set(['arc', 'arrow', 'cargo', 'factory']);
-  function load(key, lod = false) {
+  // A host may ask for the light (-lod) model of every rig (the XR app does, for a headset's budget).
+  let preferLod = false;
+  function load(key, lod = preferLod) {
     if (!keys.has(key)) return Promise.reject(new Error('Unknown rig: ' + key));
     const url = `assets/rigged/${key}/${key}${lod ? '-lod' : ''}.glb`;
     if (!cache.has(url)) {
@@ -115,5 +117,11 @@ export const RiggedAssets = (() => {
       },
     };
   }
-  return { proxy, create };
+  return {
+    proxy,
+    create,
+    preferLod(on) {
+      preferLod = !!on;
+    },
+  };
 })();
