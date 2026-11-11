@@ -380,10 +380,10 @@ A landed planet is an "overlay": an object with `scene`, `camera`, `frame()` ret
 
 **Files:** Create `src/core/tutorial.ts` + test, `src/panels/draw-tutorial.ts`, `src/systems/tutorial-system.ts`, `src/ports/storage.ts`, `src/adapters/local-storage.ts`.
 
-- [ ] **Step 1. Tests first.** `tutorial.ts` is a state machine: `nextStep(step, event)` over the steps `point` (point at the glowing planet and pinch) → `turn` (pinch in the air and drag) → `open` (pinch the planet again) → `read` (pinch a building) → `done`, advanced by the events `selected`, `orbited`, `landed`, `statementShown`; `skip` goes to `done` from anywhere; unknown events leave the step unchanged.
-- [ ] **Step 2.** A small panel above the table shows one short sentence per step and a `Skip` button, with a drawn hand icon showing the gesture. The system raises the events from state changes, makes one planet pulse during `point`, and stores "seen" through `StoragePort` so it runs once. `Help` on the dock restarts it. No step needs more than twelve words.
-- [ ] **Step 3. Check.** `npm run verify`; panels screenshot shows each tutorial step. In the emulator, complete the four steps with hand input only.
-- [ ] **Step 4. Commit:** `Teach the four gestures in a skippable tutorial`
+- [x] **Step 1. Tests first.** `tutorial.ts` is a state machine: `nextStep(step, event)` over the steps `point` (point at the glowing planet and pinch) → `turn` (pinch in the air and drag) → `open` (pinch the planet again) → `read` (pinch a building) → `done`, advanced by the events `selected`, `orbited`, `landed`, `statementShown`; `skip` goes to `done` from anywhere; unknown events leave the step unchanged.
+- [x] **Step 2.** A small panel above the table shows one short sentence per step and a `Skip` button, with a drawn hand icon showing the gesture. The system raises the events from state changes, makes one planet pulse during `point`, and stores "seen" through `StoragePort` so it runs once. `Help` on the dock restarts it. No step needs more than twelve words.
+- [x] **Step 3. Check.** `npm run verify`; panels screenshot shows each tutorial step. In the emulator, complete the four steps with hand input only.
+- [x] **Step 4. Commit:** `Teach the four gestures in a skippable tutorial`
 
 ### Task 19: Review and report
 

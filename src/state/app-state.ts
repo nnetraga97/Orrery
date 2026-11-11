@@ -1,6 +1,7 @@
 // What the UI shows, as signals. Systems and the bridge publish here; panels read; commands (commands.ts) change it.
 import { signal } from '@iwsdk/core';
 import type { CodeView } from '../core/code-view.ts';
+import type { TutorialStep } from '../core/tutorial.ts';
 import type { ContextItem } from '../ports/host.ts';
 
 export type Phase = 'idle' | 'loading' | 'overview' | 'landed';
@@ -33,6 +34,10 @@ export const agentOpen = signal(false);
 export const tutorialRestarts = signal(0);
 /** Whether the palm menu is enabled (see DockSystem). */
 export const palmMenu = signal(true);
+/** Counts orbit gestures (a pinch-drag that turned the model). */
+export const orbits = signal(0);
+/** The tutorial's step. */
+export const tutorialStep = signal<TutorialStep>('done');
 export const inspectorExtras = signal<Record<string, unknown[]>>({});
 
 export const appState = {
@@ -51,6 +56,8 @@ export const appState = {
   agentOpen,
   tutorialRestarts,
   palmMenu,
+  orbits,
+  tutorialStep,
   inspectorExtras,
 };
 export type AppState = typeof appState;

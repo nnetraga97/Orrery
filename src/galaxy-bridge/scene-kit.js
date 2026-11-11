@@ -54,6 +54,7 @@ export function createSceneKit({ camPos, host, renderer, anchor = null, labels =
   // virtual stage the host describes (1600 × 1000).
   const element = document.createElement('div');
   Object.defineProperties(element, { clientWidth: { value: STAGE_WIDTH }, clientHeight: { value: STAGE_HEIGHT } });
+  element.getBoundingClientRect = () => new DOMRect(0, 0, STAGE_WIDTH, STAGE_HEIGHT);
   const controls = new OrbitControls(camera, element);
   controls.enableDamping = true;
   scene.add(new THREE.HemisphereLight('#a9c0ff', '#0a0f1c', legacyIntensity(COLOR.hemisphereIntensity)));
@@ -85,6 +86,8 @@ export function createSceneKit({ camPos, host, renderer, anchor = null, labels =
     camera.updateMatrixWorld();
     scene.updateMatrixWorld();
     ray.ray.copy(modelRay).applyMatrix4(scene.matrixWorld);
+    // Fat lines and sprites in the pickers need a camera to be hit-tested; the virtual camera stands in.
+    ray.camera = camera;
     // Line and point hit thresholds are in world units and ignore parent scale; keep the desktop's one model unit.
     ray.params.Line.threshold = ray.params.Points.threshold = scene.scale.x;
     blocked = !!pickBlock?.(ray);
@@ -98,6 +101,47 @@ export function createSceneKit({ camPos, host, renderer, anchor = null, labels =
       host.windows.context.hover(item);
     } else hoverItem = item;
   }
+  // A landed planet picks its towns on a click on the controls element, with a ray from its camera (a copy of this
+  // virtual camera) through the pointer's stage pixel (planet-interaction.js). For one synchronous click the virtual
+  // camera is put at the hand ray's origin, looking along it, and the click is sent at the stage's centre, so the
+  // planet picks along the hand ray; the camera is then put back. (Hover is not forwarded: the planet resolves it
+  // later in the frame, when the camera must be where the view needs it.)
+  // The planet's own scene is nested in the model here, but its picking works in the planet's frame as on the
+  // desktop, where that scene had no parent: for the click it is detached, then put back.
+  const savedPosition = new THREE.Vector3(),
+    savedTurn = new THREE.Quaternion(),
+    lookPoint = new THREE.Vector3(),
+    detached = [];
+  function clickPlanet() {
+    detached.length = 0;
+    overlays.forEach(o => {
+      if (!o.viewport && o.opacity > 0.02 && o.scene.parent) detached.push(o.scene.parent, o.scene);
+    });
+    if (!detached.length) return;
+    for (let k = 0; k < detached.length; k += 2) detached[k].remove(detached[k + 1]);
+    savedPosition.copy(camera.position);
+    savedTurn.copy(camera.quaternion);
+    camera.position.copy(modelRay.origin);
+    camera.lookAt(lookPoint.copy(modelRay.origin).add(modelRay.direction));
+    camera.updateMatrixWorld();
+    try {
+      element.dispatchEvent(
+        new PointerEvent('pointerup', {
+          clientX: STAGE_WIDTH / 2,
+          clientY: STAGE_HEIGHT / 2,
+          button: 0,
+          pointerId: 1,
+          isPrimary: true,
+        }),
+      );
+    } finally {
+      camera.position.copy(savedPosition);
+      camera.quaternion.copy(savedTurn);
+      camera.updateMatrixWorld();
+      for (let k = 0; k < detached.length; k += 2) detached[k].add(detached[k + 1]);
+    }
+  }
+
   function pointerMove(r) {
     modelRay.copy(r);
     hasRay = true;
@@ -125,6 +169,7 @@ export function createSceneKit({ camPos, host, renderer, anchor = null, labels =
     // A fast pinch or a moving model may not have produced a hover frame.
     pointerMove(r);
     updatePick();
+    clickPlanet();
     if (blocked) return;
     if (lastPick === -1 && hoverItem) {
       if (hoverItem.onClick) hoverItem.onClick();

@@ -4,6 +4,7 @@
 // same: drag on empty space orbits, the wheel dollies.
 import { Hovered, Vector3, createSystem } from '@iwsdk/core';
 import { Panel } from '../components/panel.ts';
+import { orbits } from '../state/app-state.ts';
 import { dollyFromSpread, orbitFromDrag } from '../core/orbit.ts';
 import { GalaxySystem } from './galaxy-system.ts';
 
@@ -106,6 +107,7 @@ export class ManipulationSystem extends createSystem({ hoveredPanels: { required
       if (!drag.orbiting) {
         drag.orbiting = true;
         kit.swallowClick(true);
+        orbits.value = orbits.peek() + 1;
       }
       const { dAzimuth, dPolar } = orbitFromDrag(dx, dy, SENSITIVITY);
       kit.orbit(dAzimuth, dPolar);
@@ -139,6 +141,7 @@ export class ManipulationSystem extends createSystem({ hoveredPanels: { required
       if (moved < CLICK_PX) return;
       const kit = this.kit;
       if (!kit) return;
+      if (moved - Math.hypot(dx, dy) < CLICK_PX) orbits.value = orbits.peek() + 1;
       kit.swallowClick(true);
       const { dAzimuth, dPolar } = orbitFromDrag(dx / PX_PER_METRE, -dy / PX_PER_METRE, SENSITIVITY);
       kit.orbit(dAzimuth, dPolar);
