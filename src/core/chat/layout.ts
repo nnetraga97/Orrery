@@ -375,7 +375,11 @@ export function diffs(b: Builder, changes: ChatChange[], x: number) {
     if (s.removed)
       spans.push({ text: `−${s.removed}`, x: x + pathW + 16 + (s.added ? b.measure(`+${s.added} `, 'small') : 0), font: 'small', tone: 'removed' });
     b.line('diffFile', spans, 'mono');
-    const lines = String(change.diff || change.patch || '').replace(/\n$/, '').split('\n');
+    const lines = String(change.diff || change.patch || '')
+      .replace(/\n$/, '')
+      .split('\n')
+      // The file headers repeat the path drawn above.
+      .filter(l => !/^(--- |\+\+\+ |diff --git |index )/.test(l));
     clipped(b, lines, MAX_DIFF_LINES, l => {
       const tone: Tone = l.startsWith('@@') ? 'hunk' : l.startsWith('+') ? 'added' : l.startsWith('-') ? 'removed' : 'text';
       const line = b.mono('diffLine', l, x + 12, tone);
@@ -452,9 +456,11 @@ function group(b: Builder, items: ChatItem[], itemKey: string, live: boolean, mo
   const key = `group:${itemKey}`;
   const open = model.open?.get(key) ?? live,
     failed = failures(items);
-  const summary = summarize(items);
+  const failText = failed ? `${failed} ${failed === 1 ? 'failure' : 'failures'}` : '';
+  const room = b.right - b.icon() - 20 - b.left - (failed ? b.measure(failText, 'small') + 14 : 0);
+  const summary = fitText(summarize(items), room, 'body', b.measure);
   const spans: Span[] = [{ text: summary, x: b.left, font: 'body', tone: 'line' }];
-  if (failed) spans.push({ text: `${failed} ${failed === 1 ? 'failure' : 'failures'}`, x: b.left + b.measure(summary, 'body') + 14, font: 'small', tone: 'failed' });
+  if (failed) spans.push({ text: failText, x: b.left + b.measure(summary, 'body') + 14, font: 'small', tone: 'failed' });
   const line = b.line('groupHead', spans, 'body', { live, chevron: { x: b.right - b.icon(), open } });
   b.region(`toggle:${key}`, b.left, line.y, b.right - b.left, line.height);
   if (open) items.forEach((item, i) => row(b, item, `${itemKey}.${i}`, b.left + b.m.indent, model));

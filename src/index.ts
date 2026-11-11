@@ -9,6 +9,7 @@ import { commands } from './state/commands.ts';
 import { ChatWindowSystem } from './systems/chat-window-system.ts';
 import { GalaxySystem } from './systems/galaxy-system.ts';
 import { ManipulationSystem } from './systems/manipulation-system.ts';
+import './galaxy-bridge/panel-icons.ts';
 import { PanelSystem } from './systems/panel-system.ts';
 import { TutorialSystem } from './systems/tutorial-system.ts';
 

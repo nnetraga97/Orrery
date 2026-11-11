@@ -26,3 +26,9 @@ the review wins; where both name something that no longer exists, the replacemen
   and `height`. A group's toggle key is `group:<first item id>`, so it never collides with its first row's
   `toggle:<itemId>`. Option and button regions (`option:…`, `button:…`) are laid out by the request cards and tested
   in Task 5, where their answer state exists.
+- Task 4: live rows are lit (`line`) rather than pulsing: the style page allows one pulse only (the fault dot), and the
+  working line's rotating ✳ already shows the turn is live. The panel still redraws ten times a second while anything
+  is live (the glyph and spinning plan rings move). Code text is drawn with a hair of letter spacing, which turns off
+  the monospace face's ligatures (`>=` would otherwise draw as ≥). Every icon name the plan lists exists in the copied
+  icon module; the microphone is the one shape this app adds (`src/panels/icons.ts`). Diff file headers (`---`, `+++`)
+  are not repeated under the path. Screenshot: `docs/migration/panels-chat.png`.

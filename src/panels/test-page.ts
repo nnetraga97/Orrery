@@ -5,6 +5,10 @@ import { visibleLines } from '../core/code-view.ts';
 import type { CodeView, Segment } from '../core/code-view.ts';
 import { TUTORIAL_TEXT } from '../core/tutorial.ts';
 import { STYLE_PX_PER_M } from './canvas-panel.ts';
+import { chatMetrics, layoutChat } from '../core/chat/layout.ts';
+import type { ChatModel } from '../core/chat/layout.ts';
+import { CHAT_FIXTURE, CHAT_FIXTURE_OPEN } from './chat-fixture.ts';
+import { canvasMeasure, chatView, drawTranscript } from './draw-chat.ts';
 import { CHAT_WINDOW, drawChatShell } from './draw-chat-shell.ts';
 import { TAB_STRIP, drawTabStrip } from './draw-tab-strip.ts';
 import { CODE_CARD, CODE_LAYOUT, codeCardSize, drawCodeCard } from './draw-code-card.ts';
@@ -137,6 +141,47 @@ export async function drawAll() {
   show('tabStrip', TAB_STRIP, (ctx, w, h) =>
     drawTabStrip(ctx, w, h, { active: 'chat', hovered: 'tab:home', disabled: ['replay', 'settings'] }),
   );
+  // The transcript: every item kind once, drawn in full, then the window scrolled to its end with the turn running.
+  const transcript = (scrollToEnd: boolean, extra: Partial<ChatModel> = {}) => (ctx: CanvasRenderingContext2D, w: number, h: number, u: number) => {
+    const m = chatMetrics(w);
+    const view = chatView(w, h, u);
+    const layout = layoutChat(
+      {
+        items: CHAT_FIXTURE,
+        live: true,
+        open: CHAT_FIXTURE_OPEN,
+        thinking: new Map([['r1', 8000]]),
+        working: { word: 'Reading…', time: '1m 5s' },
+        ...extra,
+      },
+      { ...m, width: view.w },
+      canvasMeasure(ctx, m),
+    );
+    const scrollTop = scrollToEnd ? Math.max(0, layout.height - view.h) : 0;
+    return drawTranscript(ctx, view.x, view.y, view.w, view.h, layout, m, u, { scrollTop, clock: 0.4, hovered: 'toggle:c1' });
+  };
+  {
+    // Measure first, so the full transcript gets a canvas tall enough.
+    const probe = document.createElement('canvas').getContext('2d')!;
+    const m = chatMetrics(CHAT_WINDOW.widthPx);
+    const full = layoutChat(
+      { items: CHAT_FIXTURE, live: true, open: CHAT_FIXTURE_OPEN, working: { word: 'Reading…', time: '1m 5s' }, error: 'Turn failed: the provider stopped answering.', footer: 'Stopped' },
+      { ...m, width: chatView(CHAT_WINDOW.widthPx, CHAT_WINDOW.heightPx, 1).w },
+      canvasMeasure(probe, m),
+    );
+    const top = chatView(CHAT_WINDOW.widthPx, CHAT_WINDOW.heightPx, CHAT_WINDOW.widthPx / CHAT_WINDOW.widthM / STYLE_PX_PER_M).y;
+    const tall = { ...CHAT_WINDOW, heightPx: full.height + top + 40 };
+    show('chatTranscript', tall, transcript(false, { error: 'Turn failed: the provider stopped answering.', footer: 'Stopped' }), {
+      title: 'Agent · Range end edge',
+      closable: true,
+    });
+  }
+  show('chatWindowEnd', CHAT_WINDOW, transcript(true), { title: 'Agent · Range end edge', closable: true, movable: true });
+  show('chatWelcome', CHAT_WINDOW, transcript(false, { items: [], live: false, working: null, welcome: 'What would you like to fix?' }), {
+    title: 'Agent · New chat',
+    closable: true,
+    movable: true,
+  });
   const loadingCard = { kind: 'loading', title: 'Opening project', detail: 'editor-core' } as const;
   show('loadingCard', STATUS_CARD, (ctx, w, h, u) => drawStatusCard(ctx, w, h, u, loadingCard), {
     title: statusTitle(loadingCard),
