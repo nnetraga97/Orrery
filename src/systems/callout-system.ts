@@ -21,6 +21,9 @@ import { SEAT } from './panel-system.ts';
 const SIDE = 0.06,
   LIFT = 0.05;
 const DOT_RADIUS = 0.006;
+/** Beyond this from the head an anchor is out of reach (its planet scaled away while another is landed): the card
+ * and the dot wait, hidden, until it comes back. */
+const MAX_REACH = 2.5;
 const PULSE_SECONDS = 1.6;
 
 type View = { bodyPos?(i: number): { x: number; y: number; z: number }; bodySize?(i: number): number };
@@ -119,7 +122,7 @@ export class CalloutSystem extends createSystem({}) {
   }
 
   private draw(panel: CanvasPanel, card: Callout | null) {
-    const show = !!card && this.fontReady;
+    const show = !!card && this.fontReady && !panel.mesh.userData.outOfReach;
     if (show !== panel.visible) {
       panel.visible = show;
       panel.moved = false;
@@ -142,7 +145,17 @@ export class CalloutSystem extends createSystem({}) {
   /** Beside the anchor and up: on the side toward the view's centre line, because the chat window stands to the
    * left and a card on its far side would sit behind it. */
   private placeCard(panel: CanvasPanel, file: string, lift: number, height = 1.15) {
-    if (!panel.visible || panel.moved || !this.anchor(file, this.at, height)) return;
+    if (panel.moved || !panel.visible && !panel.mesh.userData.outOfReach) return;
+    if (!this.anchor(file, this.at, height)) return;
+    // Out of reach (another planet is landed): hidden until the anchor comes back.
+    const far = this.at.distanceTo(this.head) > MAX_REACH;
+    if (far !== !!panel.mesh.userData.outOfReach) {
+      panel.mesh.userData.outOfReach = far;
+      panel.visible = !far;
+      // Back in reach: drawn again, in case the card changed while it was away.
+      if (!far) this.refresh();
+    }
+    if (far) return;
     this.side.copy(this.at).sub(this.head).cross(this.up).normalize();
     if (this.at.x > this.head.x) this.side.negate();
     panel.mesh.position.copy(this.at).addScaledVector(this.side, SIDE + CALLOUT.widthM / 2);
@@ -157,7 +170,7 @@ export class CalloutSystem extends createSystem({}) {
     const s = scenario.peek();
     if (this.problemCard && s) {
       this.placeCard(this.problem, s.file, LIFT);
-      this.dot.visible = this.anchor(s.file, this.at);
+      this.dot.visible = this.anchor(s.file, this.at) && this.at.distanceTo(this.head) <= MAX_REACH;
       this.dot.position.copy(this.at);
       // One slow breath, 70% to 100%, every 1.6 s.
       const k = this.reduceMotion ? 1 : 0.85 + 0.15 * Math.sin((this.clock / PULSE_SECONDS) * Math.PI * 2);

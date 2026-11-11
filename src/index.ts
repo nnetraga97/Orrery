@@ -1,5 +1,6 @@
 // The composition root: creates the world, builds adapters, hands them to systems and registers systems.
-import { World } from '@iwsdk/core';
+import { Vector3, World } from '@iwsdk/core';
+import type { Object3D } from '@iwsdk/core';
 import projectOptions from 'virtual:iwsdk-project';
 import { createBrowserSpeech } from './adapters/browser-speech.ts';
 import { createAgentSwitch } from './adapters/agent-switch.ts';
@@ -96,6 +97,20 @@ World.create(document.getElementById('scene-container') as HTMLDivElement, proje
     target: (panel: string, region: string) => {
       const p = PANELS.get(panel)?.worldOf(region);
       return p ? { x: p.x, y: p.y, z: p.z } : null;
+    },
+    /** Where a file's planet is in the room, or the tutorial ring's planet when no file is named (tests aim with it). */
+    planet: (path?: string) => {
+      const kit = galaxy.host.kit as unknown as { bodyPos(i: number): Vector3; scene: Object3D } | null;
+      if (!path) {
+        const ring = world.scene.getObjectByName('tutorial-ring');
+        if (!ring?.visible) return null;
+        const p = ring.getWorldPosition(new Vector3());
+        return { x: p.x, y: p.y, z: p.z };
+      }
+      const i = galaxyState.nodes.findIndex(n => n.path === path);
+      if (!kit || i < 0) return null;
+      const p = kit.bodyPos(i).clone().applyMatrix4(kit.scene.matrixWorld);
+      return { x: p.x, y: p.y, z: p.z };
     },
     regions: (panel: string) => PANELS.get(panel)?.regions.map(r => r.id) ?? [],
     /** The chat transcript's scroll position (tests drag it with an emulated hand). */
