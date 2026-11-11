@@ -11,8 +11,8 @@ import { CanvasPanel } from '../panels/canvas-panel.ts';
 import { CALLOUT, calloutHue, calloutTitle, drawCallout } from '../panels/draw-problem-card.ts';
 import type { Callout } from '../panels/draw-problem-card.ts';
 import { loadFonts } from '../panels/fonts.ts';
-import { agentPointer, composer, phase, scenario, scenarioState } from '../state/app-state.ts';
-import { showChatPage, showCode } from '../state/commands.ts';
+import { agentPointer, composer, phase, replay, scenario, scenarioState } from '../state/app-state.ts';
+import { dismissReplayNotice, followReplay, showChatPage, showCode } from '../state/commands.ts';
 import { GalaxySystem } from './galaxy-system.ts';
 import { headPosition } from './head.ts';
 import { SEAT } from './panel-system.ts';
@@ -28,10 +28,12 @@ type View = { bodyPos?(i: number): { x: number; y: number; z: number }; bodySize
 export class CalloutSystem extends createSystem({}) {
   private problem!: CanvasPanel;
   private pointer!: CanvasPanel;
+  private debug!: CanvasPanel;
   private dot!: Mesh;
   private halo!: Mesh;
   private problemCard: Callout | null = null;
   private pointerCard: Callout | null = null;
+  private debugCard: Callout | null = null;
   private fontReady = false;
   private head = new Vector3();
   private at = new Vector3();
@@ -58,6 +60,12 @@ export class CalloutSystem extends createSystem({}) {
     };
     this.problem = make('problem-card', () => this.problemCard);
     this.pointer = make('pointer-card', () => this.pointerCard);
+    this.debug = make('debug-card', () => this.debugCard);
+    this.debug.onPress = id => {
+      if (id === 'follow') followReplay(true);
+      else if (id === 'stopFollowing') followReplay(false);
+      else if (id === 'dismiss') dismissReplayNotice();
+    };
     this.problem.onPress = id => {
       if (id !== 'card') return;
       const prompt = scenario.peek()?.prompts[0];
@@ -84,9 +92,10 @@ export class CalloutSystem extends createSystem({}) {
       this.refresh();
     });
     const refresh = () => this.refresh();
-    this.cleanupFuncs.push(scenario.subscribe(refresh), scenarioState.subscribe(refresh), agentPointer.subscribe(refresh), phase.subscribe(refresh), () => {
+    this.cleanupFuncs.push(scenario.subscribe(refresh), scenarioState.subscribe(refresh), agentPointer.subscribe(refresh), phase.subscribe(refresh), replay.subscribe(refresh), () => {
       this.problem.dispose();
       this.pointer.dispose();
+      this.debug.dispose();
     });
   }
 
@@ -102,6 +111,9 @@ export class CalloutSystem extends createSystem({}) {
     (this.halo.material as MeshBasicMaterial).color.set(tint);
     this.draw(this.problem, this.problemCard);
     this.draw(this.pointer, this.pointerCard);
+    const r = replay.peek();
+    this.debugCard = r && inScene && !r.noticeDismissed ? { kind: 'debug', file: r.file, line: r.line, following: r.following } : null;
+    this.draw(this.debug, this.debugCard);
   }
 
   private draw(panel: CanvasPanel, card: Callout | null) {
@@ -113,22 +125,22 @@ export class CalloutSystem extends createSystem({}) {
     if (show) panel.redraw((ctx, w, h) => drawCallout(ctx, w, h, panel.u, card!, panel.hovered));
   }
 
-  /** A point just above a file's planet, in the room; false while the scene is not up. */
-  private anchor(file: string, out: Vector3): boolean {
+  /** A point just above a file's planet (`height` planet sizes up), in the room; false while the scene is not up. */
+  private anchor(file: string, out: Vector3, height = 1.15): boolean {
     const view = galaxyState.view as View | null,
       kit = this.world.getSystem(GalaxySystem)?.host?.kit;
     const i = fileIndex(file);
     if (!view?.bodyPos || i < 0 || !kit) return false;
     const p = view.bodyPos(i),
       r = view.bodySize?.(i) ?? 0;
-    out.set(p.x, p.y + r * 1.15, p.z).applyMatrix4(kit.scene.matrixWorld);
+    out.set(p.x, p.y + r * height, p.z).applyMatrix4(kit.scene.matrixWorld);
     return true;
   }
 
   /** Beside the anchor and up: on the side toward the view's centre line, because the chat window stands to the
    * left and a card on its far side would sit behind it. */
-  private placeCard(panel: CanvasPanel, file: string, lift: number) {
-    if (!panel.visible || panel.moved || !this.anchor(file, this.at)) return;
+  private placeCard(panel: CanvasPanel, file: string, lift: number, height = 1.15) {
+    if (!panel.visible || panel.moved || !this.anchor(file, this.at, height)) return;
     this.side.copy(this.at).sub(this.head).cross(this.up).normalize();
     if (this.at.x > this.head.x) this.side.negate();
     panel.mesh.position.copy(this.at).addScaledVector(this.side, SIDE + CALLOUT.widthM / 2);
@@ -150,6 +162,10 @@ export class CalloutSystem extends createSystem({}) {
     } else this.dot.visible = false;
     const p = agentPointer.peek();
     if (this.pointerCard && p) this.placeCard(this.pointer, p.file, p.file === s?.file && this.problemCard ? LIFT + CALLOUT.heightM + 0.04 : LIFT);
+    // The debugging card sits beside the execution ship, which hovers about two planet sizes above its planet.
+    const r = replay.peek();
+    if (this.debugCard && r) this.placeCard(this.debug, r.file, 0.02, 1.9);
+    this.debug.tick(delta, this.debug.moved ? this.head : undefined);
     this.problem.tick(delta, this.problem.moved ? this.head : undefined);
     this.pointer.tick(delta, this.pointer.moved ? this.head : undefined);
   }

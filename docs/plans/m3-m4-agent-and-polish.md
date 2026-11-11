@@ -282,11 +282,11 @@ Functions use the web-standard shape `export default async function handler(requ
 
 **Files:** Create `src/panels/draw-replay.ts`, `src/systems/replay-system.ts`. Modify `src/galaxy-bridge/inspector.ts`.
 
-- [ ] **Step 1.** The replay panel sits below the code page: title, outcome badge, the current step's label and note, the variables as a two-column list, and large buttons `Restart`, `Back`, `Step`, `Play`. On each step call the constellation's existing debug entry points (see `galaxy/viewer/galaxy/constellation-detail.js` lines 160–175 and `execution-ship.js` line 191): `view.executionAt({ file, line, label, paused: true, stack })`, `view.runtimeStack(frames, selected)`, and `commands.showCode(file, line)`. The execution ship and the frame cards then show where execution is.
-- [ ] **Step 2.** The debugging notice from the desktop app becomes an info card: "Agent is debugging · paused at file:line", with `Follow ship`, `Stop following`, `Dismiss`.
-- [ ] **Step 3.** `run_replay` from the agent, and a `Replay` button on the problem card, start it: `failing` before the fix, `fixed` after.
-- [ ] **Step 4. Check.** `npm run verify`; `npm run smoke:xr -- --query="dataset=editor-core&scenario=range-edge" --wait="window.__orrery?.ready" --settle=4000 --read="(__orrery.commands.startReplay('failing'), __orrery.commands.replayStep(), __orrery.commands.replayStep(), new Promise(r => setTimeout(() => r(__orrery.state.replay.value.index), 4000)))" --out=docs/migration/xr-replay.png`. Expected: `"read": 2`.
-- [ ] **Step 5. Commit:** `Replay the bug and the fix step by step`
+- [x] **Step 1.** The replay panel sits below the code page: title, outcome badge, the current step's label and note, the variables as a two-column list, and large buttons `Restart`, `Back`, `Step`, `Play`. On each step call the constellation's existing debug entry points (see `galaxy/viewer/galaxy/constellation-detail.js` lines 160–175 and `execution-ship.js` line 191): `view.executionAt({ file, line, label, paused: true, stack })`, `view.runtimeStack(frames, selected)`, and `commands.showCode(file, line)`. The execution ship and the frame cards then show where execution is.
+- [x] **Step 2.** The debugging notice from the desktop app becomes an info card: "Agent is debugging · paused at file:line", with `Follow ship`, `Stop following`, `Dismiss`.
+- [x] **Step 3.** `run_replay` from the agent, and a `Replay` button on the problem card, start it: `failing` before the fix, `fixed` after.
+- [x] **Step 4. Check.** `npm run verify`; `npm run smoke:xr -- --query="dataset=editor-core&scenario=range-edge" --wait="window.__orrery?.ready" --settle=4000 --read="(__orrery.commands.startReplay('failing'), __orrery.commands.replayStep(), __orrery.commands.replayStep(), new Promise(r => setTimeout(() => r(__orrery.state.replay.value.index), 4000)))" --out=docs/migration/xr-replay.png`. Expected: `"read": 2`.
+- [x] **Step 5. Commit:** `Replay the bug and the fix step by step`
 
 ### Task 15: Sound
 

@@ -11,15 +11,15 @@ import { THEME } from '../core/theme.ts';
 import { cardMaxScroll, hoverLine, pressLine } from '../galaxy-bridge/inspector.ts';
 import type { ContextItem } from '../ports/host.ts';
 import { CanvasPanel } from '../panels/canvas-panel.ts';
-import { CODE_CARD, CODE_LAYOUT, codeCardSize, drawCodeCard } from '../panels/draw-code-card.ts';
+import { CODE_CARD, CODE_LAYOUT, codeCardSize, drawCodeCard, replayLines } from '../panels/draw-code-card.ts';
 import { INFO_CARD, drawInfoCard, infoCardTitle } from '../panels/draw-info-card.ts';
 import type { InfoCard } from '../panels/draw-info-card.ts';
 import { STATUS_CARD, drawStatusCard, statusTitle } from '../panels/draw-status-card.ts';
 import type { StatusCard } from '../panels/draw-status-card.ts';
 import { loadFonts } from '../panels/fonts.ts';
 import { cardFromItem } from '../panels/info-card-content.ts';
-import { codeCardOpen, codeCardRows, codeScroll, codeView, error, loading, pinned } from '../state/app-state.ts';
-import { closeCard, retry } from '../state/commands.ts';
+import { codeCardOpen, codeCardRows, codeScroll, codeView, error, loading, pinned, replay } from '../state/app-state.ts';
+import { closeCard, replayBack, replayPlay, replayStep, retry } from '../state/commands.ts';
 import { GalaxySystem, TABLE_ANCHOR } from './galaxy-system.ts';
 import { headPosition } from './head.ts';
 
@@ -103,7 +103,10 @@ export class PanelSystem extends createSystem({}) {
       else this.drawCode();
     };
     this.code.onPress = id => {
-      if (id.startsWith('line:')) pressLine(Number(id.slice(5)));
+      if (id === 'replay:back') replayBack();
+      else if (id === 'replay:step') replayStep();
+      else if (id === 'replay:play') replayPlay();
+      else if (id.startsWith('line:')) pressLine(Number(id.slice(5)));
       else if (id === 'more') this.setRows(codeCardRows.peek() === CODE_LAYOUT.rows ? CODE_LAYOUT.moreRows : CODE_LAYOUT.rows);
     };
     this.code.onDrag = (_dx, dy) => {
@@ -119,6 +122,7 @@ export class PanelSystem extends createSystem({}) {
       codeView.subscribe(() => this.drawCode()),
       codeScroll.subscribe(() => this.drawCode()),
       codeCardOpen.subscribe(() => this.drawCode()),
+      replay.subscribe(() => this.drawCode()),
       pinned.subscribe(item => {
         this.item = cardless(item) ? null : item;
         this.card = this.item ? cardFromItem(this.item) : null;
@@ -143,9 +147,17 @@ export class PanelSystem extends createSystem({}) {
     return region?.name ? `${file} · ${region.name}` : file;
   }
 
+  /** The replay's part of the code card, or null. */
+  private replayMeta() {
+    const r = replay.peek();
+    return r
+      ? { note: r.note, variables: r.variables, position: `${r.index + 1} / ${r.total}`, playing: r.playing, failed: r.outcome === 'fails' && r.index === r.total - 1 }
+      : null;
+  }
+
   private setRows(rows: number) {
     codeCardRows.value = rows;
-    const size = codeCardSize(rows);
+    const size = codeCardSize(rows, replayLines(this.replayMeta()));
     this.code.resize(size.heightPx, size.heightM);
     codeScroll.value = Math.min(codeScroll.peek(), cardMaxScroll());
     this.drawCode();
@@ -178,6 +190,10 @@ export class PanelSystem extends createSystem({}) {
       const size = codeCardSize(CODE_LAYOUT.rows);
       this.code.resize(size.heightPx, size.heightM);
     }
+    // A replay's note and values lengthen the card; it shrinks back when the replay ends.
+    const replayMeta = this.replayMeta();
+    const size = codeCardSize(codeCardRows.peek(), replayLines(replayMeta));
+    this.code.resize(size.heightPx, size.heightM);
     if (show && !this.code.visible && !this.code.moved) place(this.code, PLACEMENTS.codeCard);
     this.code.visible = show;
     if (!show || !view) return;
@@ -192,6 +208,7 @@ export class PanelSystem extends createSystem({}) {
         },
         more: codeCardRows.peek() !== CODE_LAYOUT.rows,
         hovered: this.code.hovered,
+        replay: replayMeta,
       }),
     );
   }

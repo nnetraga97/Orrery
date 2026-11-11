@@ -33,6 +33,32 @@ export function chatAction(id: string): void {
   chatActions?.(id);
 }
 
+/** The replay's controls, carried out by the replay system. */
+export interface ReplayHandler {
+  start(which: 'failing' | 'fixed'): void;
+  step(): void;
+  back(): void;
+  play(): void;
+  stop(): void;
+  follow(on: boolean): void;
+  dismissNotice(): void;
+}
+let replays: ReplayHandler | null = null;
+export function connectReplay(next: ReplayHandler): () => void {
+  replays = next;
+  return () => {
+    if (replays === next) replays = null;
+  };
+}
+export const startReplay = (which: 'failing' | 'fixed') => replays?.start(which);
+export const replayStep = () => replays?.step();
+export const replayBack = () => replays?.back();
+/** Plays, or pauses while playing. */
+export const replayPlay = () => replays?.play();
+export const stopReplay = () => replays?.stop();
+export const followReplay = (on: boolean) => replays?.follow(on);
+export const dismissReplayNotice = () => replays?.dismissNotice();
+
 /** Push-to-talk, carried out by the voice system. */
 export interface VoiceHandler {
   press(target: VoiceTarget): void;
@@ -140,6 +166,13 @@ export const commands = {
   showChat,
   hideChat,
   showChatPage,
+  startReplay,
+  replayStep,
+  replayBack,
+  replayPlay,
+  stopReplay,
+  followReplay,
+  dismissReplayNotice,
   chatAction,
   pressMic,
   releaseMic,

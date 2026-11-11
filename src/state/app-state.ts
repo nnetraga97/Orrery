@@ -85,6 +85,25 @@ export const provider = signal<{ id: string; label: string; available: boolean; 
   models: [],
   model: '',
 });
+/** The running replay, as the code card and the debugging card show it, or null. */
+export type ReplayView = {
+  which: 'failing' | 'fixed';
+  title: string;
+  outcome: 'fails' | 'passes';
+  index: number;
+  total: number;
+  playing: boolean;
+  file: string;
+  line: number;
+  label: string;
+  note: string | null;
+  variables: { name: string; value: string }[];
+  /** The scene follows each step (lands on its file and shows its line). */
+  following: boolean;
+  /** The "Agent is debugging" card was dismissed. */
+  noticeDismissed: boolean;
+};
+export const replay = signal<ReplayView | null>(null);
 /** Inspector calls kept for the next plan (debugger tabs, transport, stack, evidence). */
 export const inspectorExtras = signal<Record<string, unknown[]>>({});
 
@@ -121,5 +140,6 @@ export const appState = {
   scenarioState,
   changedFiles,
   provider,
+  replay,
 };
 export type AppState = typeof appState;

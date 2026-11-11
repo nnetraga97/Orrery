@@ -9,10 +9,17 @@ export const CALLOUT = { widthPx: 720, heightPx: 270, widthM: 0.24, heightM: 0.0
 
 export type ProblemCard = { kind: 'problem'; title: string; fn: string; fixed: boolean };
 export type PointerCard = { kind: 'pointer'; file: string; line: number | null; message: string };
-export type Callout = ProblemCard | PointerCard;
+export type DebugCard = { kind: 'debug'; file: string; line: number; following: boolean };
+export type Callout = ProblemCard | PointerCard | DebugCard;
 
 export const calloutTitle = (c: Callout) =>
-  c.kind === 'problem' ? (c.fixed ? 'Fixed' : c.title) : `Agent · ${c.file.split('/').pop()}${c.line ? `:${c.line}` : ''}`;
+  c.kind === 'problem'
+    ? c.fixed
+      ? 'Fixed'
+      : c.title
+    : c.kind === 'debug'
+      ? 'Agent is debugging'
+      : `Agent · ${c.file.split('/').pop()}${c.line ? `:${c.line}` : ''}`;
 export const calloutHue = (c: Callout) => (c.kind === 'problem' ? (c.fixed ? THEME.ok : THEME.alert) : THEME.line);
 
 export function drawCallout(ctx: CanvasRenderingContext2D, w: number, h: number, u: number, c: Callout, hovered: string | null): HitRegion[] {
@@ -26,6 +33,24 @@ export function drawCallout(ctx: CanvasRenderingContext2D, w: number, h: number,
     ctx.restore();
     // The whole card is the target.
     return c.fixed ? [] : [{ id: 'card', x: 0, y: 0, w, h }];
+  }
+  if (c.kind === 'debug') {
+    ctx.save();
+    ctx.font = font('body', 12 * u);
+    ctx.fillStyle = THEME.white;
+    ctx.fillText(fit(ctx, `Paused at ${c.file.split('/').pop()}:${c.line}`, w - pad * 2), pad, 50 * u);
+    ctx.restore();
+    const bw = 96 * u,
+      bh = 24 * u,
+      regions: HitRegion[] = [];
+    const follow = button(ctx, c.following ? 'stopFollowing' : 'follow', c.following ? 'Stop following' : 'Follow ship', pad, 62 * u, bw, bh, u, {
+      state: stateOf(hovered, c.following ? 'stopFollowing' : 'follow'),
+      px: 10,
+    });
+    const dismiss = button(ctx, 'dismiss', 'Dismiss', pad + bw + 10 * u, 62 * u, 70 * u, bh, u, { state: stateOf(hovered, 'dismiss'), px: 10 });
+    if (follow) regions.push(follow);
+    if (dismiss) regions.push(dismiss);
+    return regions;
   }
   ctx.save();
   ctx.font = font('body', 11.5 * u);

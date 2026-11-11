@@ -88,3 +88,10 @@ the review wins; where both name something that no longer exists, the replacemen
   clients. Prices for the budget guard are estimates on the high side (`api/_lib/limits.ts`). `npm run dev:api` runs
   the functions locally; Vite proxies `/api` to it. `?agent=live` offers only providers the server holds a key for;
   `rate_limited` or `budget_spent` switches to the recorded agent with a notice.
+- Task 14: as the review says, no replay panel: the code card grows by the step's note and up to four values and its
+  footer gets Back, Step, Play/Pause and "3 / 5" (`src/systems/replay-system.ts`, `draw-code-card.ts`). The ship moves
+  through `view.executionAt` with the step's stack (innermost first), which labels the frames. The plan's
+  `view.runtimeStack(frames, selected)` is not called: it expects a live debugger session's frames (ids, depth,
+  source revision checks) and has nothing to show for a recorded run. Closing the code card ends the replay. The
+  Replay tab runs the failing run before the fix and the fixed run after; `run_replay` does the same. Check:
+  `"read": 2`; screenshot `docs/migration/xr-replay.png`.
