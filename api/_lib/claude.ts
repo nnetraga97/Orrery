@@ -46,19 +46,35 @@ export function toClaudeTools(tools: ToolSpec[]) {
   }));
 }
 
-function toClaudeBlock(b: Block): Record<string, unknown> {
+/** A thinking block's data, if it is Claude's own (a signed thinking block or a redacted one). Another provider's
+ * reasoning, or the recorded agent's, is not sent: the API would reject it. */
+function claudeThinking(opaque: unknown): Record<string, unknown> | null {
+  const o = opaque as Record<string, unknown> | null;
+  if (!o || typeof o !== 'object') return null;
+  if (o.type === 'thinking' && typeof o.signature === 'string' && typeof o.thinking === 'string') return o;
+  if (o.type === 'redacted_thinking' && typeof o.data === 'string') return o;
+  return null;
+}
+
+function toClaudeBlock(b: Block): Record<string, unknown> | null {
   switch (b.type) {
     case 'text':
-      return { type: 'text', text: b.text };
+      // The API rejects empty text blocks.
+      return b.text ? { type: 'text', text: b.text } : null;
     case 'thinking':
-      return b.opaque as Record<string, unknown>;
+      return claudeThinking(b.opaque);
     case 'tool_use':
       return { type: 'tool_use', id: b.id, name: b.name, input: b.input };
     case 'tool_result':
       return { type: 'tool_result', tool_use_id: b.toolUseId, content: b.content, is_error: b.isError };
   }
 }
-export const toClaudeMessages = (messages: Message[]) => messages.map(m => ({ role: m.role, content: m.blocks.map(toClaudeBlock) }));
+export const toClaudeMessages = (messages: Message[]) =>
+  messages.map(m => {
+    const content = m.blocks.map(toClaudeBlock).filter((b): b is Record<string, unknown> => !!b);
+    // A message left with nothing (an empty reply, or only another provider's thinking) still needs one block.
+    return { role: m.role, content: content.length ? content : [{ type: 'text', text: '…' }] };
+  });
 
 /** The API's content as wire blocks; thinking (shown or redacted) is kept whole as `opaque`. */
 export function fromClaudeContent(content: Record<string, any>[]): Block[] {
@@ -100,10 +116,11 @@ export function claudeParams(request: AgentRequest) {
 /** A provider error as a wire error code. */
 export function errorCode(e: unknown): Extract<StreamEvent, { type: 'error' }> {
   const message = e instanceof Error ? e.message : String(e);
-  if (e instanceof Anthropic.RateLimitError) return { type: 'error', code: 'rate_limited', message: 'The provider is busy. Try again in a moment.' };
+  // The provider's own rate limit is a busy moment (overloaded, try again); `rate_limited` is the relay's visitor limit.
+  if (e instanceof Anthropic.RateLimitError) return { type: 'error', code: 'overloaded', message: 'The provider is busy. Try again in a moment.' };
   if (e instanceof Anthropic.APIConnectionError) return { type: 'error', code: 'network', message: 'Could not reach the provider.' };
   const status = (e as { status?: number })?.status;
-  if (status === 429) return { type: 'error', code: 'rate_limited', message: 'The provider is busy. Try again in a moment.' };
+  if (status === 429) return { type: 'error', code: 'overloaded', message: 'The provider is busy. Try again in a moment.' };
   if (status === 529 || status === 503) return { type: 'error', code: 'overloaded', message: 'The provider is overloaded. Try again in a moment.' };
   if (status === 400 || status === 413 || status === 422) return { type: 'error', code: 'bad_request', message };
   if (status === 401 || status === 403) return { type: 'error', code: 'unavailable', message: 'This provider is not available.' };

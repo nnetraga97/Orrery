@@ -165,6 +165,7 @@ export class GalaxySystem extends createSystem({}) {
   }
 
   private cannonPending: GalaxyView | null = null;
+  private cannonNext: GalaxyView | null = null;
   private pausedAt: number | null = null;
   private pausedFor = 0;
   private focus: Vec3 = [0, 0, 0];
@@ -234,13 +235,16 @@ export class GalaxySystem extends createSystem({}) {
     if (!kit || !this.entity) return;
     kit.tick(now);
     // After the first frame with the galaxy: note the start-up time, then bring in the cannon.
+    // (on the next frame of this loop: a browser need not run window frames while a session presents).
+    if (this.cannonNext) {
+      const view = this.cannonNext;
+      this.cannonNext = null;
+      if (galaxyState.view === view) attachCannon(view, this.host);
+    }
     if (this.cannonPending) {
       if (startupMs.peek() == null) startupMs.value = Math.round(performance.now());
-      const view = this.cannonPending;
+      this.cannonNext = this.cannonPending;
       this.cannonPending = null;
-      requestAnimationFrame(() => {
-        if (galaxyState.view === view) attachCannon(view, this.host);
-      });
     }
     this.publishLanding();
     this.easeAnchor(delta);

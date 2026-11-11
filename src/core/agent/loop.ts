@@ -47,6 +47,8 @@ export type LoopStep = { state: LoopState; effects: LoopEffect[] };
 
 export const DECLINED = 'The user declined this change.';
 export const STOPPED = 'Stopped by the user before this ran.';
+/** A tool already running when the user stopped: it may have finished its work. */
+export const STOPPED_RUNNING = 'Stopped by the user while this was running; it may have completed.';
 export const NOT_RUN = (why: string) => `Not run: ${why}`;
 
 export const initialLoop = (over: Partial<LoopState> = {}): LoopState => ({
@@ -177,7 +179,9 @@ export function loopStep(state: LoopState, event: LoopEvent): LoopStep {
     case 'stop': {
       if (state.status === 'calling') return endTurn({ ...state, steer: [] }, 'stopped', [{ kind: 'cancelModel' }]);
       if (state.status !== 'tools') return same;
-      const results = state.pending.map(p => (p.state === 'done' ? p.result! : result(p.id, STOPPED, true)));
+      const results = state.pending.map(p =>
+        p.state === 'done' ? p.result! : result(p.id, p.state === 'running' ? STOPPED_RUNNING : STOPPED, true),
+      );
       return endTurn({ ...state, steer: [], messages: withUser(state.messages, results) }, 'stopped');
     }
   }

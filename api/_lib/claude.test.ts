@@ -111,10 +111,18 @@ test('a refusal with no content still makes a valid message', async () => {
   assert.ok(m && m.type === 'message' && m.stopReason === 'refusal' && m.message.blocks.length === 1);
 });
 
-test('a rate-limit error becomes a wire error', async () => {
+test("the provider's own rate limit is a busy error, not the relay's visitor limit", async () => {
   const err = Object.assign(new Error('429'), { status: 429 });
   const out = await run(stub([], err));
-  assert.deepEqual(out.map(e => e.type === 'error' && e.code), ['rate_limited']);
+  assert.deepEqual(out.map(e => e.type === 'error' && e.code), ['overloaded']);
+});
+
+test("another provider's thinking and empty text are not sent; a message never goes empty", () => {
+  const sent = toClaudeMessages([
+    { role: 'user', blocks: [{ type: 'text', text: 'go' }] },
+    { role: 'assistant', blocks: [{ type: 'thinking', text: 'x', opaque: { recorded: true } }, { type: 'thinking', opaque: null }, { type: 'thinking', opaque: { type: 'reasoning', id: 'rs_1' } }, { type: 'text', text: '' }] },
+  ]);
+  assert.deepEqual(sent[1].content, [{ type: 'text', text: '…' }]);
 });
 
 test('an assistant message survives the round trip unchanged, thinking signature included', () => {

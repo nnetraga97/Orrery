@@ -1,6 +1,7 @@
 // The agent relay as a function of its dependencies, so it can be tested without keys or network: validate the
 // request (the wire format, exactly this app's tools, at most 2 MB), check the visitor's rate and the day's budget,
 // pick the provider's adapter, and stream wire events back as server-sent events. Message contents are never logged.
+import { PROJECT_NAME, systemPrompt } from '../../src/core/agent/prompt.ts';
 import { TOOLS } from '../../src/core/agent/tools.ts';
 import { requestErrors } from '../../src/core/agent/wire.ts';
 import type { AgentRequest, StreamEvent, Usage } from '../../src/core/agent/wire.ts';
@@ -9,6 +10,8 @@ import type { Limits } from './limits.ts';
 import { keyFor } from './providers.ts';
 
 export const MAX_BODY_BYTES = 2 * 1024 * 1024;
+/** Output tokens counted for a call the browser cut off before its usage arrived. */
+export const ABORTED_OUTPUT_TOKENS = 8000;
 const TOOLS_JSON = JSON.stringify(TOOLS);
 
 export type Adapter = (request: AgentRequest, emit: (e: StreamEvent) => void, signal: AbortSignal) => Promise<{ model: string; usage: Usage } | null>;
@@ -43,6 +46,9 @@ export function createRelay(deps: RelayDeps) {
     if (errors.length) return Response.json({ error: errors.join(' ') }, { status: 400 });
     const req = body as AgentRequest;
     if (JSON.stringify(req.tools) !== TOOLS_JSON) return Response.json({ error: "The tools must be exactly this app's tools." }, { status: 400 });
+    // The system prompt is the app's own, built here from the project name: the browser's copy is not trusted.
+    const project = req.project && PROJECT_NAME.test(req.project) ? req.project : 'project';
+    req.system = systemPrompt(project);
     const key = keyFor(deps.env, req.provider);
     const adapter = key ? deps.adapter(req.provider, key) : null;
     if (!adapter) return errorStream('unavailable', 'This provider is not available.');
@@ -62,6 +68,8 @@ export function createRelay(deps: RelayDeps) {
         try {
           const done = await adapter(req, emit, abort.signal);
           if (done) deps.limits.spend(costCents(done.model, done.usage));
+          // A call cut off by the browser still cost something: count the request and a long answer, on the high side.
+          else if (abort.signal.aborted) deps.limits.spend(costCents('unknown', { input: raw.length / 4, output: ABORTED_OUTPUT_TOKENS }));
         } catch {
           emit({ type: 'error', code: 'internal', message: 'The relay failed.' });
         }

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { DECLINED, STOPPED, initialLoop, loopStep } from './loop.ts';
+import { DECLINED, STOPPED, STOPPED_RUNNING, initialLoop, loopStep } from './loop.ts';
 import type { LoopEffect, LoopEvent, LoopState } from './loop.ts';
 import { requestErrors } from './wire.ts';
 import type { Message, StopReason } from './wire.ts';
@@ -112,7 +112,7 @@ test('stop while tools run answers the open calls with an error and leaves a val
   assert.equal(r.state.status, 'stopped');
   assert.deepEqual(r.effects.map(e => e.kind), ['turnEnded']);
   const blocks = r.state.messages.at(-1)!.blocks;
-  assert.deepEqual(blocks.map(b => (b.type === 'tool_result' ? b.content : '')), ['ok', STOPPED]);
+  assert.deepEqual(blocks.map(b => (b.type === 'tool_result' ? b.content : '')), ['ok', STOPPED_RUNNING]);
   valid(r.state);
   // A late result is ignored.
   assert.deepEqual(loopStep(r.state, { type: 'toolFinished', id: 'b', content: 'late' }).effects, []);
@@ -157,4 +157,11 @@ test('a stream error fails the turn', () => {
   assert.equal(r.state.error, 'Too many requests');
   assert.deepEqual(r.effects.at(-1), { kind: 'turnEnded', outcome: 'failed', reason: 'rate_limited' });
   valid(run([{ type: 'userSaid', text: 'again' }], r.state).state);
+});
+
+test('stop while a question waits says it never ran', () => {
+  let r = run([{ type: 'userSaid', text: 'x' }, reply([use('q', 'ask_user', { questions: [{ id: 's', question: 'Which?' }] })])]);
+  r = run([{ type: 'stop' }], r.state);
+  const b = r.state.messages.at(-1)!.blocks[0];
+  assert.ok(b.type === 'tool_result' && b.content === STOPPED);
 });

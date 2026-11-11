@@ -2,6 +2,9 @@
 // end, so a one-line edit to a long file stays cheap), grouped into hunks with context, written as unified diff text in
 // git's form so the chat's diff drawing and counts read it as they read a provider's diffs.
 
+/** Above this many line pairs (about 16 MB of table) the exact match is skipped. */
+const MAX_CELLS = 4_000_000;
+
 export type DiffLine = { op: ' ' | '-' | '+'; text: string };
 export type Hunk = { oldStart: number; oldLines: number; newStart: number; newLines: number; lines: DiffLine[] };
 
@@ -24,6 +27,14 @@ function edits(a: string[], b: string[]): DiffLine[] {
   }
   const x = a.slice(start, endA),
     y = b.slice(start, endB);
+  // A very large rewrite: shown as the old lines removed and the new added, rather than an exact but costly match.
+  if (x.length * y.length > MAX_CELLS)
+    return [
+      ...a.slice(0, start).map(text => ({ op: ' ' as const, text })),
+      ...x.map(text => ({ op: '-' as const, text })),
+      ...y.map(text => ({ op: '+' as const, text })),
+      ...a.slice(endA).map(text => ({ op: ' ' as const, text })),
+    ];
   // lcs[i][j]: the common subsequence length of x[i..] and y[j..].
   const lcs: Uint32Array[] = Array.from({ length: x.length + 1 }, () => new Uint32Array(y.length + 1));
   for (let i = x.length - 1; i >= 0; i--)

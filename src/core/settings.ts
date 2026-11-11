@@ -71,6 +71,8 @@ export function applyChoice(s: Settings, key: string, value: string): Settings {
   if (!(key in DEFAULT_SETTINGS)) return s;
   const current = (DEFAULT_SETTINGS as Record<string, unknown>)[key];
   const parsed = typeof current === 'number' ? Number(value) : typeof current === 'boolean' ? value === 'true' : value;
+  // A model belongs to its provider: changing provider clears it (the provider's default is used).
+  if (key === 'provider' && parsed !== s.provider) return validSettings({ ...s, provider: parsed, model: '' });
   return validSettings({ ...s, [key]: parsed });
 }
 

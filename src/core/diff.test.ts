@@ -60,3 +60,12 @@ test('a new file and a trailing newline', () => {
   assert.ok(text.includes('@@ -0,0 +1,2 @@'));
   assert.deepEqual(stat({ diff: text }), { added: 2, removed: 0 });
 });
+
+test('a very large rewrite is shown whole, quickly', () => {
+  const before = Array.from({ length: 3000 }, (_, i) => `a${i}`).join('\n');
+  const after = Array.from({ length: 3000 }, (_, i) => `b${i}`).join('\n');
+  const t = Date.now();
+  const hunks = lineDiff(before, after, 0);
+  assert.ok(Date.now() - t < 500);
+  assert.equal(hunks.flatMap(h => h.lines).filter(l => l.op === '-').length, 3000);
+});

@@ -22,8 +22,13 @@ export function toOpenAIInput(messages: Message[]): Record<string, unknown>[] {
   const out: Record<string, unknown>[] = [];
   for (const m of messages)
     for (const b of m.blocks) {
-      if (b.type === 'text') out.push(m.role === 'user' ? { role: 'user', content: b.text } : { type: 'message', role: 'assistant', content: [{ type: 'output_text', text: b.text }] });
-      else if (b.type === 'thinking') out.push(b.opaque as Record<string, unknown>);
+      if (b.type === 'text') {
+        if (b.text) out.push(m.role === 'user' ? { role: 'user', content: b.text } : { type: 'message', role: 'assistant', content: [{ type: 'output_text', text: b.text }] });
+      } else if (b.type === 'thinking') {
+        // Only OpenAI's own reasoning items go back; another provider's thinking (or the recording's) is left out.
+        const item = b.opaque as Record<string, unknown> | null;
+        if (item && item.type === 'reasoning' && typeof item.id === 'string') out.push(item);
+      }
       else if (b.type === 'tool_use') out.push({ type: 'function_call', call_id: b.id, name: b.name, arguments: JSON.stringify(b.input ?? {}) });
       else out.push({ type: 'function_call_output', call_id: b.toolUseId, output: b.isError ? `Error: ${b.content}` : b.content });
     }
@@ -67,14 +72,17 @@ export function openaiParams(request: AgentRequest) {
     tool_choice: 'auto',
     reasoning: { effort: request.effort && EFFORTS.includes(request.effort) ? request.effort : 'medium', summary: 'auto' },
     store: false,
+    // Stateless: reasoning items must carry their encrypted content to be sent back on the next request.
+    include: ['reasoning.encrypted_content'],
     max_output_tokens: 64000,
     stream: true,
   };
 }
 
 function errorOf(e: unknown): Extract<StreamEvent, { type: 'error' }> {
+  // The provider's own rate limit is a busy moment; `rate_limited` is reserved for the relay's visitor limit.
   if (e instanceof OpenAI.RateLimitError || (e as { status?: number })?.status === 429)
-    return { type: 'error', code: 'rate_limited', message: 'The provider is busy. Try again in a moment.' };
+    return { type: 'error', code: 'overloaded', message: 'The provider is busy. Try again in a moment.' };
   if (e instanceof OpenAI.APIConnectionError) return { type: 'error', code: 'network', message: 'Could not reach the provider.' };
   const status = (e as { status?: number })?.status;
   if (status === 400 || status === 422) return { type: 'error', code: 'bad_request', message: e instanceof Error ? e.message : String(e) };

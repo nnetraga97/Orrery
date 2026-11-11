@@ -39,3 +39,23 @@ test('only the newest fifty chats are kept', () => {
   assert.equal(store.load('t0'), null);
   assert.ok(store.load('t54'));
 });
+
+test('when storage is full, the oldest chats make room; if nothing can, the save says so', () => {
+  const map = new Map<string, string>();
+  const quota = 3; // chat bodies
+  const kv = {
+    get: (k: string) => map.get(k) ?? null,
+    set: (k: string, v: string) => {
+      if (k.startsWith('chat:') && !map.has(k) && [...map.keys()].filter(x => x.startsWith('chat:')).length >= quota) return false;
+      map.set(k, v);
+      return true;
+    },
+    remove: (k: string) => void map.delete(k),
+  };
+  const store = createThreadStore(kv);
+  for (let i = 0; i < 5; i++) assert.equal(store.save(createThread('claude', 'p', i, `t${i}`)), true);
+  assert.deepEqual(store.list().map(t => t.id), ['t4', 't3', 't2']);
+  assert.equal(store.load('t0'), null);
+  const none = createThreadStore({ get: () => null, set: () => false, remove: () => {} });
+  assert.equal(none.save(createThread('claude', 'p', 1, 'x')), false);
+});

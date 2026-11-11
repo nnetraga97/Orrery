@@ -149,7 +149,7 @@ export class ReplaySystem extends createSystem({}) {
   update() {
     // A playing replay holds its step while paused (it would otherwise jump ahead on resume).
     if (paused.peek()) {
-      if (this.run?.playing) this.run.play(STEP_MS, performance.now());
+      this.run?.hold(performance.now());
       return;
     }
     if (this.run?.tick(performance.now())) {

@@ -4,7 +4,7 @@
 import { createSystem } from '@iwsdk/core';
 import { soundFor } from '../core/sound.ts';
 import type { SoundEvent } from '../core/sound.ts';
-import { soundLevel } from '../state/app-state.ts';
+import { paused, soundLevel } from '../state/app-state.ts';
 import { connectSound } from '../state/commands.ts';
 
 export class SoundSystem extends createSystem({}) {
@@ -25,6 +25,8 @@ export class SoundSystem extends createSystem({}) {
   }
 
   private sound(event: SoundEvent) {
+    // Nothing plays while the session is paused (a reply finishing meanwhile must not wake the audio).
+    if (paused.peek()) return;
     if (!this.context) {
       // Only a press may start the audio.
       if (event === 'hover') return;

@@ -30,6 +30,7 @@ test('the request: stateless, reasoning summaries, the default model', () => {
   const p = openaiParams(request) as Record<string, any>;
   assert.equal(p.model, 'gpt-6-astra');
   assert.equal(p.store, false);
+  assert.deepEqual(p.include, ['reasoning.encrypted_content']);
   assert.deepEqual(p.reasoning, { effort: 'medium', summary: 'auto' });
   assert.equal(p.instructions, 'sys');
   assert.equal(p.tools.length, TOOLS.length);
@@ -68,9 +69,16 @@ test('a refusal', async () => {
   assert.ok(m && m.type === 'message' && m.stopReason === 'refusal');
 });
 
-test('a rate-limit error', async () => {
+test("the provider's own rate limit is a busy error", async () => {
   const out = await run(stub(Object.assign(new Error('slow'), { status: 429 })));
-  assert.deepEqual(out.map(e => e.type === 'error' && e.code), ['rate_limited']);
+  assert.deepEqual(out.map(e => e.type === 'error' && e.code), ['overloaded']);
+});
+
+test("another provider's thinking and empty text are left out", () => {
+  const input = toOpenAIInput([
+    { role: 'assistant', blocks: [{ type: 'thinking', opaque: { type: 'thinking', thinking: 'x', signature: 's' } }, { type: 'thinking', opaque: { recorded: true } }, { type: 'text', text: '' }, { type: 'text', text: 'Hi' }] },
+  ]);
+  assert.deepEqual(input, [{ type: 'message', role: 'assistant', content: [{ type: 'output_text', text: 'Hi' }] }]);
 });
 
 test('an assistant message survives the round trip: reasoning items go back unchanged and in order', () => {

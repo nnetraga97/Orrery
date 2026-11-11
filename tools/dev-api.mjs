@@ -19,7 +19,12 @@ const server = http.createServer(async (req, res) => {
     return;
   }
   try {
-    const { default: handler } = await load();
+    // The functions export one web-standard handler per method (GET, POST).
+    const handler = (await load())[req.method ?? 'GET'];
+    if (!handler) {
+      res.writeHead(405).end('Method not allowed');
+      return;
+    }
     const abort = new AbortController();
     res.on('close', () => abort.abort());
     const body = req.method === 'GET' || req.method === 'HEAD' ? undefined : Readable.toWeb(req);

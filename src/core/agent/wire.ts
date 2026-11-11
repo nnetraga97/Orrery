@@ -12,6 +12,8 @@ export type StopReason = 'end' | 'tool_use' | 'max_tokens' | 'refusal';
 export type ToolSpec = { name: string; description: string; input_schema: Record<string, unknown> };
 export type AgentRequest = {
   provider: string;
+  /** The open project; the relay builds the system prompt from it. */
+  project?: string;
   model?: string;
   effort?: string;
   system: string;
@@ -64,6 +66,7 @@ export function requestErrors(v: unknown): string[] {
   const errors: string[] = [];
   if (!isString(v.provider) || !v.provider) errors.push('provider is required.');
   if (v.model !== undefined && !isString(v.model)) errors.push('model must be a string.');
+  if (v.project !== undefined && !isString(v.project)) errors.push('project must be a string.');
   if (v.effort !== undefined && !isString(v.effort)) errors.push('effort must be a string.');
   if (!isString(v.system)) errors.push('system must be a string.');
   if (!Array.isArray(v.tools) || !v.tools.every(t => isObject(t) && isString(t.name) && isString(t.description) && isObject(t.input_schema)))

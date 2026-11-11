@@ -8,7 +8,8 @@ import { createRelay } from './_lib/relay.ts';
 
 const limits = createLimits({ budgetCents: Number(process.env.DAILY_BUDGET_CENTS) || DEFAULT_BUDGET_CENTS });
 
-export default createRelay({
+/** POST /api/agent (web-standard handler: the host calls it with a Request). */
+export const POST = createRelay({
   env: process.env,
   limits,
   adapter(provider, key) {

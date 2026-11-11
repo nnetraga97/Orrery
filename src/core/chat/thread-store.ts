@@ -29,11 +29,23 @@ export function createThreadStore(kv: KeyValue) {
       return json ? fromJSON(json) : null;
     },
     /** Saves a thread and its summary; the oldest chats beyond fifty are dropped. */
-    save(thread: StoredThread) {
-      kv.set(`chat:${thread.id}`, toJSON(thread));
-      const list = upsert(readIndex(), summaryOf(thread));
+    save(thread: StoredThread): boolean {
+      let list = upsert(readIndex(), summaryOf(thread));
       for (const old of list.slice(KEEP)) kv.remove(`chat:${old.id}`);
-      kv.set(INDEX, JSON.stringify(list.slice(0, KEEP)));
+      list = list.slice(0, KEEP);
+      const json = toJSON(thread);
+      // When the device's storage is full, the oldest other chats make room, one at a time.
+      while (kv.set(`chat:${thread.id}`, json) === false) {
+        const oldest = [...list].reverse().find(t => t.id !== thread.id);
+        if (!oldest) {
+          kv.set(INDEX, JSON.stringify(list.filter(t => t.id !== thread.id)));
+          return false;
+        }
+        kv.remove(`chat:${oldest.id}`);
+        list = list.filter(t => t.id !== oldest.id);
+      }
+      kv.set(INDEX, JSON.stringify(list));
+      return true;
     },
     remove(id: string) {
       kv.remove(`chat:${id}`);

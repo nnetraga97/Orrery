@@ -38,6 +38,9 @@ test('search takes a safe regular expression between slashes', async () => {
   assert.deepEqual((await ws.search('/^\\s+[ab] =/')).map(r => r.line), [2, 3]);
   // A pattern that could take exponential time is searched as plain text instead.
   assert.equal(safePattern('/(a+)+$/'), null);
+  assert.equal(safePattern('/(a|a)*$/'), null);
+  assert.equal(safePattern('/(a|aa)+$/'), null);
+  assert.ok(safePattern('/(get|set)Value/') instanceof RegExp);
   assert.ok(safePattern('/^\\s+[ab] =/') instanceof RegExp);
   assert.equal(safePattern('plain'), null);
 });

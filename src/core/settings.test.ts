@@ -37,3 +37,9 @@ test('stored settings round-trip; damaged ones fall back to the defaults', () =>
   assert.deepEqual(loadSettings('{oops'), DEFAULT_SETTINGS);
   assert.deepEqual(loadSettings(null), DEFAULT_SETTINGS);
 });
+
+test('changing provider clears the model chosen for the old one', () => {
+  const s = applyChoice(applyChoice(DEFAULT_SETTINGS, 'model', 'claude-opus-5-5'), 'provider', 'nemotron');
+  assert.equal(s.model, '');
+  assert.equal(applyChoice(s, 'provider', 'nemotron').model, '');
+});

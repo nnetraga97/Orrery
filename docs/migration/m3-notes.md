@@ -124,3 +124,24 @@ the review wins; where both name something that no longer exists, the replacemen
   agent's question: delivered with the answer, after the tool results. Queue: sent by itself when the turn ended.
   Dragging the transcript scrolled it (682 → 207 px). A steer had started a second plan card, and a finished turn's
   "in progress" step kept spinning: a plan now belongs to the user's request, and only a running turn's step spins.
+
+## Review (Fable), fixed before the merge
+
+- OpenAI: stateless requests now ask for `reasoning.encrypted_content`, so reasoning items can be sent back.
+- The provider's own 429 is `overloaded` ("busy, try again"); `rate_limited` is only the relay's visitor limit, so a
+  busy provider no longer swaps a live chat for the recording.
+- Thinking data travels only to the provider that made it: each adapter drops another provider's (or the recording's)
+  thinking, and empty text blocks; a provider change opens that provider's own last chat.
+- A stream that ends without its message or an error fails the turn instead of leaving it running.
+- Calls the loop answers itself (invalid, refused by mode or permission) settle as failed; nothing is left running at
+  the end of any turn.
+- The search's regular-expression guard also rejects quantified groups with alternation (`(a|a)*`), and long lines
+  are matched as text.
+- The relay builds the system prompt itself from the project name, allowlists the Nemotron model, counts a call the
+  browser cut off against the budget, and exports web-standard `POST` / `GET` handlers.
+- Saved permission and mode survive opening a project; a model is cleared when its provider changes; a turn's ending
+  never lands in a chat opened meanwhile; a question with no options gets "You decide"; a steer keeps the turn's diff
+  baseline; a superseded project open stops.
+- Chat saves make room by dropping the oldest chats when storage is full; streaming redraws are capped at ten a
+  second; the cannon attaches on the next XR-loop frame; sound stays quiet while paused; very large diffs skip the
+  exact match; Stop says a running tool "may have completed".

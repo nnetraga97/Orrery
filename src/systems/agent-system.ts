@@ -7,6 +7,7 @@ import { createSystem } from '@iwsdk/core';
 import { initialLoop, loopStep } from '../core/agent/loop.ts';
 import type { LoopEffect, LoopEvent, LoopState, TurnOutcome } from '../core/agent/loop.ts';
 import { previewEdit, runTool } from '../core/agent/run-tool.ts';
+import { systemPrompt } from '../core/agent/prompt.ts';
 import { TOOLS } from '../core/agent/tools.ts';
 import type { AgentRequest, Message, StreamEvent, ToolUseBlock } from '../core/agent/wire.ts';
 import { toolUses } from '../core/agent/wire.ts';
@@ -46,15 +47,6 @@ import {
 } from '../state/app-state.ts';
 import { connectChat, connectChatActions, playSound, pressMic, releaseMic, showChatPage, showCode } from '../state/commands.ts';
 
-/** The system prompt: byte-stable for a project, so a provider can cache it with the tool list. */
-export const systemPrompt = (project: string) =>
-  [
-    `You are a coding agent inside Orrery, where a codebase is seen as a galaxy from inside a headset. The project is "${project}".`,
-    'The user talks to you by voice and pinches choices; they cannot type. Your edits go to an in-memory copy of the project that the user reviews and approves.',
-    'Work in small steps. Search and read before you answer. Point at code with show_user before explaining it. When a choice belongs to the user, ask with ask_user and offer options. Keep a plan with update_plan when the work has more than two steps. Edit with replace_in_file, including enough surrounding text to make the match unique. After a fix, call run_replay with "fixed" so the user can watch it run.',
-    'Your messages are read on a small window: short paragraphs, short lists, code blocks only for code.',
-  ].join('\n\n');
-
 type Pending = { id: string; name: string; input: Record<string, unknown> };
 
 export class AgentSystem extends createSystem({}) {
@@ -91,6 +83,14 @@ export class AgentSystem extends createSystem({}) {
         const name = dataset.peek();
         if ((p === 'overview' || p === 'landed') && name && name !== this.opened) void this.openProject(name);
       }),
+      // A chat belongs to its provider (its thinking data is that provider's): a new provider opens its own last chat.
+      provider.subscribe(p => {
+        const t = thread.peek();
+        if (this.opened && this.workspace && t && t.provider !== p.id) {
+          this.stopTurn();
+          this.restore(this.opened);
+        }
+      }),
       () => setSourceOverride(null),
     );
   }
@@ -107,7 +107,10 @@ export class AgentSystem extends createSystem({}) {
     this.stopTurn();
     const query = new URLSearchParams(location.search);
     const id = query.get('scenario') ?? (name === 'editor-core' ? 'range-edge' : null);
-    this.scenario = id ? await this.loadScenario(id, name) : null;
+    const scenario = id ? await this.loadScenario(id, name) : null;
+    // A later open (another project chosen meanwhile) wins.
+    if (this.opened !== name) return;
+    this.scenario = scenario;
     scenarioSignal.value = this.scenario;
     const paths = galaxyState.nodes.map(n => n.path);
     const s = this.scenario;
@@ -124,11 +127,13 @@ export class AgentSystem extends createSystem({}) {
     const ws = this.workspace;
     let brokenText: string | null = null;
     if (s) brokenText = await ws.read(s.breakPatch.file).catch(() => null);
+    if (this.opened !== name) return;
     setSourceOverride((ds, path) => (ds !== name ? null : (ws.edited(path) ?? (s && path === s.breakPatch.file ? brokenText : null))));
     if (s) this.events.refresh(s.breakPatch.file);
     scenarioState.value = s ? 'broken' : 'none';
     changedFiles.value = [];
-    composer.value = composerOps.initialComposer({ notice: composer.peek().notice });
+    const c = composer.peek();
+    composer.value = composerOps.initialComposer({ notice: c.notice, mode: c.mode, permission: c.permission });
     this.restore(name);
     if (this.auto) this.startAuto();
   }
@@ -286,6 +291,7 @@ export class AgentSystem extends createSystem({}) {
       ...(provider.peek().model ? { model: provider.peek().model } : {}),
       // The effort stays the same through a chat, so the provider's cache holds (a setting).
       ...((this.globals.effort as (() => string) | undefined) ? { effort: (this.globals.effort as () => string)() } : {}),
+      project: name,
       system: systemPrompt(name),
       tools: TOOLS,
       messages,
@@ -296,13 +302,17 @@ export class AgentSystem extends createSystem({}) {
     this.live.thinking = '';
     this.live.text = '';
     this.live.thinkingStart = 0;
+    let ended = false;
     try {
       await this.port.send(request, event => {
         if (abort.signal.aborted || call !== this.live.call) return;
+        if (event.type === 'message' || event.type === 'error') ended = true;
         this.onStream(event);
       }, abort.signal);
+      if (!ended && !abort.signal.aborted && call === this.live.call)
+        this.onStream({ type: 'error', code: 'network', message: 'The answer stopped before it was complete.' });
     } catch (e) {
-      if (abort.signal.aborted) return;
+      if (abort.signal.aborted || call !== this.live.call) return;
       this.onStream({ type: 'error', code: 'network', message: e instanceof Error ? e.message : String(e) });
     }
   }
@@ -328,6 +338,10 @@ export class AgentSystem extends createSystem({}) {
     if (event.type === 'message' || event.type === 'error') {
       this.items = this.items.filter(i => !i.id?.startsWith('live-'));
       this.dispatch({ type: 'stream', event });
+      // Calls the loop answered itself (an invalid input, refused by the mode or permission) never run: they settle.
+      for (const p of this.loop.pending)
+        if (p.state === 'done' && p.result?.isError) this.updateItem(p.id, { status: 'failed', result: p.result.content });
+      this.publish();
     }
   }
 
@@ -434,7 +448,11 @@ export class AgentSystem extends createSystem({}) {
   }
 
   private askUser(id: string, input: Record<string, unknown>) {
-    const questions = ((input.questions as ChatQuestion[]) ?? []).map(q => ({ ...q, options: q.options ?? [] }));
+    // Every question can be answered by hand: one with no options gets "You decide" (voice may be unavailable).
+    const questions = ((input.questions as ChatQuestion[]) ?? []).map(q => ({
+      ...q,
+      options: q.options?.length ? q.options : [{ label: YOU_DECIDE, description: 'Go with what you think is best.' }],
+    }));
     const request: ChatRequest = { id, type: 'questions', questions };
     this.requests.push(request);
     answers.value = new Map(answers.peek()).set(id, answerState(request));
@@ -455,16 +473,17 @@ export class AgentSystem extends createSystem({}) {
   }
 
   private async finishTurn(outcome: TurnOutcome) {
+    const chat = thread.peek()?.id;
     this.requests = [];
     answers.value = new Map();
-    // A stopped or failed turn leaves nothing running: half-streamed text goes, open rows settle as failed.
-    if (outcome !== 'completed') {
-      this.items = this.items
-        .filter(i => !i.id?.startsWith('live-'))
-        .map(i => (i.status === 'inProgress' || i.status === 'running' ? { ...i, status: 'failed' } : i));
-    }
+    // A turn leaves nothing running: half-streamed text goes, rows still open settle as failed.
+    this.items = this.items
+      .filter(i => !i.id?.startsWith('live-'))
+      .map(i => (i.status === 'inProgress' || i.status === 'running' ? { ...i, status: 'failed' } : i));
     if (this.changedThisTurn && this.workspace) {
       const diff = await this.workspace.turnDiff();
+      // Another chat was opened meanwhile: this turn's ending belongs to the old one, which was saved as it stopped.
+      if (thread.peek()?.id !== chat) return;
       if (diff) this.items.push({ id: `diff-${this.turn}`, type: 'turnDiff', diff });
     }
     this.changedThisTurn = false;
@@ -504,8 +523,11 @@ export class AgentSystem extends createSystem({}) {
     const context = attachContext ? this.looking() : null;
     this.turn++;
     this.items.push({ id: `u${Date.now().toString(36)}${this.turn}`, type: 'userMessage', text, attachmentNames: context ? [context.label] : [] });
-    this.workspace?.markTurn();
-    this.events.turnStarted(text);
+    // A steer belongs to the running turn: the turn's diff keeps its starting point.
+    if (!steer) {
+      this.workspace?.markTurn();
+      this.events.turnStarted(text);
+    }
     agentPointer.value = null;
     this.dispatch({ type: 'settings', permission: composer.peek().permission, mode: composer.peek().mode });
     this.dispatch({ type: steer ? 'steer' : 'userSaid', text: text + (context?.text ?? '') });
@@ -683,6 +705,7 @@ export class AgentSystem extends createSystem({}) {
 }
 
 const DEFAULT_PROMPTS = ['Explain this project', 'Find a bug', 'Show me the main function'];
+export const YOU_DECIDE = 'You decide';
 
 /** A file's baked text, never the override (the workspace is the override). */
 async function readBaked(name: string, path: string): Promise<string | null> {

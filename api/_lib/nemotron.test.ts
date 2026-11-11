@@ -64,7 +64,7 @@ test('a refusal (content filter) and a rate-limit error', async () => {
   const refused = await run(sse([{ choices: [{ delta: { content: 'No.' }, finish_reason: 'content_filter' }] }]));
   assert.ok(refused.some(e => e.type === 'message' && e.stopReason === 'refusal'));
   const limited = await run(new Response('slow down', { status: 429 }));
-  assert.deepEqual(limited.map(e => e.type === 'error' && e.code), ['rate_limited']);
+  assert.deepEqual(limited.map(e => e.type === 'error' && e.code), ['overloaded']);
 });
 
 test('an assistant message survives the round trip as Chat Completions messages', () => {
@@ -79,4 +79,19 @@ test('an assistant message survives the round trip as Chat Completions messages'
     { role: 'tool', tool_call_id: 'a', content: 'text' },
     { role: 'user', content: 'and explain' },
   ]);
+});
+
+test('only the known model is sent, whatever the request names', async () => {
+  const seen: { body?: any } = {};
+  await streamNemotron(
+    async (_url, init) => {
+      seen.body = JSON.parse(String(init.body));
+      return new Response('x', { status: 500 });
+    },
+    'k',
+    { ...request, model: 'someone-elses/model' },
+    () => {},
+    new AbortController().signal,
+  );
+  assert.equal(seen.body.model, 'nvidia/nemotron-3-super-120b-a12b');
 });

@@ -7,6 +7,7 @@ export type SearchHit = { path: string; line: number; text: string };
 export type Workspace = ReturnType<typeof createWorkspace>;
 
 const MAX_HITS = 200;
+const MAX_REGEX_LINE = 2000;
 
 /** Rejects absolute paths, drive letters, backslashes, empty segments and `..`. */
 export function checkPath(path: string): string {
@@ -23,7 +24,8 @@ export function checkPath(path: string): string {
 export function safePattern(pattern: string): RegExp | null {
   const m = pattern.match(/^\/(.+)\/([imsu]*)$/);
   if (!m || m[1].length > 200) return null;
-  if (/\([^)]*[+*}][^)]*\)\s*[+*{?]/.test(m[1])) return null;
+  // A quantified group holding a quantifier or an alternation ((a+)+, (a|a)*) can take exponential time.
+  if (/\([^)]*[+*}|][^)]*\)\s*[+*{]/.test(m[1])) return null;
   try {
     return new RegExp(m[1], m[2]);
   } catch {
@@ -87,7 +89,9 @@ export function createWorkspace(readOriginal: (path: string) => Promise<string |
         if (text == null) continue;
         const lines = text.split('\n');
         for (let k = 0; k < lines.length; k++) {
-          if (regex ? (regex.lastIndex = 0, regex.test(lines[k])) : lines[k].includes(pattern)) {
+          // A regular expression runs only on lines of reasonable length; longer ones are matched as text.
+          const useRegex = regex && lines[k].length <= MAX_REGEX_LINE;
+          if (useRegex ? (regex.lastIndex = 0, regex.test(lines[k])) : lines[k].includes(pattern)) {
             hits.push({ path, line: k + 1, text: lines[k] });
             if (hits.length >= MAX_HITS) return hits;
           }

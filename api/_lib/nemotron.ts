@@ -6,6 +6,7 @@ import type { AgentRequest, Block, Message, StopReason, StreamEvent, ToolSpec, U
 
 export const NEMOTRON_ENDPOINT = 'https://api.tokenfactory.nebius.com/v1/chat/completions';
 export const NEMOTRON_DEFAULT_MODEL = 'nvidia/nemotron-3-super-120b-a12b';
+export const NEMOTRON_MODELS = [NEMOTRON_DEFAULT_MODEL];
 
 type Fetch = (url: string, init: RequestInit) => Promise<Response>;
 
@@ -49,7 +50,8 @@ async function* sseData(body: ReadableStream<Uint8Array>): AsyncGenerator<string
 }
 
 export async function streamNemotron(fetchFn: Fetch, key: string, request: AgentRequest, emit: (e: StreamEvent) => void, signal: AbortSignal): Promise<{ model: string; usage: Usage } | null> {
-  const model = request.model || NEMOTRON_DEFAULT_MODEL;
+  // Only the known model: a request cannot pick another model on the account.
+  const model = request.model && NEMOTRON_MODELS.includes(request.model) ? request.model : NEMOTRON_DEFAULT_MODEL;
   try {
     const res = await fetchFn(NEMOTRON_ENDPOINT, {
       method: 'POST',
@@ -70,7 +72,7 @@ export async function streamNemotron(fetchFn: Fetch, key: string, request: Agent
     if (!res.ok || !res.body) {
       emit(
         res.status === 429
-          ? { type: 'error', code: 'rate_limited', message: 'The provider is busy. Try again in a moment.' }
+          ? { type: 'error', code: 'overloaded', message: 'The provider is busy. Try again in a moment.' }
           : res.status === 401 || res.status === 403
             ? { type: 'error', code: 'unavailable', message: 'This provider is not available.' }
             : { type: 'error', code: res.status === 400 ? 'bad_request' : 'internal', message: `The provider returned HTTP ${res.status}.` },

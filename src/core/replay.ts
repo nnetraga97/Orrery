@@ -64,6 +64,10 @@ export function createReplay(data: ReplayData) {
     pause() {
       playing = null;
     },
+    /** Holds the current step without advancing (while the session is paused). */
+    hold(now: number) {
+      if (playing) playing.last = now;
+    },
     /** Advances while playing; returns true if the step changed. */
     tick(now: number) {
       if (!playing || now - playing.last < playing.interval) return false;

@@ -310,7 +310,9 @@ export class ChatWindowSystem extends createSystem({}) {
     this.clock += delta;
     this.since += delta;
     // Ten frames a second while anything moves (nothing moves with reduce motion); otherwise only on change.
-    if (this.dirty || (this.animated && !this.reduceMotion && this.since >= FRAME_SECONDS)) {
+    // While a turn streams, changes too are drawn at most ten times a second.
+    const streaming = thread.peek()?.status === 'running';
+    if ((this.dirty && (!streaming || this.since >= FRAME_SECONDS)) || (this.animated && !this.reduceMotion && this.since >= FRAME_SECONDS)) {
       this.dirty = false;
       this.since = 0;
       this.draw();
