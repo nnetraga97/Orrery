@@ -4,7 +4,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { planetBuildBudget } from '../shared/build-budget.js';
 import { createCannonRig } from './cannon-rig.js';
 import { createSatelliteRig } from './satellite-rig.js';
-import { createSkyIsland } from './sky-island.js';
+import { IslandMotion, createSkyIsland } from './sky-island.js';
 import { createTerminalMoonRig } from './terminal-moon-rig.js';
 import { createContextDistrict } from './context-district.js';
 
@@ -366,8 +366,8 @@ export function createCannonScene(ctx) {
     motion.fill = pose.fill;
     motion.phase = pose.phase;
     rig.step(dt, { ...pose, yaw: Math.atan2(aim.dir.x, aim.dir.z), pitch: motion.pitch });
-    stationRig.step(dt);
-    moonRig.step(dt);
+    stationRig.step(IslandMotion.idle || island.state.level > 0 ? dt : 0);
+    moonRig.step(IslandMotion.idle || island.state.level > 0 || moonRig.state.busy ? dt : 0);
     island.waiting(!!state.beacon);
     island.step(dt, t);
     if (ctx.ui.status.mode === 'thinking' && t < ctx.ui.status.until) {

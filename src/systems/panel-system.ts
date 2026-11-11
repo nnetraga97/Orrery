@@ -4,7 +4,7 @@
 // only its marker. Windows redraw only when their signal or hover changes.
 import { Vector3, createSystem } from '@iwsdk/core';
 import { hasSelection, shownRange, visibleLines } from '../core/code-view.ts';
-import { panelPlacements } from '../core/layout.ts';
+import { DEFAULT_SEAT, panelPlacements } from '../core/layout.ts';
 import type { Placement, Seat } from '../core/layout.ts';
 import { dragScroll } from '../core/scroll.ts';
 import { THEME } from '../core/theme.ts';
@@ -28,7 +28,7 @@ const CARD_LIFT = 0.12,
   STATUS_LIFT = 0.18;
 
 /** The seated eye the windows are laid out for (room metres; the user faces -Z). */
-export const SEAT: Seat = { eye: [0, 1.2, 0] };
+export const SEAT: Seat = DEFAULT_SEAT;
 export const PLACEMENTS = panelPlacements(SEAT);
 
 /** Puts a panel mesh at a placement, facing the eye. */

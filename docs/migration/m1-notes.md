@@ -241,8 +241,11 @@ headset holds its frame rate anyway.
 ## Headset tier (M4, Task 18)
 
 `node tools/assets/build-assets.mjs <codebase-viz> --tier=quest` writes `public/assets-quest/` (99.6 MB): textures at
-most 512 px for the kit, vehicles and buildings and 1024 px elsewhere, and the island's and cannon's geometry quantized
-(KHR_mesh_quantization; three's loader reads it without a decoder). The app uses it in a headset's browser, or with
+most 512 px for the kit, vehicles, buildings and the island's building sheets and 1024 px elsewhere; the island's
+terrain and architecture and the cannon quantized (KHR_mesh_quantization; three's loader reads it without a decoder);
+and the island's building sheets simplified to about a fifth of their triangles (meshoptimizer, at most 2% error).
+The building sheets and the island's parts are not quantized: the island code sets each piece's node scale, which would
+drop the dequantizing scale (until the fix after M4 every building was drawn about 3.5 times too large). The app uses it in a headset's browser, or with
 `?tier=quest` (`src/galaxy-bridge/asset-tier.ts`, through three's loading manager).
 
 Initial download, before a planet is opened (resource timing in the smoke test's browser, all files):
@@ -252,7 +255,9 @@ Initial download, before a planet is opened (resource timing in the smoke test's
 | Full | 43.1 MB | 39.4 MB | 3.2 MB |
 | Headset | 37.5 MB | 33.8 MB | 3.2 MB |
 
-The budget was under 40 MB: met by the headset tier. The landed towns are identical in both tiers (same triangle
+The budget was under 40 MB: met by the headset tier. After M4 the island loads every building sheet instead of the
+first two (the cut-down island read as a heap of blocks); simplified, the sheets and parts are 7.9 MB against 6.4 MB
+before, so the headset tier's initial download is about 39 MB (estimated from the file sizes, not re-measured). The landed towns are identical in both tiers (same triangle
 counts). Fixed foveation is set to a medium level (0.5) each time an immersive session becomes visible; the
 framebuffer scale is left at its default.
 

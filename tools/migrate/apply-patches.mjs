@@ -142,6 +142,61 @@ export const IslandDetail = { full: true };`,
     replace: `        (IslandDetail.full ? [...L.landmarks, ...L.houses.lots] : [L.landmarks[0], L.houses.lots[0]].filter(Boolean))
           .map(m => m.mesh)`,
   },
+  {
+    file: 'galaxy/viewer/agents/sky-island.js',
+    why: 'a still island: a host may stop the idle motions while the agent is not working',
+    find: `export const IslandDetail = { full: true };`,
+    replace: `export const IslandDetail = { full: true };
+
+// A host may hold the island still while the agent is idle (the XR app does: at a seated user's scale the idle propellers,
+// smoke, fans and lanterns read as noise). Waking still plays every motion.
+export const IslandMotion = { idle: true };`,
+  },
+  {
+    file: 'galaxy/viewer/agents/sky-island.js',
+    why: 'a still island: no smoke at rest',
+    find: `            const k = smoke ? 0.3 + 0.7 * l : l;`,
+    replace: `            const k = smoke ? (IslandMotion.idle ? 0.3 : 0) + 0.7 * l : l;`,
+  },
+  {
+    file: 'galaxy/viewer/agents/sky-island.js',
+    why: 'a still island: once wound down, each motion takes one last step and stops',
+    find: `      for (const a of anims) {
+        if (state.awake) {
+          if (t >= a.wakeAt) a.level = 1;
+        } else a.level = Math.max(0, a.level - down);
+        a.step(dt, a.level, t);
+      }`,
+    replace: `      const still = !IslandMotion.idle && !state.awake && state.level === 0;
+      for (const a of anims) {
+        if (state.awake) {
+          if (t >= a.wakeAt) a.level = 1;
+        } else a.level = Math.max(0, a.level - down);
+        if (still && a.level === 0) {
+          if (a.stilled) continue;
+          a.stilled = true;
+        } else a.stilled = false;
+        a.step(dt, a.level, t);
+      }`,
+  },
+  {
+    file: 'galaxy/viewer/agents/agent-cannon-scene.js',
+    why: 'a still island: the relay dish waits too',
+    find: `import { createSkyIsland } from './sky-island.js';`,
+    replace: `import { IslandMotion, createSkyIsland } from './sky-island.js';`,
+  },
+  {
+    file: 'galaxy/viewer/agents/agent-cannon-scene.js',
+    why: 'a still island: the relay dish scans only while the agent works',
+    find: `    stationRig.step(dt);`,
+    replace: `    stationRig.step(IslandMotion.idle || island.state.level > 0 ? dt : 0);`,
+  },
+  {
+    file: 'galaxy/viewer/agents/agent-cannon-scene.js',
+    why: 'a still island: the terminal moon idles only while the agent works or a command is open',
+    find: `    moonRig.step(dt);`,
+    replace: `    moonRig.step(IslandMotion.idle || island.state.level > 0 || moonRig.state.busy ? dt : 0);`,
+  },
 ];
 
 let applied = 0,

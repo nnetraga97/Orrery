@@ -3,6 +3,9 @@
 import { Quaternion, Vector3, createSystem } from '@iwsdk/core';
 import type { Entity, Object3D } from '@iwsdk/core';
 import { GalaxyRoot } from '../components/galaxy-root.ts';
+import { DEFAULT_SEAT } from '../core/layout.ts';
+import { coreOf, fitOverview } from '../core/overview-fit.ts';
+import type { ViewBox } from '../core/overview-fit.ts';
 import { emptyPose, focusedPoseInto, tablePoseInto } from '../core/table-frame.ts';
 import type { TableAnchor, Vec3 } from '../core/table-frame.ts';
 import { createLabelLayer } from '../galaxy-bridge/label-layer.ts';
@@ -55,6 +58,12 @@ export const LANDED_CENTER: Vec3 = [0, 1.1, -0.95];
 const ANCHOR_EASE_SECONDS = 0.6;
 /** How often, while landed, to look for newly built road cars to hide. */
 const CAR_SWEEP_SECONDS = 0.5;
+// The opening view: the galaxy fills the headset's view edge to edge. Its core (CORE_SHARE of its planets and asteroids,
+// nearest its centre) fills this box of directions from the seat, with the anchor OPENING_DEPTH metres in front; the
+// outermost bodies spill past the edges. A headset sees about ±50° to the side; the glasses (±37°) need a head turn.
+const OPENING_BOX: ViewBox = { yaw: [-48, 48], pitch: [-55, 25] };
+const CORE_SHARE = 0.8;
+const OPENING_DEPTH = 0.8;
 /** The project the app opens on. */
 export const DEMO_DATASET = 'editor-core';
 
@@ -153,6 +162,7 @@ export class GalaxySystem extends createSystem({}) {
       this.scene.background = kit.sky;
       this.scene.environment = kit.environment;
       phase.value = 'overview';
+      this.fitPending = true;
       this.cannonPending = view;
     } catch (failure) {
       if (token !== this.loadToken) return;
@@ -171,9 +181,40 @@ export class GalaxySystem extends createSystem({}) {
   private focus: Vec3 = [0, 0, 0];
   /** The model's pose, rewritten every frame. */
   private pose = emptyPose();
-  // The anchor in use: eased between the model's anchor (overview) and the landed globe's centre.
+  // The opening view's anchor, fitted to the project's galaxy (fitToRoom); TABLE_ANCHOR until then.
+  private base: TableAnchor = { ...TABLE_ANCHOR, position: [...TABLE_ANCHOR.position] as Vec3 };
+  // The anchor in use: eased between the opening view's anchor and the landed globe's centre.
   private anchor: TableAnchor = { ...TABLE_ANCHOR, position: [...TABLE_ANCHOR.position] as Vec3 };
   private ease = 0;
+  /** Set when a project opens: fit its galaxy on the first frame its bodies are placed. */
+  private fitPending = false;
+
+  /**
+   * Sizes and moves the opening view's anchor so the galaxy's core, seen from the seat, fills OPENING_BOX
+   * (src/core/overview-fit.ts). Once per project: orbit and dolly then work from it as before. Comets are left out.
+   */
+  private fitToRoom(kit: NonNullable<XrHost['kit']>) {
+    const home = kit.overview?.();
+    if (!home || !kit.bodyPos || !kit.bodyKind) return;
+    const points: Vec3[] = [];
+    for (let i = 0; i < galaxyState.nodes.length; i++) {
+      const kind = kit.bodyKind(i);
+      if (kind !== 'planet' && kind !== 'asteroid') continue;
+      const p = kit.bodyPos(i);
+      if (p) points.push([p.x, p.y, p.z]);
+    }
+    const virtual = kit.virtual();
+    const camera = {
+      position: [home.position.x, home.position.y, home.position.z] as Vec3,
+      target: [home.target.x, home.target.y, home.target.z] as Vec3,
+      up: [...virtual.up] as Vec3,
+      fovDegrees: virtual.fovDegrees,
+    };
+    const start: TableAnchor = { ...TABLE_ANCHOR, position: [TABLE_ANCHOR.position[0], TABLE_ANCHOR.position[1], -OPENING_DEPTH] };
+    const fit = fitOverview(coreOf(points, CORE_SHARE), camera, start, DEFAULT_SEAT.eye, OPENING_BOX, { maxGrow: 8 });
+    this.base.width = this.anchor.width = fit.width;
+    this.base.position = fit.position;
+  }
 
   private easeAnchor(delta: number) {
     const k = Math.min(1, delta / ANCHOR_EASE_SECONDS);
@@ -181,7 +222,7 @@ export class GalaxySystem extends createSystem({}) {
     if (Math.abs((this.landed ? 1 : 0) - this.ease) < 1e-3) this.ease = this.landed ? 1 : 0;
     const e = this.ease * this.ease * (3 - 2 * this.ease);
     for (let i = 0; i < 3; i++)
-      this.anchor.position[i] = TABLE_ANCHOR.position[i] + (LANDED_CENTER[i] - TABLE_ANCHOR.position[i]) * e;
+      this.anchor.position[i] = this.base.position[i] + (LANDED_CENTER[i] - this.base.position[i]) * e;
   }
 
   /** While landed: the whole globe, its centre on the anchor, turned as the virtual camera sees it. */
@@ -234,6 +275,10 @@ export class GalaxySystem extends createSystem({}) {
     const kit = this.host.kit;
     if (!kit || !this.entity) return;
     kit.tick(now);
+    if (this.fitPending) {
+      this.fitPending = false;
+      this.fitToRoom(kit);
+    }
     // After the first frame with the galaxy: note the start-up time, then bring in the cannon.
     // (on the next frame of this loop: a browser need not run window frames while a session presents).
     if (this.cannonNext) {

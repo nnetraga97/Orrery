@@ -17,6 +17,10 @@ import { glowTex } from '../scene/textures.js';
 // rest are simple blocks (the XR app does, for a headset's budget).
 export const IslandDetail = { full: true };
 
+// A host may hold the island still while the agent is idle (the XR app does: at a seated user's scale the idle propellers,
+// smoke, fans and lanterns read as noise). Waking still plays every motion.
+export const IslandMotion = { idle: true };
+
 const TAU = Math.PI * 2;
 const UP = new THREE.Vector3(0, 1, 0);
 const DUSK = new THREE.Color(0.68, 0.7, 0.82); // retain readable stone and roofs while asleep
@@ -372,7 +376,7 @@ export function createSkyIsland({ width }) {
         addAnim(house, (dt, l, t) => {
           puffs.forEach((s, i) => {
             const f = (t * (smoke ? 0.25 : 0.8) + i / puffs.length + seed) % 1;
-            const k = smoke ? 0.3 + 0.7 * l : l;
+            const k = smoke ? (IslandMotion.idle ? 0.3 : 0) + 0.7 * l : l;
             s.position
               .copy(origin)
               .add(
@@ -802,10 +806,15 @@ export function createSkyIsland({ width }) {
       const down = dt / (L.sleepSeconds || 6);
       state.level = state.awake ? 1 : Math.max(0, state.level - down);
       uniforms.uAwake.value = THREE.MathUtils.smoothstep(state.level, 0, 1);
+      const still = !IslandMotion.idle && !state.awake && state.level === 0;
       for (const a of anims) {
         if (state.awake) {
           if (t >= a.wakeAt) a.level = 1;
         } else a.level = Math.max(0, a.level - down);
+        if (still && a.level === 0) {
+          if (a.stilled) continue;
+          a.stilled = true;
+        } else a.stilled = false;
         a.step(dt, a.level, t);
       }
     },

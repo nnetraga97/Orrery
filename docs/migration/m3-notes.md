@@ -147,3 +147,29 @@ the review wins; where both name something that no longer exists, the replacemen
 - Chat saves make room by dropping the oldest chats when storage is full; streaming redraws are capped at ten a
   second; the cannon attaches on the next XR-loop frame; sound stays quiet while paused; very large diffs skip the
   exact match; Stop says a running tool "may have completed".
+
+## After M4: the opening view and a still island
+
+- **Opening view fitted to the room** (`src/core/overview-fit.ts`, `GalaxySystem.fitToRoom`). The copied code frames the
+  galaxy for a 1600 × 1000 desktop stage, and the table frame mapped that onto a fixed 1 m width, so the galaxy came out
+  small, off centre and partly under the chat. Once per project, the anchor is now sized and moved so the galaxy fills
+  the headset's view edge to edge: 80% of the planets and asteroids (those nearest the centre) fill ±48° by −55°…+25°
+  from the seat, 0.8 m in front, and the outermost spill past the edges. For editor-core it is about 2.2× the old size,
+  and its near edge is 0.36 m away. The glasses (±37°) need a head turn to see its sides.
+- **Still island while the agent is idle** (`IslandMotion.idle = false` in `src/galaxy-bridge/budget.js`, patched in by
+  `tools/migrate/apply-patches.mjs`). At a seated user's scale, the island's idle propellers, smoke, fans, lanterns,
+  the relay dish and the terminal moon read as noise. Once the island has wound down, every motion takes one last step
+  and stops. When the agent works, the island wakes and animates as before.
+- **The island drew as a heap of blocks.** Two causes. The headset asset tier quantized the island's building sheets and
+  parts, and `sky-island.js` sizes each piece with `scale.setScalar`, which dropped the dequantizing node scale: every
+  building, propeller and lantern came out about 3.5 times too large. And the budget's lighter island (`IslandDetail`)
+  turned all but two buildings into blocks. Now only the terrain, architecture and cannon are quantized, the building
+  sheets are simplified instead, and the island keeps every modelled building. Opening view on the headset profile: 510
+  draw calls and 1.09 million triangles (the 300 / 750,000 budget is still not met; see m1-notes, "Draw budget").
+- **Cannon and chat.** The bridge now also sends `usage` (the measured context of each request, for the context
+  district's gauge; no guessed capacity, as docs/agent-integration.md asks) and a reasoning message when a reply starts
+  thinking (the cannon's "Thinking…"). Checked in the emulator with the recorded session: the prompt wakes the island;
+  search fires flak, the read a tracer, show_user and the replay the station; the question raises the beacon until it
+  is answered; the approved edit fires a shell at core/range.ts; the turn's end winds the island down. Stop clears the
+  live and queued shots. A failed read and a failed edit each misfire. The recorded session reports no token usage, so
+  the gauge stays empty until a live provider runs.

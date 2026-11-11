@@ -33,6 +33,10 @@ export interface XrSceneKit extends SceneKitPort {
   // Added to T by the constellation once it is built.
   bodyPos?(i: number): Vector3;
   bodySize?(i: number): number;
+  /** 'planet', 'asteroid' or 'comet'. */
+  bodyKind?(i: number): string;
+  /** The copied code's home view for the current galaxy, when it is built. */
+  overview?(): { target: Vector3; position: Vector3 } | undefined;
   fileIndex?(path: string): number | null;
   readonly landed?: boolean;
   [member: string]: unknown;

@@ -11,7 +11,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { NodeIO } from '@gltf-transform/core';
 import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
-import { quantize, textureCompress } from '@gltf-transform/functions';
+import { quantize, simplify, textureCompress, weld } from '@gltf-transform/functions';
+import { MeshoptSimplifier } from 'meshoptimizer';
 import sharp from 'sharp';
 
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
@@ -25,13 +26,24 @@ const quest = process.argv.includes('--tier=quest');
 const out = path.join(repo, quest ? 'public/assets-quest' : 'public/assets');
 /** Town content, loaded only when a planet is opened: the headset tier gives it the smallest textures. */
 const LANDED_DIRS = ['kit', 'vehicles/road-v1', 'buildings'];
-const textureSize = dir => (quest && LANDED_DIRS.some(d => dir === d || dir.startsWith(d + '/')) ? 512 : 1024);
+/** Also seen small: the island's building sheets, whose dozens of buildings stand on an island a few hand-widths wide. */
+const SMALL_DIRS = [...LANDED_DIRS, 'island/meshy', 'island/trellis'];
+const textureSize = dir => (quest && SMALL_DIRS.some(d => dir === d || dir.startsWith(d + '/')) ? 512 : 1024);
 /** Static models whose geometry the headset tier stores quantized (KHR_mesh_quantization, read by three's GLTFLoader
- * without a decoder): the island and the cannon, which the scene uses whole. Not the rigs (animated, found by joint
- * name), nor the town kit and buildings: the town code bakes node transforms into their geometry, which would clamp
- * normalized positions. */
-const QUANTIZED_DIRS = ['island', 'cannon'];
-const quantized = dir => quest && QUANTIZED_DIRS.some(d => dir === d || dir.startsWith(d + '/'));
+ * without a decoder): the island's terrain and architecture and the cannon, which the scene uses whole. Quantizing
+ * moves a scale onto each mesh's node, so a model qualifies only if the code never sets that node's scale. Not the
+ * island's building sheets or parts (sky-island.js sizes each piece with scale.setScalar, which would drop the
+ * dequantizing scale and draw it about 3.5 times too large), nor the rigs (animated, found by joint name), nor the town
+ * kit and buildings (the town code bakes node transforms into their geometry, which would clamp normalized positions). */
+const QUANTIZED = [/^island\/(island-base|architecture)\.glb$/, /^cannon\//];
+const quantized = (dir, file) => quest && QUANTIZED.some(re => re.test(`${dir}/${file}`));
+/** Models the headset tier simplifies to about this share of their triangles: the island's generated buildings, dense
+ * scans (about 650,000 vertices in all) of buildings a couple of centimetres tall in the room. */
+const SIMPLIFIED_DIRS = ['island/meshy', 'island/trellis'];
+const SIMPLIFY_RATIO = 0.2;
+/** The largest change allowed, as a share of each mesh's size: 2% of a 2 cm building is under half a millimetre. */
+const SIMPLIFY_ERROR = 0.02;
+const simplified = dir => quest && SIMPLIFIED_DIRS.includes(dir);
 /** The initial download (before a planet is opened) must stay under this on the headset tier. */
 const INITIAL_MB = 40;
 
@@ -60,7 +72,7 @@ const walk = dir =>
     .map(entry => path.relative(dir, path.join(entry.parentPath, entry.name)).split(path.sep).join('/'));
 
 const io = new NodeIO().registerExtensions(ALL_EXTENSIONS);
-async function shrinkModel(from, to, size = 1024, quantizeGeometry = false) {
+async function shrinkModel(from, to, size = 1024, quantizeGeometry = false, simplifyGeometry = false) {
   const document = await io.read(from);
   // Two models carry a car brand in their node, image and scene names. The code finds joints by their Joint_/CTRL_
   // prefixes and never by these names, so they are renamed in the published file.
@@ -71,6 +83,10 @@ async function shrinkModel(from, to, size = 1024, quantizeGeometry = false) {
     if (clean !== name) property.setName(clean);
   }
   await document.transform(textureCompress({ encoder: sharp, targetFormat: 'webp', resize: [size, size], quality: 82 }));
+  if (simplifyGeometry) {
+    await MeshoptSimplifier.ready;
+    await document.transform(weld(), simplify({ simplifier: MeshoptSimplifier, ratio: SIMPLIFY_RATIO, error: SIMPLIFY_ERROR }));
+  }
   if (quantizeGeometry) await document.transform(quantize());
   await io.write(to, document);
 }
@@ -95,7 +111,7 @@ for (const { dir, only } of INCLUDE) {
     fs.mkdirSync(path.dirname(to), { recursive: true });
     if (file.endsWith('.glb')) {
       try {
-        await shrinkModel(from, to, textureSize(dir), quantized(dir));
+        await shrinkModel(from, to, textureSize(dir), quantized(dir, file), simplified(dir));
         // Keep the original when shrinking did not help (models that are already small or untextured).
         if (fs.statSync(to).size >= fs.statSync(from).size) fs.copyFileSync(from, to);
       } catch (error) {
