@@ -104,6 +104,8 @@ export type ReplayView = {
   noticeDismissed: boolean;
 };
 export const replay = signal<ReplayView | null>(null);
+/** The master volume (0 to 1) and mute, set from the settings. */
+export const soundLevel = signal({ volume: 0.6, mute: false });
 /** Inspector calls kept for the next plan (debugger tabs, transport, stack, evidence). */
 export const inspectorExtras = signal<Record<string, unknown[]>>({});
 
@@ -141,5 +143,6 @@ export const appState = {
   changedFiles,
   provider,
   replay,
+  soundLevel,
 };
 export type AppState = typeof appState;

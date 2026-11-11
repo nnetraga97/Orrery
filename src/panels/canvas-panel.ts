@@ -24,6 +24,7 @@ import type { Entity, Ray, WebGLRenderer, World } from '@iwsdk/core';
 import { Panel } from '../components/panel.ts';
 import { clampReach } from '../core/layout.ts';
 import { regionAt, uvToPixel } from '../core/panel-hit.ts';
+import { playSound } from '../state/commands.ts';
 import type { HitRegion } from '../core/panel-hit.ts';
 import type { Vec3 } from '../core/table-frame.ts';
 import { closeMark, glassPanel, grabBar, THEME } from './paint.ts';
@@ -252,6 +253,7 @@ export class CanvasPanel {
       const region = this.pressed;
       this.pressed = null;
       if (!region || region === 'grab') return;
+      playSound('press');
       if (region === 'close' && this.window?.closable) this.onClose();
       else this.onPress(region);
     });
@@ -301,6 +303,7 @@ export class CanvasPanel {
   private setHovered(id: string | null) {
     if (id === this.hovered) return;
     this.hovered = id;
+    if (id) playSound('hover');
     this.onHover(id);
     if (this.window && (id === 'close' || id === 'grab' || this.lastHoverWasFrame)) this.redrawLast();
     this.lastHoverWasFrame = id === 'close' || id === 'grab';

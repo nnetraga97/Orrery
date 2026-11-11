@@ -95,3 +95,6 @@ the review wins; where both name something that no longer exists, the replacemen
   source revision checks) and has nothing to show for a recorded run. Closing the code card ends the replay. The
   Replay tab runs the failing run before the fix and the fixed run after; `run_replay` does the same. Check:
   `"read": 2`; screenshot `docs/migration/xr-replay.png`.
+- Task 15: sounds play for hover (at most ten ticks a second), press (every window, through `CanvasPanel`), send, the
+  first words of a reply, an accepted edit, an error and each replay step. The audio context starts on the first press.
+  Volume and mute live in `soundLevel`, which the settings set (Task 16). Not heard on a device yet.

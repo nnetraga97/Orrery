@@ -44,7 +44,7 @@ import {
   thread,
   threads,
 } from '../state/app-state.ts';
-import { connectChat, connectChatActions, pressMic, releaseMic, showChatPage, showCode } from '../state/commands.ts';
+import { connectChat, connectChatActions, playSound, pressMic, releaseMic, showChatPage, showCode } from '../state/commands.ts';
 
 /** The system prompt: byte-stable for a project, so a provider can cache it with the tool list. */
 export const systemPrompt = (project: string) =>
@@ -280,6 +280,8 @@ export class AgentSystem extends createSystem({}) {
   }
 
   private onStream(event: StreamEvent) {
+    if ((event.type === 'thinking' || event.type === 'text') && !this.live.thinking && !this.live.text) playSound('replyStarted');
+    if (event.type === 'error') playSound('error');
     if (event.type === 'thinking') {
       if (!this.live.thinkingStart) this.live.thinkingStart = performance.now();
       this.live.thinking += event.delta;
@@ -374,6 +376,7 @@ export class AgentSystem extends createSystem({}) {
       },
     });
     this.events.toolFinished(id, name, input, !out.isError);
+    if (out.change && !out.isError) playSound('editAccepted');
     const status = out.isError ? 'failed' : 'completed';
     if (out.change) {
       this.changedThisTurn = true;
@@ -461,6 +464,7 @@ export class AgentSystem extends createSystem({}) {
   }
 
   private say(text: string, attachContext: boolean, steer = false) {
+    playSound('send');
     const context = attachContext ? this.looking() : null;
     this.turn++;
     this.items.push({ id: `u${Date.now().toString(36)}${this.turn}`, type: 'userMessage', text, attachmentNames: context ? [context.label] : [] });

@@ -9,7 +9,7 @@ import { createReplay, replayErrors } from '../core/replay.ts';
 import type { Replay, ReplayData } from '../core/replay.ts';
 import { galaxyState } from '../galaxy-bridge/galaxy-session.js';
 import { codeCardOpen, replay, replayRequest, scenario, scenarioState } from '../state/app-state.ts';
-import { connectReplay, showCode } from '../state/commands.ts';
+import { connectReplay, playSound, showCode } from '../state/commands.ts';
 import { ChatWindowSystem } from './chat-window-system.ts';
 
 const STEP_MS = 1600;
@@ -95,6 +95,7 @@ export class ReplaySystem extends createSystem({}) {
   private move(f: (r: Replay) => unknown) {
     if (!this.run) return;
     f(this.run);
+    playSound('replayStep');
     this.show();
   }
 
@@ -146,6 +147,9 @@ export class ReplaySystem extends createSystem({}) {
   }
 
   update() {
-    if (this.run?.tick(performance.now())) this.show();
+    if (this.run?.tick(performance.now())) {
+      playSound('replayStep');
+      this.show();
+    }
   }
 }

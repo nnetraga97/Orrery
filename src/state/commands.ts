@@ -1,6 +1,7 @@
 // Typed commands: the only way panels, gestures and tests ask the app to change. The galaxy system connects the
 // handler that carries them out; until it does, a command does nothing.
 import { agentOpen, chatPage, codeCardOpen, codeRequest, dataset, pinned, tutorialRestarts } from './app-state.ts';
+import type { SoundEvent } from '../core/sound.ts';
 import type { ChatPage, VoiceTarget } from './app-state.ts';
 
 export interface CommandHandler {
@@ -58,6 +59,16 @@ export const replayPlay = () => replays?.play();
 export const stopReplay = () => replays?.stop();
 export const followReplay = (on: boolean) => replays?.follow(on);
 export const dismissReplayNotice = () => replays?.dismissNotice();
+
+/** Plays one of the app's quiet sounds (src/core/sound.ts), through the sound system. */
+let sounds: ((event: SoundEvent) => void) | null = null;
+export function connectSound(next: (event: SoundEvent) => void): () => void {
+  sounds = next;
+  return () => {
+    if (sounds === next) sounds = null;
+  };
+}
+export const playSound = (event: SoundEvent) => sounds?.(event);
 
 /** Push-to-talk, carried out by the voice system. */
 export interface VoiceHandler {

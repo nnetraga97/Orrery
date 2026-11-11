@@ -292,8 +292,8 @@ Functions use the web-standard shape `export default async function handler(requ
 
 **Files:** Create `src/systems/sound-system.ts`, `src/core/sound.ts` + test.
 
-- [ ] **Step 1.** No audio files: every sound is made with the Web Audio API. `sound.ts` (pure, tested) maps events to a recipe `{ frequency, duration, type, gain }`: hover (very soft tick), press, send, agent reply started, edit accepted (two rising notes), error (one low note), replay step. The system plays them, starting the audio context on the first pinch. A master volume and a mute live in settings; nothing is louder than a quiet click.
-- [ ] **Step 2. Check and commit.** `npm run verify`. Commit: `Add quiet synthesised feedback sounds`
+- [x] **Step 1.** No audio files: every sound is made with the Web Audio API. `sound.ts` (pure, tested) maps events to a recipe `{ frequency, duration, type, gain }`: hover (very soft tick), press, send, agent reply started, edit accepted (two rising notes), error (one low note), replay step. The system plays them, starting the audio context on the first pinch. A master volume and a mute live in settings; nothing is louder than a quiet click.
+- [x] **Step 2. Check and commit.** `npm run verify`. Commit: `Add quiet synthesised feedback sounds`
 
 ### Task 16: Settings and accessibility
 
