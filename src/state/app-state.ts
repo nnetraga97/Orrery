@@ -1,6 +1,11 @@
 // What the UI shows, as signals. Systems and the bridge publish here; panels read; commands (commands.ts) change it.
 import { signal } from '@iwsdk/core';
+import { initialComposer } from '../core/chat/composer.ts';
+import type { ComposerState } from '../core/chat/composer.ts';
+import type { AnswerState } from '../core/chat/requests.ts';
 import type { StoredThread, ThreadSummary } from '../core/chat/threads.ts';
+import { idleSpeech } from '../core/speech.ts';
+import type { SpeechState } from '../core/speech.ts';
 import type { CodeView } from '../core/code-view.ts';
 import type { TutorialStep } from '../core/tutorial.ts';
 import type { ContextItem } from '../ports/host.ts';
@@ -46,6 +51,18 @@ export const threads = signal<ThreadSummary[]>([]);
 /** What the chat window shows: the transcript, the chat list or the settings. */
 export type ChatPage = 'transcript' | 'threads' | 'settings';
 export const chatPage = signal<ChatPage>('transcript');
+/** The composer: what was heard and not yet sent, the queue, mode and permission. */
+export const composer = signal<ComposerState>(initialComposer());
+/** Push-to-talk: listening, heard, or unavailable, and the words so far. */
+export const speech = signal<SpeechState>(idleSpeech());
+/** Where the next heard words go: the composer, a question's spoken answer, or a queued message said again. */
+export type VoiceTarget =
+  | { kind: 'composer' }
+  | { kind: 'answer'; requestId: string; questionId: string }
+  | { kind: 'queue'; id: string };
+export const voiceTarget = signal<VoiceTarget>({ kind: 'composer' });
+/** Answers given so far to the agent's open questions, by request id. */
+export const answers = signal<ReadonlyMap<string, AnswerState>>(new Map());
 /** Inspector calls kept for the next plan (debugger tabs, transport, stack, evidence). */
 export const inspectorExtras = signal<Record<string, unknown[]>>({});
 
@@ -71,5 +88,9 @@ export const appState = {
   thread,
   threads,
   chatPage,
+  composer,
+  speech,
+  voiceTarget,
+  answers,
 };
 export type AppState = typeof appState;

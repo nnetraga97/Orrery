@@ -1,7 +1,7 @@
 // Typed commands: the only way panels, gestures and tests ask the app to change. The galaxy system connects the
 // handler that carries them out; until it does, a command does nothing.
 import { agentOpen, chatPage, codeCardOpen, codeRequest, dataset, pinned, tutorialRestarts } from './app-state.ts';
-import type { ChatPage } from './app-state.ts';
+import type { ChatPage, VoiceTarget } from './app-state.ts';
 
 export interface CommandHandler {
   openDataset(name: string): void;
@@ -19,6 +19,27 @@ export interface ChatHandler {
   openThread(id: string): void;
 }
 let chat: ChatHandler | null = null;
+
+/** Push-to-talk, carried out by the voice system. */
+export interface VoiceHandler {
+  press(target: VoiceTarget): void;
+  release(): void;
+}
+let voice: VoiceHandler | null = null;
+export function connectVoice(next: VoiceHandler): () => void {
+  voice = next;
+  return () => {
+    if (voice === next) voice = null;
+  };
+}
+/** Starts listening (the microphone pinched); the words go to `target` (the composer unless a question is held). */
+export function pressMic(target: VoiceTarget = { kind: 'composer' }): void {
+  voice?.press(target);
+}
+/** Stops listening (the microphone let go). */
+export function releaseMic(): void {
+  voice?.release();
+}
 export function connectChat(next: ChatHandler): () => void {
   chat = next;
   return () => {
@@ -106,6 +127,8 @@ export const commands = {
   showChat,
   hideChat,
   showChatPage,
+  pressMic,
+  releaseMic,
   newChat,
   openThread,
   restartTutorial,

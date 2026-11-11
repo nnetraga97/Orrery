@@ -1,6 +1,8 @@
 // The composition root: creates the world, builds adapters, hands them to systems and registers systems.
 import { World } from '@iwsdk/core';
 import projectOptions from 'virtual:iwsdk-project';
+import { createBrowserSpeech } from './adapters/browser-speech.ts';
+import { createFakeSpeech } from './adapters/fake-speech.ts';
 import { createLocalStorage } from './adapters/local-storage.ts';
 import { createStaticDataset } from './adapters/static-dataset.ts';
 import { galaxyState } from './galaxy-bridge/galaxy-session.js';
@@ -12,15 +14,22 @@ import { ManipulationSystem } from './systems/manipulation-system.ts';
 import './galaxy-bridge/panel-icons.ts';
 import { PanelSystem } from './systems/panel-system.ts';
 import { TutorialSystem } from './systems/tutorial-system.ts';
+import { VoiceSystem } from './systems/voice-system.ts';
+
+const query = new URLSearchParams(location.search);
 
 World.create(document.getElementById('scene-container') as HTMLDivElement, projectOptions).then(world => {
   world.globals.datasets = createStaticDataset();
   world.globals.storage = createLocalStorage();
+  // ?say=Fix%20it|Explain%20the%20fix makes each pinch of the microphone hear the next phrase (tests, demos).
+  const say = query.get('say');
+  world.globals.speech = say != null ? createFakeSpeech(say.split('|')) : createBrowserSpeech();
   world.registerSystem(GalaxySystem);
   world.registerSystem(ManipulationSystem);
   world.registerSystem(PanelSystem);
   world.registerSystem(ChatWindowSystem);
   world.registerSystem(TutorialSystem);
+  world.registerSystem(VoiceSystem);
   const galaxy = world.getSystem(GalaxySystem)!;
   window.__orrery = {
     world,

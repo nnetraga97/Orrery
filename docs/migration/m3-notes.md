@@ -53,3 +53,8 @@ the review wins; where both name something that no longer exists, the replacemen
   `src/core/chat/composer-layout.ts` (pure and tested), drawn by the same code as the transcript. Stop also pauses
   the queue (Resume queue sends it), as the desktop does after an interruption. Reuse and Reply are small labels under
   the messages. The window's pinch wiring is Task 11 (the chat window system), not `panel-system.ts`.
+- Task 9: the microphone is the composer's round button (review); there is no orb. The browser adapter asks for the
+  microphone inside `available()`, so the fake (`?say=`, phrases split by `|`) never prompts. When voice is
+  unavailable, the one notice ("Voice isn't available here. Pinch a suggestion instead.") shows above the composer
+  and the microphone turns amber. Heard words go to the composer, to a held question's "Say your answer", or to a
+  queued message being said again (`voiceTarget`). Check: `"read": "Fix it"`.
