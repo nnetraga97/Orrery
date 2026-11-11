@@ -255,3 +255,26 @@ Initial download, before a planet is opened (resource timing in the smoke test's
 The budget was under 40 MB: met by the headset tier. The landed towns are identical in both tiers (same triangle
 counts). Fixed foveation is set to a medium level (0.5) each time an immersive session becomes visible; the
 framebuffer scale is left at its default.
+
+## Meta VR Glasses with the agent (M4, Task 20)
+
+Emulator, glasses profile, seated, `gaze-tracking` granted. Every window open (the chat, its tab strip, the code card
+with a replay, the problem card, the agent's "Show me" card, the debugging card, the tutorial card). Angles of each
+window's corners from the eye looking straight ahead (the view is 37° left and right, 25° up, 43° down):
+
+| Window | Horizontal | Vertical | In view looking ahead |
+| --- | --- | --- | --- |
+| Chat | −40.8° to −19.2° | −31.8° to 15.4° | its left edge is cut |
+| Tab strip | −43.6° to −40.8° | −2.1° to 13.1° | no: an 8° head turn left |
+| Code card | 16.7° to 43.3° | −24.5° to 7.4° | its right edge is cut |
+| Problem card | 3.2° to 16.3° | 12.2° to 19.2° | yes |
+| "Show me" card | 3.1° to 16.3° | 18.6° to 25.5° | its top half-degree is cut |
+| Debugging card | 3.0° to 15.5° | 21.1° to 27.5° | its top is cut |
+| Tutorial card | −8.8° to 8.8° | 7.4° to 14.9° | yes |
+
+Every window comes fully into view with a head turn of 10° or less up, or 25° or less to the side, as before. The
+cards stack upward beside the bug's planet; on the glasses the third card reaches past the top of the view.
+
+Gaze and pinch on the new controls: looking at the microphone and holding a pinch heard "Fix it"; Send with a
+left-hand pinch; holding "Say your answer" by gaze heard the answer; an option chosen by gaze; a gaze-started drag on
+the transcript scrolled it.

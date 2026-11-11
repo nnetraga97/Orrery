@@ -333,11 +333,11 @@ Functions use the web-standard shape `export default async function handler(requ
 
 ### Task 20: Review and report
 
-- [ ] **Step 1.** `npm run verify`. Walk the whole experience in the emulator with hand input: tutorial, pick the project, problem card, talk or pinch a prompt, watch the agent work, answer its question, review and approve the edit, replay the fix, change two settings.
-- [ ] **Step 2.** Field-of-view check with every panel open (`.claude/skills/iwsdk-glasses-test/SKILL.md`).
-- [ ] **Step 3.** Go down the "Chat feature parity" table and tick each row against the running app; list any row that is not met.
-- [ ] **Step 4.** Push: `git push -u origin m3-m4`. Do not merge.
-- [ ] **Step 5. Report:** tasks passed and failed; the parity rows not met; which providers were checked live; the three stats against the budgets; the initial download size; the start-up time; and the items in `docs/headset-session.md` that remain unknown until the device session.
+- [x] **Step 1.** `npm run verify`. Walk the whole experience in the emulator with hand input: tutorial, pick the project, problem card, talk or pinch a prompt, watch the agent work, answer its question, review and approve the edit, replay the fix, change two settings.
+- [x] **Step 2.** Field-of-view check with every panel open (`.claude/skills/iwsdk-glasses-test/SKILL.md`).
+- [x] **Step 3.** Go down the "Chat feature parity" table and tick each row against the running app; list any row that is not met.
+- [x] **Step 4.** Push: `git push -u origin m3-m4`. Do not merge.
+- [x] **Step 5. Report:** tasks passed and failed; the parity rows not met; which providers were checked live; the three stats against the budgets; the initial download size; the start-up time; and the items in `docs/headset-session.md` that remain unknown until the device session.
 
 ---
 
