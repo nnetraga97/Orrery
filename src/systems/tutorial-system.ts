@@ -5,7 +5,7 @@
 import { AdditiveBlending, DoubleSide, Mesh, MeshBasicMaterial, TorusGeometry, Vector3, createSystem } from '@iwsdk/core';
 import { hasSelection } from '../core/code-view.ts';
 import { THEME } from '../core/theme.ts';
-import { TUTORIAL_STEPS, TUTORIAL_TEXT, nextStep } from '../core/tutorial.ts';
+import { TUTORIAL_STEPS, nextStep, tutorialText } from '../core/tutorial.ts';
 import type { TutorialEvent, TutorialStep } from '../core/tutorial.ts';
 import type { StoragePort } from '../ports/storage.ts';
 import { CanvasPanel } from '../panels/canvas-panel.ts';
@@ -120,12 +120,17 @@ export class TutorialSystem extends createSystem({}) {
   }
 
   private fontReady = false;
+  /** Whether the card was last worded for gaze; it is redrawn when that changes (gaze appears once a session runs). */
+  private gazeWording = false;
 
   private draw() {
     const step = tutorialStep.peek();
     this.panel.visible = step !== 'done' && this.fontReady;
     if (step === 'done' || !this.fontReady) return;
-    this.panel.redraw((ctx, w, h) => drawTutorial(ctx, w, h, this.panel.u, step, TUTORIAL_TEXT[step], this.panel.hovered));
+    const xr = this.input.xr;
+    const gaze = xr.gazeEnabled && xr.gazePointer.canTarget();
+    this.gazeWording = gaze;
+    this.panel.redraw((ctx, w, h) => drawTutorial(ctx, w, h, this.panel.u, step, tutorialText(step, gaze), this.panel.hovered));
   }
 
   /** The planet the first step points at: the largest one. */
@@ -148,6 +153,10 @@ export class TutorialSystem extends createSystem({}) {
 
   update(delta: number) {
     this.panel.tick(delta);
+    if (this.panel.visible) {
+      const xr = this.input.xr;
+      if ((xr.gazeEnabled && xr.gazePointer.canTarget()) !== this.gazeWording) this.draw();
+    }
     const step: TutorialStep = tutorialStep.peek();
     const kit = this.world.getSystem(GalaxySystem)?.host.kit;
     const marking = step === 'point' && phase.peek() === 'overview' && !!kit?.bodyPos;

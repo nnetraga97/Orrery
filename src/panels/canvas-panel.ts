@@ -9,6 +9,7 @@
 // pinch on the window, including those meant for its buttons.)
 import {
   CanvasTexture,
+  Matrix4,
   DoubleSide,
   LinearMipmapLinearFilter,
   Mesh,
@@ -98,6 +99,10 @@ export class CanvasPanel {
   private heightM: number;
   private lastDraw: DrawPanel | null = null;
   private down: { x: number; y: number; startX: number; startY: number } | null = null;
+  /** Where the owning pointer aimed last before a pinch (canvas pixels), and the region the pinch pressed. */
+  private readonly aim: [number, number] = [0, 0];
+  private aimed = false;
+  private pressed: string | null = null;
   /** The pointer that owns this window's hover and pinch. */
   private owner: number | null = null;
   /** Canvas pixels a pinch may move and still be a press: 2 cm on the panel. */
@@ -110,6 +115,8 @@ export class CanvasPanel {
   private readonly look = new Quaternion();
   private readonly lookTarget = new Quaternion();
   private readonly scratch = new Vector3();
+  private readonly planeDir = new Vector3();
+  private readonly planeInverse = new Matrix4();
 
   constructor(options: CanvasPanelOptions) {
     const { name, widthPx, heightPx, widthM, heightM, renderer } = options;
@@ -155,8 +162,15 @@ export class CanvasPanel {
       }
       if (!owns(e)) return;
       this.owner = id(e);
-      const p = at(e);
+      // While pinched the pointer is captured, and its ray may leave the window (a gaze pinch follows the hand): the
+      // drag is measured where that ray meets the window's plane.
+      const p = this.down ? this.onPlane(e as PointerLike) : at(e);
       if (!p) return;
+      if (!this.down) {
+        this.aim[0] = p[0];
+        this.aim[1] = p[1];
+        this.aimed = true;
+      }
       if (this.down) {
         // Net distance from where the pinch began decides press or drag; a jittering ray adds nothing.
         this.travel = Math.max(this.travel, Math.hypot(p[0] - this.down.startX, p[1] - this.down.startY));
@@ -169,20 +183,25 @@ export class CanvasPanel {
     target.addEventListener('pointerdown', e => {
       if (this.down && this.owner !== id(e)) return;
       this.owner = id(e);
-      const p = at(e);
+      const p = this.onPlane(e as PointerLike);
+      // Drags are measured in the press's own frame (with gaze, IWSDK moves the pointer onto the pinching hand for the
+      // length of the pinch); what is pressed is what the pointer was aiming at just before.
       this.down = p ? { x: p[0], y: p[1], startX: p[0], startY: p[1] } : null;
       this.travel = 0;
+      const aim = this.aimed ? this.aim : p;
+      this.pressed = aim ? (regionAt(this.regions, aim[0], aim[1])?.id ?? null) : null;
       const event = e as PointerLike;
-      if (p && this.window?.movable && regionAt(this.regions, p[0], p[1])?.id === 'grab') {
+      if (p && this.window?.movable && this.pressed === 'grab') {
         this.moving = {
           pointerId: event.pointerId,
           distance: event.distance,
           offset: new Vector3().copy(this.mesh.position).sub(event.point),
         };
         this.down = null;
-        target.setPointerCapture(event.pointerId);
         this.redrawLast();
       }
+      // Keep the pinch's events on this window until it ends.
+      target.setPointerCapture(event.pointerId);
     });
     target.addEventListener('pointerup', e => {
       if (this.owner != null && id(e) !== this.owner) return;
@@ -203,13 +222,14 @@ export class CanvasPanel {
       if (this.moving || (this.owner != null && id(e) !== this.owner)) return;
       this.down = null;
       this.owner = null;
+      this.aimed = false;
       this.setHovered(null);
     });
     target.addEventListener('click', e => {
       if (this.owner != null && id(e) !== this.owner) return;
       if (this.travel > this.dragPx) return;
-      const p = at(e);
-      const region = p ? (regionAt(this.regions, p[0], p[1])?.id ?? null) : null;
+      const region = this.pressed;
+      this.pressed = null;
       if (!region || region === 'grab') return;
       if (region === 'close' && this.window?.closable) this.onClose();
       else this.onPress(region);
@@ -270,9 +290,25 @@ export class CanvasPanel {
 
   private endMove() {
     if (!this.moving) return;
-    (this.mesh as unknown as Listenable).releasePointerCapture(this.moving.pointerId);
     this.moving = null;
     this.redrawLast();
+  }
+
+  /** Where the event's ray meets the window's plane, in canvas pixels (null if it runs parallel to it). */
+  private onPlane(event: PointerLike): [number, number] | null {
+    const ray = event.ray;
+    if (!ray) return null;
+    this.mesh.updateWorldMatrix(true, false);
+    const local = this.scratch.copy(ray.origin),
+      dir = this.planeDir.copy(ray.direction);
+    this.mesh.worldToLocal(local);
+    this.planeInverse.copy(this.mesh.matrixWorld).invert();
+    dir.transformDirection(this.planeInverse);
+    if (Math.abs(dir.z) < 1e-6) return null;
+    const t = -local.z / dir.z;
+    const x = local.x + dir.x * t,
+      y = local.y + dir.y * t;
+    return [(x / this.widthM + 0.5) * this.widthPx, ((this.heightM / 2 - y) / this.heightM) * this.heightPx];
   }
 
   private moveWith(event: PointerLike) {

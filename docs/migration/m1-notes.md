@@ -158,3 +158,47 @@ check asks only the pinching hand's own ray.
 
 The landed counts vary between runs with how much detail the copied code has built and where its camera flew (the
 card view flies to another town, so fewer buildings are drawn than in the plain landing).
+
+# Meta VR Glasses
+
+Recorded on 2026-11-10. The glasses run the same browser and WebXR as Quest 3 and 3S, with eye gaze for aiming plus a
+hand pinch, no controllers in the box, and a narrower view (70° × 66°; recommended area for essential UI 58° × 54°).
+The app now requests gaze as an optional feature (`gazeTracking: true` in `iwsdk.config.json`); without it, hand rays
+aim as before. To test in the emulator set `dev.emulator.device` to `metaVRGlasses`.
+
+## Gaze and pinch (emulator, glasses profile, seated)
+
+`gaze-tracking` and `hand-tracking` granted. Gaze aimed with `xr look-at`, pinches with the right hand.
+
+| Step | Result |
+| --- | --- |
+| Look at the glowing planet and pinch | Selected; tutorial step 2 |
+| Look at empty space, pinch and drag the hand | The model turned |
+| Look at the planet and pinch | Landed |
+| Look at a town and pinch (twice) | Towns 54 and 75 selected; card opened; tutorial done |
+| Look at a line on the card and pinch | That statement selected (line 2161) |
+| `More`, the card's close mark, `Home` on the tab strip | 24 rows; card closed; back to the overview |
+| Look at the chat's grab bar, pinch, move the hand 15 cm | The window followed the hand |
+| Look at the card's text, pinch, move the hand up 12 cm | Scrolled 5.85 lines |
+| Gaze disconnected: hand ray on a line, on a town | Both work |
+| Gaze reconnected | Gaze aims again (three more towns picked) |
+
+Fixes this needed:
+
+- During a gaze pinch IWSDK moves the pointer onto the pinching hand, so a drag follows the hand. The press and click
+  events then carry the hand's ray, which no longer points at what the eyes chose. Clicks on the model and presses on
+  windows now use where the pointer aimed just before the pinch.
+- Windows capture the pinch and measure drags where the ray meets the window's plane, so a drag continues when the
+  hand's ray leaves the window.
+- Gaze's cone tie-break (nearer surface) chose the model's hit volume over a window inside it. A comparer now lets a
+  window win that tie, as pointer priority already did for hand rays.
+- The pinch check for turning the model uses the gaze pointer while gaze aims.
+- The tutorial says "Look at …" when gaze aims.
+
+## Field of view
+
+Looking straight at the landed globe, the globe fits; the chat window's left side and tab strip, and the code card's
+right side, fall outside the view. Turned about 25° toward either window, the whole window fits (chat 21° × 36°,
+code card 26° × 19°). The overview model's right edge falls outside looking straight ahead. Not changed.
+
+Not checked: real eye-tracking accuracy on small targets (code lines are about 1.2° tall), and comfort, on the device.

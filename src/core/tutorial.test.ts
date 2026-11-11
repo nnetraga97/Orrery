@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { TUTORIAL_STEPS, TUTORIAL_TEXT, nextStep } from './tutorial.ts';
+import { TUTORIAL_STEPS, TUTORIAL_TEXT, nextStep, tutorialText } from './tutorial.ts';
 import type { TutorialEvent, TutorialStep } from './tutorial.ts';
 
 test('the steps run point, turn, open, read, done', () => {
@@ -37,4 +37,13 @@ test('every step says what to do in twelve words or fewer', () => {
     const words = TUTORIAL_TEXT[step].split(/\s+/).filter(Boolean).length;
     assert.ok(words > 0 && words <= 12, `${step}: ${words} words`);
   }
+});
+
+test('with gaze the pointing steps say look, and stay within twelve words', () => {
+  assert.equal(tutorialText('point', false), TUTORIAL_TEXT.point);
+  assert.match(tutorialText('point', true), /^Look at /);
+  assert.match(tutorialText('read', true), /^Look at /);
+  assert.equal(tutorialText('turn', true), TUTORIAL_TEXT.turn);
+  for (const step of TUTORIAL_STEPS.filter(s => s !== 'done'))
+    assert.ok(tutorialText(step as 'point', true).split(/\s+/).length <= 12);
 });

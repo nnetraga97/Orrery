@@ -50,7 +50,10 @@ export class ManipulationSystem extends createSystem({ hoveredPanels: { required
    * only the pinching hand's own ray counts, so an idle hand resting on a window does not block the other's orbit. */
   private overTarget(side?: Side) {
     if (!side) return !!this.kit?.pointing || this.queries.hoveredPanels.entities.size > 0;
-    const pointer = this.input.xr.multiPointers[side].getPointer('ray');
+    // While gaze owns far targeting (the glasses), hand far rays are off: what a pinch is on is what the eyes are on.
+    const xr = this.input.xr;
+    const gazing = xr.gazeEnabled && xr.gazePointer.canTarget();
+    const pointer = gazing ? xr.gazePointer.pointer : xr.multiPointers[side].getPointer('ray');
     const hit = pointer.getIntersection()?.object;
     if (!hit) return false;
     if (hit.name.startsWith('panel-')) return true;
