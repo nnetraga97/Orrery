@@ -24,8 +24,14 @@ export function checkPath(path: string): string {
 export function safePattern(pattern: string): RegExp | null {
   const m = pattern.match(/^\/(.+)\/([imsu]*)$/);
   if (!m || m[1].length > 200) return null;
-  // A quantified group holding a quantifier or an alternation ((a+)+, (a|a)*) can take exponential time.
-  if (/\([^)]*[+*}|][^)]*\)\s*[+*{]/.test(m[1])) return null;
+  // Catastrophic backtracking needs a repeated group ((a+)+, (a|a)*, ((a|a))*) or a backreference. Rather than analyse
+  // the group's contents (which nested groups can hide), no group may be quantified at all, at any depth, and
+  // backreferences are refused. Groups themselves (for alternation) are fine.
+  const source = m[1].replace(/\\./g, 'x'); // escaped characters are plain text here
+  if (/\)\s*[*+?{]/.test(source)) return null;
+  if (/\\[1-9]|\\k</.test(m[1])) return null;
+  // Many unbounded quantifiers in a row can still be slow on a long line (polynomial); a few are plenty for search.
+  if ((source.match(/[*+]|\{\d+,\}/g) ?? []).length > 4) return null;
   try {
     return new RegExp(m[1], m[2]);
   } catch {

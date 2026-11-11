@@ -41,6 +41,12 @@ test('search takes a safe regular expression between slashes', async () => {
   assert.equal(safePattern('/(a|a)*$/'), null);
   assert.equal(safePattern('/(a|aa)+$/'), null);
   assert.ok(safePattern('/(get|set)Value/') instanceof RegExp);
+  // Nested groups no longer hide a repeated group; any quantified group is refused.
+  for (const bad of ['/((a|a))*$/', '/(?:(a+))+$/', '/((a+)b)+/', '/(ab)?c/', '/(a){2,}/', '/(a)\\1/', '/(?<x>a)\\k<x>/', '/a*b*c*d*e*/'])
+    assert.equal(safePattern(bad), null, bad);
+  // Escaped parentheses are text.
+  assert.ok(safePattern('/f\\(x\\)+/') instanceof RegExp);
+  assert.ok(safePattern('/^\\s*if \\(\\w+/') instanceof RegExp);
   assert.ok(safePattern('/^\\s+[ab] =/') instanceof RegExp);
   assert.equal(safePattern('plain'), null);
 });
