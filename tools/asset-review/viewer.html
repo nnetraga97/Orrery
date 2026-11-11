@@ -1,0 +1,82 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>html,body{margin:0;background:#1d2128}canvas{display:block}</style>
+<!-- Served by tools/asset-review/render-models.mjs through request interception; /repo/ maps to the repository root. -->
+<script type="importmap">{"imports":{"three":"/repo/node_modules/three/build/three.module.js","three/addons/":"/repo/node_modules/three/examples/jsm/"}}</script>
+</head>
+<body>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+const W = 480, H = 480;
+const r = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+r.setSize(W * 2, H * 2);
+r.setPixelRatio(1);
+r.outputColorSpace = THREE.SRGBColorSpace;
+r.toneMapping = THREE.ACESFilmicToneMapping;
+document.body.appendChild(r.domElement);
+const scene = new THREE.Scene();
+scene.background = new THREE.Color('#2a2f38');
+scene.environment = new THREE.PMREMGenerator(r).fromScene(new RoomEnvironment(), 0.04).texture;
+scene.add(new THREE.HemisphereLight('#cfe4ff', '#3a3226', 1.2));
+const sun = new THREE.DirectionalLight('#fff', 2.2);
+sun.position.set(3, 5, 4);
+scene.add(sun);
+const cam = new THREE.PerspectiveCamera(35, 1, 0.001, 1000);
+
+// mode: 'grid' (front, 3/4, side, high 3/4), 'hero' (one large 3/4) or 'close' (tight 3/4 at mid height).
+// Distant meshes stored inside a model (extras.lod) are hidden unless showLod is set, so only the full model is drawn.
+window.render = async (url, { t = null, wire = false, mode = 'grid', showLod = false } = {}) => {
+  const g = await new GLTFLoader().loadAsync(url);
+  const root = g.scene;
+  scene.add(root);
+  if (g.animations.length && t != null) {
+    const m = new THREE.AnimationMixer(root);
+    g.animations.forEach(a => m.clipAction(a).play());
+    m.update(t);
+  }
+  root.traverse(o => {
+    if (!showLod && (o.userData?.lod || o.parent?.userData?.lod)) o.visible = false;
+    if (wire && o.isMesh) o.material = new THREE.MeshBasicMaterial({ color: '#9fe', wireframe: true });
+  });
+  root.updateMatrixWorld(true);
+  const box = new THREE.Box3();
+  root.traverseVisible(o => o.isMesh && box.expandByObject(o));
+  const c = box.getCenter(new THREE.Vector3()), s = box.getSize(new THREE.Vector3());
+  const dist = (s.length() / 2 / Math.sin(THREE.MathUtils.degToRad(17.5))) * 1.02;
+  const place = (target, az, el, k) => {
+    cam.position.set(
+      target.x + dist * k * Math.cos(el) * Math.sin(az),
+      target.y + dist * k * Math.sin(el),
+      target.z + dist * k * Math.cos(el) * Math.cos(az),
+    );
+    cam.lookAt(target);
+  };
+  if (mode === 'grid') {
+    r.setScissorTest(true);
+    [[0, 0.15], [Math.PI / 4, 0.45], [Math.PI / 2, 0.1], [Math.PI * 1.25, 0.9]].forEach(([az, el], i) => {
+      const x = (i % 2) * W, y = (1 - Math.floor(i / 2)) * H;
+      place(c, az, el, 1);
+      r.setViewport(x, y, W, H);
+      r.setScissor(x, y, W, H);
+      r.render(scene, cam);
+    });
+  } else {
+    r.setScissorTest(false);
+    r.setViewport(0, 0, W * 2, H * 2);
+    const target = c.clone();
+    if (mode === 'close') target.y = box.min.y + s.y * 0.55;
+    place(target, Math.PI / 4 + 0.3, 0.35, mode === 'close' ? 0.38 : 0.95);
+    r.render(scene, cam);
+  }
+  scene.remove(root);
+  return { size: [s.x, s.y, s.z].map(v => +v.toFixed(3)), anims: g.animations.map(a => `${a.name}:${a.duration.toFixed(1)}s`) };
+};
+window.ready = true;
+</script>
+</body>
+</html>
