@@ -2,6 +2,7 @@
 import { signal } from '@iwsdk/core';
 import { initialComposer } from '../core/chat/composer.ts';
 import type { ComposerState } from '../core/chat/composer.ts';
+import type { ActivityRow } from '../core/activity.ts';
 import type { AnswerState } from '../core/chat/requests.ts';
 import type { StoredThread, ThreadSummary } from '../core/chat/threads.ts';
 import type { Scenario } from '../core/scenario.ts';
@@ -52,7 +53,7 @@ export const thread = signal<StoredThread | null>(null);
 /** The chats kept on this device, newest first. */
 export const threads = signal<ThreadSummary[]>([]);
 /** What the chat window shows: the transcript, the chat list or the settings. */
-export type ChatPage = 'transcript' | 'threads' | 'settings';
+export type ChatPage = 'transcript' | 'threads' | 'settings' | 'search' | 'activity';
 export const chatPage = signal<ChatPage>('transcript');
 /** The composer: what was heard and not yet sent, the queue, mode and permission. */
 export const composer = signal<ComposerState>(initialComposer());
@@ -62,8 +63,17 @@ export const speech = signal<SpeechState>(idleSpeech());
 export type VoiceTarget =
   | { kind: 'composer' }
   | { kind: 'answer'; requestId: string; questionId: string }
-  | { kind: 'queue'; id: string };
+  | { kind: 'queue'; id: string }
+  | { kind: 'search' };
 export const voiceTarget = signal<VoiceTarget>({ kind: 'composer' });
+/** The Search page: what was heard (null before anything was said), the files found, and the one picked. */
+export const fileSearch = signal<{ heard: string | null; results: { path: string; name: string }[]; selected: string | null }>({
+  heard: null,
+  results: [],
+  selected: null,
+});
+/** The agent's tool calls and turns this visit, for the Activity page (src/core/activity.ts). */
+export const activity = signal<ActivityRow[]>([]);
 /** Answers given so far to the agent's open questions, by request id. */
 export const answers = signal<ReadonlyMap<string, AnswerState>>(new Map());
 /** Which expandable rows and groups of the transcript the reader opened or closed, by toggle key. */
@@ -144,6 +154,8 @@ export const appState = {
   composer,
   speech,
   voiceTarget,
+  fileSearch,
+  activity,
   answers,
   chatToggles,
   agentPointer,

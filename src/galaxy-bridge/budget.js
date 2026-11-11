@@ -4,6 +4,7 @@
 // (tools/assets/build-assets.mjs). Switches added to the copied code by tools/migrate/apply-patches.mjs; the flat
 // reference view keeps everything.
 import { IslandMotion } from '../../galaxy/viewer/agents/sky-island.js';
+import { RoadCars } from '../../galaxy/viewer/traffic/road-vehicles.js';
 import { FleetLimits } from '../../galaxy/viewer/galaxy/constellation-fleet.js';
 import { RiggedAssets } from '../../galaxy/viewer/scene/rigged-assets.js';
 
@@ -15,4 +16,6 @@ export function applyHeadsetBudget() {
   FleetLimits.visible = VISIBLE_HULLS;
   // At a seated user's scale the island's idle motions (propellers, smoke, fans, lanterns, the relay dish) read as noise.
   IslandMotion.idle = false;
+  // Road cars are a few millimetres long on a landed globe: the town kit's light cars, not the detailed models.
+  RoadCars.detailed = false;
 }

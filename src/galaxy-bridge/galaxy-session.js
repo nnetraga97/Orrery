@@ -16,10 +16,11 @@ export {
   saveGalaxyMemory,
   townKeys,
 } from '../../galaxy/viewer/app/galaxy-memory.ts';
-export { fetchSymbols, groupArms, importUse, importsIndexed, membersOf, nodeOf } from '../../galaxy/viewer/app/graph.ts';
+export { fetchSymbols, groupArms, importUse, importsIndexed, membersOf, nodeOf, search as searchFiles } from '../../galaxy/viewer/app/graph.ts';
 export { remember, remembered } from '../../galaxy/viewer/app/project-store.ts';
 export { G, actions, projects } from '../../galaxy/viewer/app/state.ts';
 export { planetBuildBudget } from '../../galaxy/viewer/shared/build-budget.js';
+export { STATEMENT_TYPES, statementType } from '../../galaxy/viewer/shared/town-flow.js';
 export { languageOf } from '../../galaxy/source-model/languages.js';
 export { loadTypeScript } from '../../galaxy/viewer/towns/town-assets.js';
 export { UIIcons } from '../../galaxy/viewer/shared/ui-icons.js';

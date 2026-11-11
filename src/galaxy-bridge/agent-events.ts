@@ -2,6 +2,8 @@
 // (galaxy/viewer/agents/agent-events.js; reference/desktop-app/docs/agent-integration.md). Reads and searches fly
 // ships to their files; an accepted edit fires the cannon at the file, and the planet rebuilds from the edited text
 // (the workspace is the copied code's source override). Questions raise a beacon; the replay a probe.
+import { addActivity } from '../core/activity.ts';
+import { activity } from '../state/app-state.ts';
 import { galaxyState } from './galaxy-session.js';
 
 type Action = 'read' | 'search' | 'edit' | 'create' | 'question' | 'debug' | 'task' | 'ui' | 'other';
@@ -29,6 +31,8 @@ export function createAgentEvents(provider: string) {
     turn = 0,
     seq = 0;
   const ingest = (type: string, payload: Record<string, unknown>, operationId?: string) => {
+    // The Activity page lists the same events, whether or not the cannon is in the scene yet.
+    activity.value = addActivity(activity.peek(), { type, payload, operationId, timestamp: Date.now() });
     const cannon = (galaxyState.view as { cannon?: { ingest(ev: unknown): void } } | null)?.cannon;
     if (!cannon || !session) return;
     try {

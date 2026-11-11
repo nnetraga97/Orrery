@@ -1,6 +1,7 @@
 // Push-to-talk. Pinch and hold the composer's microphone (or a question's "Say your answer") to listen; let go to stop.
 // The speech port reports words as they come; the state machine (src/core/speech.ts) decides when they were heard,
-// and the heard text goes where the pinch was: the composer, the question's answer, or a queued message said again.
+// and the heard text goes where the pinch was: the composer, the question's answer, a queued message said again, or the
+// Search page.
 // At start it asks once whether voice can work here; if not, the microphone is shown unavailable with one notice.
 import { createSystem } from '@iwsdk/core';
 import { heard, replaceQueued } from '../core/chat/composer.ts';
@@ -8,7 +9,7 @@ import { speak } from '../core/chat/requests.ts';
 import { consume, speechStep } from '../core/speech.ts';
 import type { SpeechEvent } from '../core/speech.ts';
 import type { SpeechPort } from '../ports/speech.ts';
-import { answers, composer, speech, voiceTarget } from '../state/app-state.ts';
+import { answers, composer, fileSearch, speech, voiceTarget } from '../state/app-state.ts';
 import type { VoiceTarget } from '../state/app-state.ts';
 import { connectVoice } from '../state/commands.ts';
 
@@ -82,6 +83,7 @@ export class VoiceSystem extends createSystem({}) {
       if (!current) return;
       answers.value = new Map(answers.peek()).set(target.requestId, speak(current, target.questionId, text));
     } else if (target.kind === 'queue') composer.value = replaceQueued(composer.peek(), target.id, text);
+    else if (target.kind === 'search') fileSearch.value = { ...fileSearch.peek(), heard: text, selected: null };
     else composer.value = heard(composer.peek(), text);
   }
 }

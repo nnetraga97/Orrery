@@ -197,6 +197,23 @@ export const IslandMotion = { idle: true };`,
     find: `    moonRig.step(dt);`,
     replace: `    moonRig.step(IslandMotion.idle || island.state.level > 0 || moonRig.state.busy ? dt : 0);`,
   },
+  {
+    file: 'galaxy/viewer/traffic/road-vehicles.js',
+    why: 'light road cars: a host may use the town kit cars instead of the detailed ones',
+    find: `export const ROAD_CARS = Object.freeze(['courier', 'interceptor', 'utility', 'hauler']);`,
+    replace: `export const ROAD_CARS = Object.freeze(['courier', 'interceptor', 'utility', 'hauler']);
+// A host may ask for the town kit's cars (about 2,000-2,800 triangles each, wheels included) instead of the detailed
+// ones (14,000-22,000 plus four wheel meshes): the XR app does, where a car is a few millimetres long on a globe.
+export const RoadCars = { detailed: true };`,
+  },
+  {
+    file: 'galaxy/viewer/traffic/road-vehicles.js',
+    why: 'light road cars: skip the detailed models when the host asks',
+    find: `      if (i < ROAD_CARS.length) {
+        try {`,
+    replace: `      if (i < ROAD_CARS.length && RoadCars.detailed) {
+        try {`,
+  },
 ];
 
 let applied = 0,

@@ -8,17 +8,17 @@ import { DEFAULT_SEAT, panelPlacements } from '../core/layout.ts';
 import type { Placement, Seat } from '../core/layout.ts';
 import { dragScroll } from '../core/scroll.ts';
 import { THEME } from '../core/theme.ts';
-import { cardMaxScroll, hoverLine, pressLine } from '../galaxy-bridge/inspector.ts';
+import { cancelShip, cardMaxScroll, flowOf, hoverLine, pressFlow, pressLine, routesOf, shipStatus, startShip } from '../galaxy-bridge/inspector.ts';
 import type { ContextItem } from '../ports/host.ts';
 import { CanvasPanel } from '../panels/canvas-panel.ts';
-import { CODE_CARD, CODE_LAYOUT, codeCardSize, drawCodeCard, replayLines } from '../panels/draw-code-card.ts';
+import { CODE_CARD, CODE_LAYOUT, codeCardSize, drawCodeCard, replayLines, shipLines } from '../panels/draw-code-card.ts';
 import { INFO_CARD, drawInfoCard, infoCardTitle } from '../panels/draw-info-card.ts';
 import type { InfoCard } from '../panels/draw-info-card.ts';
 import { STATUS_CARD, drawStatusCard, statusTitle } from '../panels/draw-status-card.ts';
 import type { StatusCard } from '../panels/draw-status-card.ts';
 import { loadFonts } from '../panels/fonts.ts';
 import { cardFromItem } from '../panels/info-card-content.ts';
-import { codeCardOpen, codeCardRows, codeScroll, codeView, error, layoutResets, loading, paused, pinned, replay } from '../state/app-state.ts';
+import { codeCardOpen, codeCardRows, codeScroll, codeView, error, inspectorExtras, layoutResets, loading, paused, pinned, replay } from '../state/app-state.ts';
 import { closeCard, replayBack, replayPlay, replayStep, retry } from '../state/commands.ts';
 import { GalaxySystem, TABLE_ANCHOR } from './galaxy-system.ts';
 import { headPosition } from './head.ts';
@@ -108,9 +108,29 @@ export class PanelSystem extends createSystem({}) {
       else if (id === 'replay:play') replayPlay();
       else if (id.startsWith('line:')) pressLine(Number(id.slice(5)));
       else if (id === 'more') this.setRows(codeCardRows.peek() === CODE_LAYOUT.rows ? CODE_LAYOUT.moreRows : CODE_LAYOUT.rows);
+      else if (id === 'flow') {
+        this.flowOpen = !this.flowOpen;
+        this.flowTop = 0;
+        this.drawCode();
+      } else if (id.startsWith('flow:')) {
+        const k = codeView.peek()?.selectedRegion;
+        if (k != null) pressFlow(k, Number(id.slice(5)));
+      } else if (id === 'ships') {
+        this.shipsOpen = !this.shipsOpen;
+        this.drawCode();
+      } else if (id === 'ship:cancel') cancelShip();
+      else if (id.startsWith('ship:')) {
+        const [, kind, index] = id.split(':');
+        const k = codeView.peek()?.selectedRegion;
+        if (k != null) startShip(k, Number(index), kind === 'travel');
+      }
     };
     this.code.onDrag = (_dx, dy) => {
-      codeScroll.value = dragScroll(codeScroll.peek(), dy, CODE_LAYOUT.lineHeight, cardMaxScroll());
+      if (this.flowOpen) {
+        const max = Math.max(0, flowOf(codeView.peek()?.selectedRegion ?? null).length - codeCardRows.peek());
+        this.flowTop = dragScroll(this.flowTop, dy, CODE_LAYOUT.lineHeight, max);
+        this.drawCode();
+      } else codeScroll.value = dragScroll(codeScroll.peek(), dy, CODE_LAYOUT.lineHeight, cardMaxScroll());
     };
     void loadFonts().then(() => {
       this.fontReady = true;
@@ -123,6 +143,10 @@ export class PanelSystem extends createSystem({}) {
       codeScroll.subscribe(() => this.drawCode()),
       codeCardOpen.subscribe(() => this.drawCode()),
       replay.subscribe(() => this.drawCode()),
+      // The transport's status reports (a flight's phases) redraw the ships list.
+      inspectorExtras.subscribe(() => {
+        if (this.shipsOpen) this.drawCode();
+      }),
       layoutResets.subscribe(n => {
         if (!n) return;
         for (const [panel, spec] of [[this.code, PLACEMENTS.codeCard]] as const) {
@@ -155,6 +179,46 @@ export class PanelSystem extends createSystem({}) {
     return region?.name ? `${file} · ${region.name}` : file;
   }
 
+  /** Whether the ships list is open; it closes when another function is selected. */
+  private shipsOpen = false;
+  private shipsRegion: number | null = null;
+  /** Whether Flow replaces the code (it stays on across functions), and its first row while scrolled. */
+  private flowOpen = false;
+  private flowTop = 0;
+  private flowRegion: number | null = null;
+
+  /** Flow rows for the card while Flow is on, else null; whether the function has any statements. */
+  private flowMeta(view: NonNullable<ReturnType<typeof codeView.peek>>) {
+    const k = view.selectedRegion;
+    if (k !== this.flowRegion) {
+      this.flowRegion = k;
+      this.flowTop = 0;
+    }
+    const all = flowOf(k);
+    if (!this.flowOpen || replay.peek()) return { has: all.length > 0, rows: null };
+    const sel = view.selectedRange;
+    const rows = all.slice(Math.round(this.flowTop), Math.round(this.flowTop) + codeCardRows.peek()).map(r => {
+      const segments = view.lines[r.start - 1] ?? [];
+      const text = segments.map(s => s.text).join('').replace(/\s+/g, ' ').trim();
+      return { index: r.index, line: r.start, glyph: r.glyph, label: r.label, color: r.color, text, selected: !!sel && sel.start === r.start && sel.end === r.end };
+    });
+    return { has: all.length > 0, rows };
+  }
+
+  /** The ships part of the code card: the selected function's routes, or null while the list is closed. */
+  private shipsMeta() {
+    const k = codeView.peek()?.selectedRegion ?? null;
+    if (k !== this.shipsRegion) {
+      this.shipsRegion = k;
+      this.shipsOpen = false;
+    }
+    const routes = routesOf(k);
+    if (!this.shipsOpen || !routes.length || replay.peek()) return { count: routes.length, ships: null };
+    const s = shipStatus();
+    const status = s.phase === 'idle' ? 'Ships fly to the files this function uses.' : `${s.phase[0].toUpperCase()}${s.phase.slice(1)}${s.path ? ` · ${s.path}` : ''}`;
+    return { count: routes.length, ships: { routes, status, busy: s.busy } };
+  }
+
   /** The replay's part of the code card, or null. */
   private replayMeta() {
     const r = replay.peek();
@@ -165,7 +229,7 @@ export class PanelSystem extends createSystem({}) {
 
   private setRows(rows: number) {
     codeCardRows.value = rows;
-    const size = codeCardSize(rows, replayLines(this.replayMeta()));
+    const size = codeCardSize(rows, replayLines(this.replayMeta()) + shipLines(this.shipsMeta().ships));
     this.code.resize(size.heightPx, size.heightM);
     codeScroll.value = Math.min(codeScroll.peek(), cardMaxScroll());
     this.drawCode();
@@ -200,12 +264,14 @@ export class PanelSystem extends createSystem({}) {
     }
     // A replay's note and values lengthen the card; it shrinks back when the replay ends.
     const replayMeta = this.replayMeta();
-    const size = codeCardSize(codeCardRows.peek(), replayLines(replayMeta));
+    const ships = this.shipsMeta();
+    const size = codeCardSize(codeCardRows.peek(), replayLines(replayMeta) + shipLines(ships.ships));
     this.code.resize(size.heightPx, size.heightM);
     if (show && !this.code.visible && !this.code.moved) place(this.code, PLACEMENTS.codeCard);
     this.code.visible = show;
     if (!show || !view) return;
     const rows = visibleLines(view, { rows: codeCardRows.peek(), columns: CODE_LAYOUT.columns, scrollTop: codeScroll.peek() });
+    const flow = this.flowMeta(view);
     const range = shownRange(view);
     this.code.redraw((ctx, w, h) =>
       drawCodeCard(ctx, w, h, this.code.u, rows, {
@@ -217,6 +283,10 @@ export class PanelSystem extends createSystem({}) {
         more: codeCardRows.peek() !== CODE_LAYOUT.rows,
         hovered: this.code.hovered,
         replay: replayMeta,
+        shipCount: ships.count,
+        ships: ships.ships,
+        hasFlow: flow.has,
+        flow: flow.rows,
       }),
     );
   }

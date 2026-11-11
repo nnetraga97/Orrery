@@ -62,11 +62,15 @@ export class ChatWindowSystem extends createSystem({}) {
   private viewTop = 0;
   private turnStart = 0;
   /** Tabs that do nothing yet; Replay and Settings join when their systems connect (enableTab). */
-  private disabled = new Set<TabId>(['replay', 'settings']);
+  private disabled = new Set<TabId>(['search', 'activity', 'replay', 'settings']);
   /** What the Replay and Settings tabs do, once connected. */
   tabActions: Partial<Record<TabId, () => void>> = {};
   /** The settings page's layout and its pinches, once connected (Task 16). */
   settingsPage: { layout(m: ChatMetrics, ctx: CanvasRenderingContext2D): ChatLayout; press(id: string): void } | null = null;
+  /** The Activity page, once the activity system connects. */
+  activityPage: { layout(m: ChatMetrics, ctx: CanvasRenderingContext2D): ChatLayout; press(id: string): void } | null = null;
+  /** The Search page, once the search system connects. */
+  searchPage: { layout(m: ChatMetrics, ctx: CanvasRenderingContext2D): ChatLayout; press(id: string): void } | null = null;
   /** Text scale for the chat (a setting). */
   textScale = 1;
   /** Reduce motion (a setting): the working glyph and plan rings stay still. */
@@ -161,6 +165,8 @@ export class ChatWindowSystem extends createSystem({}) {
     const page = chatPage.peek();
     if (page === 'threads') return 'Agent · Chats';
     if (page === 'settings') return 'Agent · Settings';
+    if (page === 'search') return 'Find a file';
+    if (page === 'activity') return 'Agent · Activity';
     const t = thread.peek();
     return `Agent · ${t ? titleFor(t) : 'New chat'}`;
   }
@@ -176,7 +182,7 @@ export class ChatWindowSystem extends createSystem({}) {
 
   private drawTabs() {
     const page = chatPage.peek();
-    const active: TabId | null = !agentOpen.peek() ? null : page === 'settings' ? 'settings' : 'chat';
+    const active: TabId | null = !agentOpen.peek() ? null : page === 'settings' ? 'settings' : page === 'search' ? 'search' : page === 'activity' ? 'activity' : 'chat';
     this.tabs.redraw((ctx, w, h) => drawTabStrip(ctx, w, h, { active, hovered: this.tabs.hovered, disabled: [...this.disabled] }));
   }
 
@@ -190,13 +196,16 @@ export class ChatWindowSystem extends createSystem({}) {
       return;
     }
     // Held controls act on press-and-hold, not on the click.
-    if (id === 'mic' || id.startsWith('say:') || id.startsWith('queue:again:')) return;
+    if (id === 'mic' || id === 'search:mic' || id.startsWith('say:') || id.startsWith('queue:again:')) return;
     if (chatPage.peek() === 'settings' && this.settingsPage) return this.settingsPage.press(id);
+    if (chatPage.peek() === 'search' && this.searchPage) return this.searchPage.press(id);
+    if (chatPage.peek() === 'activity' && this.activityPage) return this.activityPage.press(id);
     chatAction(id);
   }
 
   private holdStart(id: string) {
     if (id === 'mic') pressMic({ kind: 'composer' });
+    else if (id === 'search:mic') pressMic({ kind: 'search' });
     else if (id.startsWith('say:')) {
       const [, requestId, ...q] = id.split(':');
       pressMic({ kind: 'answer', requestId, questionId: q.join(':') });
@@ -206,7 +215,7 @@ export class ChatWindowSystem extends createSystem({}) {
   }
 
   private holdEnd(id: string) {
-    if (id === 'mic' || id.startsWith('say:') || id.startsWith('queue:again:')) releaseMic();
+    if (id === 'mic' || id === 'search:mic' || id.startsWith('say:') || id.startsWith('queue:again:')) releaseMic();
   }
 
   private drag(dy: number) {
@@ -277,6 +286,8 @@ export class ChatWindowSystem extends createSystem({}) {
     const measure = canvasMeasure(ctx, m);
     if (page === 'threads') return layoutThreadList(threads.peek(), thread.peek()?.id ?? null, m, measure);
     if (page === 'settings' && this.settingsPage) return this.settingsPage.layout(m, ctx);
+    if (page === 'search' && this.searchPage) return this.searchPage.layout(m, ctx);
+    if (page === 'activity' && this.activityPage) return this.activityPage.layout(m, ctx);
     const t = thread.peek();
     const items = t?.items ?? [],
       running = t?.status === 'running',

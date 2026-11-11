@@ -39,6 +39,7 @@ import {
 import { connectCommands, openDataset } from '../state/commands.ts';
 import { headObject } from './head.ts';
 import { createRoom } from './room.ts';
+import { MOTION } from '../panels/canvas-panel.ts';
 
 // Where the model floats: an invisible point in the air in front of the seat, a little below a seated eye, pitched 20°
 // down from level so its far side tilts up toward the user. There is no table under it.
@@ -56,7 +57,7 @@ export const LANDED_GLOBE_DIAMETER = 0.64;
 // Where a landed globe's centre floats: a little below a seated eye.
 export const LANDED_CENTER: Vec3 = [0, 1.1, -0.95];
 const ANCHOR_EASE_SECONDS = 0.6;
-/** How often, while landed, to look for newly built road cars to hide. */
+/** How often, while landed with Reduce motion on, to look for newly built road cars to hide. */
 const CAR_SWEEP_SECONDS = 0.5;
 // The opening view: the galaxy fills the headset's view edge to edge. Its core (CORE_SHARE of its planets and asteroids,
 // nearest its centre) fills this box of directions from the seat, with the anchor OPENING_DEPTH metres in front; the
@@ -82,13 +83,24 @@ export class GalaxySystem extends createSystem({}) {
   /** Frames to keep looking for the copied code's pin fill after the selected town changes (it is built a moment later). */
   private outlineFrames = 0;
   private carSweep = 0;
-  // Road cars on a 0.64 m globe are 2-5 mm long and cost about 920,000 triangles: hidden from the bridge.
+  // With Reduce motion on, road cars are hidden (the light kit cars run otherwise; see applyHeadsetBudget).
   private readonly hideCar = (o: Object3D) => {
-    if (o.visible && o.name.startsWith('road-car:')) o.visible = false;
+    if (o.visible && o.name.startsWith('road-car:')) {
+      o.visible = false;
+      o.userData.hiddenForMotion = true;
+    }
   };
+  // Turning Reduce motion off brings back the cars it hid.
+  private readonly showCar = (o: Object3D) => {
+    if (o.userData.hiddenForMotion) {
+      o.visible = true;
+      delete o.userData.hiddenForMotion;
+    }
+  };
+  private carsHidden = false;
 
   init() {
-    // Light rigs, a few ship hulls and a lighter island, within the headset's draw budget.
+    // Light rigs, a few ship hulls and light road cars, and a still island while the agent is idle.
     applyHeadsetBudget();
     this.head = new Vector3();
     this.gaze = new Vector3();
@@ -236,14 +248,18 @@ export class GalaxySystem extends createSystem({}) {
     return focusedPoseInto(kit.virtual(), this.anchor, this.focus, LANDED_GLOBE_DIAMETER / (2 * kit.bodySize(i)), this.pose);
   }
 
-  /** Publishes the phase and the landed file when the view lands or leaves. */
+  /** Publishes the phase and the landed file when the view lands, leaves, or moves from one planet to another (a
+   * ship's travel, or showCode for another file while landed). */
   private publishLanding() {
     const view = galaxyState.view;
     const landed = !!view?.landed;
-    if (landed === this.landed) return;
+    // The landed body (the one the landed pose centres), not the selection, which can move to another file.
+    const pinnedBody = (this.host.kit as { pinned?: number | null } | null)?.pinned;
+    const i = pinnedBody ?? galaxyState.selected;
+    const path = landed && i != null ? galaxyState.nodes[i]?.path ?? null : null;
+    if (landed === this.landed && path === landedPath.peek()) return;
     this.landed = landed;
-    const i = galaxyState.selected;
-    landedPath.value = landed && i != null ? galaxyState.nodes[i].path : null;
+    landedPath.value = path;
     phase.value = landed ? 'landed' : 'overview';
   }
 
@@ -307,12 +323,16 @@ export class GalaxySystem extends createSystem({}) {
       this.outlineFrames--;
       if (outlinePinnedTown(group) > 0) this.outlineFrames = 0;
     }
-    if (this.landed) {
+    if (this.landed && MOTION.reduce) {
       this.carSweep += delta;
       if (this.carSweep >= CAR_SWEEP_SECONDS) {
         this.carSweep = 0;
         group.traverse(this.hideCar);
+        this.carsHidden = true;
       }
+    } else if (this.carsHidden) {
+      this.carsHidden = false;
+      group.traverse(this.showCar);
     }
   }
 }

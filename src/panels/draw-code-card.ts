@@ -1,7 +1,10 @@
 // The code card (docs/visual-style.md): a function's code in the bundled monospace font, about 12 lines, with line
 // numbers and token colours (keywords `line`, identifiers `white`, literals `ok`, comments `lineDim`). Selected lines
 // carry a `glow` band with a solid left edge, hovered lines a fainter one. Every row is a hit region (line:<n>), so a
-// pinch on a line can select its statement on the globe. The footer has `More`, which lengthens the card to 24 lines.
+// pinch on a line can select its statement on the globe. The footer has `More`, which lengthens the card to 24 lines,
+// `Flow`, which lists the function's statements in place of its code (each row selects its building), and `Ships`,
+// when the function has routes: a list above the code of the files its ships fly to, each with Preview
+// (`ship:preview:<i>`) and Travel (`ship:travel:<i>`), the flight's status, and Cancel (`ship:cancel`) during a flight.
 // The window frame, its title ("file · function"), the close mark and the grab bar come from CanvasPanel.
 import type { CodeRow } from '../core/code-view.ts';
 import type { HitRegion } from '../core/panel-hit.ts';
@@ -38,7 +41,31 @@ export interface CodeCardMeta {
   hovered: string | null;
   /** During a replay: the step's note, up to four values, the position ("3 / 7") and whether it plays. */
   replay?: { note: string | null; variables: { name: string; value: string }[]; position: string; playing: boolean; failed: boolean } | null;
+  /** How many routes leave the selected function (0 hides the Ships button), and whether the list is open. */
+  shipCount?: number;
+  /** The open ships list: up to four routes, the flight's status, and whether a flight is under way. */
+  ships?: { routes: { path: string; canFly: boolean }[]; status: string; busy: boolean } | null;
+  /** Whether the function has statements to list (shows the Flow button). */
+  hasFlow?: boolean;
+  /** While Flow is on: its rows in place of the code, one per statement (`flow:<index>`). */
+  flow?: FlowCardRow[] | null;
 }
+
+/** A Flow row: the statement's kind (glyph, label, colour), its first line and the start of its source. */
+export interface FlowCardRow {
+  index: number;
+  line: number;
+  glyph: string;
+  label: string;
+  color: string;
+  text: string;
+  selected: boolean;
+}
+
+/** Routes the ships list shows at most. */
+export const MAX_SHIPS = 4;
+/** Lines the ships list adds above the code: a status line, then two lines per route (room for its buttons). */
+export const shipLines = (s: CodeCardMeta['ships']) => (s ? 1 + 2 * Math.min(MAX_SHIPS, s.routes.length) : 0);
 
 /** Lines a replay adds above the code: its note, then up to four `name = value` lines. */
 export const replayLines = (r: CodeCardMeta['replay']) => (r ? (r.note ? 1 : 0) + Math.min(4, r.variables.length) : 0);
@@ -79,10 +106,64 @@ export function drawCodeCard(
     ctx.restore();
     rule(ctx, 1, top - 2, w - 2, u);
   }
+  if (meta.ships) {
+    const s = meta.ships;
+    const bh = Math.min(32 * u, lineHeight * 2 - 16),
+      bw = 100 * u;
+    ctx.save();
+    ctx.font = font('body', L.fontPx * 0.9);
+    ctx.fillStyle = THEME.lineDim;
+    ctx.fillText(fit(ctx, s.status, w - L.pad * 2 - (s.busy ? bw + 12 * u : 0)), L.pad, top + lineHeight / 2 + L.fontPx * 0.32);
+    ctx.restore();
+    if (s.busy) {
+      const r = button(ctx, 'ship:cancel', 'Cancel', w - L.pad - bw, top + (lineHeight - Math.min(bh, lineHeight - 6)) / 2, bw, Math.min(bh, lineHeight - 6), u, { state: stateOf(meta.hovered, 'ship:cancel') });
+      if (r) regions.push(r);
+    }
+    top += lineHeight;
+    s.routes.slice(0, MAX_SHIPS).forEach((route, i) => {
+      const rowH = lineHeight * 2,
+        by = top + (rowH - bh) / 2,
+        off = s.busy || !route.canFly;
+      const travel = button(ctx, `ship:travel:${i}`, 'Travel', w - L.pad - bw, by, bw, bh, u, { state: off ? 'disabled' : stateOf(meta.hovered, `ship:travel:${i}`) });
+      const preview = button(ctx, `ship:preview:${i}`, 'Preview', w - L.pad - 2 * bw - 10 * u, by, bw, bh, u, { state: off ? 'disabled' : stateOf(meta.hovered, `ship:preview:${i}`) });
+      for (const r of [preview, travel]) if (r) regions.push(r);
+      ctx.save();
+      ctx.font = font('mono', L.fontPx * 0.92);
+      ctx.letterSpacing = '0.01px';
+      ctx.fillStyle = route.canFly ? THEME.white : THEME.lineDim;
+      const label = route.canFly ? route.path : `${route.path} · no ship`;
+      ctx.fillText(fit(ctx, label, w - L.pad * 2 - 2 * bw - 24 * u), L.pad, top + rowH / 2 + L.fontPx * 0.32);
+      ctx.restore();
+      top += rowH;
+    });
+    rule(ctx, 1, top - 2, w - 2, u);
+  }
   ctx.font = font('mono', L.fontPx);
   const charW = ctx.measureText('M').width;
   const baseline = (y: number) => y + lineHeight / 2 + L.fontPx * 0.36;
-  rows.forEach((row, k) => {
+  if (meta.flow) {
+    // Flow: one row per statement, in line order: glyph and kind in the statement's colour, the line, its source.
+    meta.flow.forEach((row, k) => {
+      const y = top + k * lineHeight;
+      if (row.selected) band(ctx, 1, y, w - 2, lineHeight, u, THEME.glow);
+      else if (meta.hovered === `flow:${row.index}`) band(ctx, 1, y, w - 2, lineHeight, 0, THEME.glow, 0.08);
+      ctx.save();
+      ctx.font = font('body', L.fontPx);
+      ctx.fillStyle = row.color;
+      ctx.fillText(row.glyph, L.pad + 6, baseline(y));
+      ctx.fillText(row.label, L.pad + 46, baseline(y));
+      ctx.font = font('mono', L.fontPx * 0.9);
+      ctx.letterSpacing = '0.01px';
+      ctx.fillStyle = THEME.lineDim;
+      const lx = L.pad + 260;
+      ctx.fillText(`L${row.line}`, lx, baseline(y));
+      ctx.fillStyle = row.selected ? THEME.white : THEME.line;
+      ctx.fillText(fit(ctx, row.text, w - lx - 120 - L.pad), lx + 110, baseline(y));
+      ctx.restore();
+      regions.push({ id: `flow:${row.index}`, x: 0, y, w, h: lineHeight });
+    });
+    if (!meta.flow.length) microLabel(ctx, 'No statements in this function', L.pad, baseline(top), 13 * u, THEME.lineDim);
+  } else rows.forEach((row, k) => {
     const y = top + k * lineHeight;
     if (row.highlight === 'selected') band(ctx, 1, y, w - 2, lineHeight, u, THEME.glow);
     else if (row.highlight === 'hovered' || meta.hovered === `line:${row.number}`)
@@ -131,7 +212,7 @@ export function drawCodeCard(
   } else
     microLabel(
       ctx,
-      rows.length ? `Lines ${meta.shown.first}–${meta.shown.last} of ${meta.shown.total}` : 'No code to show',
+      meta.flow ? 'Statements' : rows.length ? `${meta.shown.first}–${meta.shown.last} of ${meta.shown.total}` : 'No code to show',
       L.pad,
       by + bh / 2 + 5 * u,
       12 * u,
@@ -141,5 +222,22 @@ export function drawCodeCard(
     state: stateOf(meta.hovered, 'more'),
   });
   if (more) regions.push(more);
+  // Right to left after More: Ships (when the function has routes), then Flow.
+  let right = w - L.pad - bw - 10 * u;
+  if (meta.shipCount && !meta.replay) {
+    const sw = 96 * u;
+    const ships = button(ctx, 'ships', `Ships ${meta.shipCount}`, right - sw, by, sw, bh, u, {
+      state: meta.ships ? 'pressed' : stateOf(meta.hovered, 'ships'),
+    });
+    if (ships) regions.push(ships);
+    right -= sw + 10 * u;
+  }
+  if (meta.hasFlow && !meta.replay) {
+    const fw = 70 * u;
+    const flow = button(ctx, 'flow', meta.flow ? 'Code' : 'Flow', right - fw, by, fw, bh, u, {
+      state: stateOf(meta.hovered, 'flow'),
+    });
+    if (flow) regions.push(flow);
+  }
   return regions;
 }

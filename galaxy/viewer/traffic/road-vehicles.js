@@ -6,6 +6,9 @@ import { loadModel } from '../towns/towns.js';
 import { planetBuildBudget } from '../shared/build-budget.js';
 
 export const ROAD_CARS = Object.freeze(['courier', 'interceptor', 'utility', 'hauler']);
+// A host may ask for the town kit's cars (about 2,000-2,800 triangles each, wheels included) instead of the detailed
+// ones (14,000-22,000 plus four wheel meshes): the XR app does, where a car is a few millimetres long on a globe.
+export const RoadCars = { detailed: true };
 const cache = new Map();
 function loadCar(key) {
   if (!cache.has(key)) {
@@ -70,7 +73,7 @@ export function createRoadFleet(T, capacity) {
   const ready = Promise.all(
     [...ROAD_CARS, 'police', 'ambulance'].map(async (key, i) => {
       let car;
-      if (i < ROAD_CARS.length) {
+      if (i < ROAD_CARS.length && RoadCars.detailed) {
         try {
           car = await loadCar(key);
         } catch (error) {
