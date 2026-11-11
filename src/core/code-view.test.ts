@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { maxScrollTop, scrollToRange, shownRange, visibleLines } from './code-view.ts';
+import { hasSelection, maxScrollTop, scrollToRange, shownRange, visibleLines } from './code-view.ts';
 import type { CodeView } from './code-view.ts';
 
 const file = (n: number) => Array.from({ length: n }, (_, i) => [{ text: `line ${i + 1}` }]);
@@ -15,18 +15,20 @@ const view = (patch: Partial<CodeView> = {}): CodeView => ({
   selectedRegion: 1,
   selectedRange: null,
   hoveredRange: null,
-  mode: 'function',
   ...patch,
 });
-const options = { rows: 35, columns: 88, scrollTop: 0 };
+const options = { rows: 12, columns: 56, scrollTop: 0 };
 
-test('function mode shows the selected region with 3 lines of context each side', () => {
+test('the card shows the selected function with 3 lines of context each side, 12 rows at a time', () => {
   const rows = visibleLines(view(), options);
   assert.deepEqual(
     rows.map(r => r.number),
-    Array.from({ length: 16 }, (_, i) => 37 + i),
+    Array.from({ length: 12 }, (_, i) => 37 + i),
   );
   assert.deepEqual(shownRange(view()), { start: 37, end: 52 });
+  const more = visibleLines(view(), { ...options, rows: 24 });
+  assert.equal(more.length, 16);
+  assert.equal(maxScrollTop(view(), 12), 4);
 });
 
 test('context is clipped at the start and end of the file', () => {
@@ -34,11 +36,19 @@ test('context is clipped at the start and end of the file', () => {
   assert.deepEqual(shownRange(view({ selectedRegion: 2 })), { start: 93, end: 100 });
 });
 
-test('file mode, or no selected region, shows the whole file from scrollTop', () => {
-  const rows = visibleLines(view({ mode: 'file' }), { ...options, scrollTop: 10 });
-  assert.equal(rows.length, 35);
+test('with no selected function the whole file shows from scrollTop', () => {
+  const rows = visibleLines(view({ selectedRegion: null }), { ...options, scrollTop: 10 });
+  assert.equal(rows.length, 12);
   assert.equal(rows[0].number, 11);
   assert.deepEqual(shownRange(view({ selectedRegion: null })), { start: 1, end: 100 });
+});
+
+test('the card has something to show only while a function or a range is selected', () => {
+  assert.equal(hasSelection(null), false);
+  assert.equal(hasSelection(view()), true);
+  assert.equal(hasSelection(view({ selectedRegion: null })), false);
+  assert.equal(hasSelection(view({ selectedRegion: null, selectedRange: { start: 3, end: 3 } })), true);
+  assert.equal(hasSelection(view({ lines: [] })), false);
 });
 
 test('highlight flags: selected wins over hovered', () => {
@@ -69,10 +79,10 @@ test('an empty file gives no rows', () => {
 });
 
 test('scrollToRange puts the range a third of the way down, clamped', () => {
-  const v = view({ mode: 'file' });
+  const v = view({ selectedRegion: null });
   assert.equal(scrollToRange(v, { start: 50, end: 52 }, 30), 50 - 1 - 10);
   assert.equal(scrollToRange(v, { start: 3, end: 4 }, 30), 0);
   assert.equal(scrollToRange(v, { start: 99, end: 99 }, 30), maxScrollTop(v, 30));
   assert.equal(maxScrollTop(v, 30), 70);
-  assert.equal(maxScrollTop(view(), 35), 0);
+  assert.equal(maxScrollTop(view(), 24), 0);
 });

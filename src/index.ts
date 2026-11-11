@@ -8,9 +8,7 @@ import { appState } from './state/app-state.ts';
 import { commands } from './state/commands.ts';
 import { GalaxySystem } from './systems/galaxy-system.ts';
 import { ManipulationSystem } from './systems/manipulation-system.ts';
-import { DockSystem } from './systems/dock-system.ts';
 import { PanelSystem } from './systems/panel-system.ts';
-import { PickerSystem } from './systems/picker-system.ts';
 import { TutorialSystem } from './systems/tutorial-system.ts';
 
 World.create(document.getElementById('scene-container') as HTMLDivElement, projectOptions).then(world => {
@@ -19,18 +17,15 @@ World.create(document.getElementById('scene-container') as HTMLDivElement, proje
   world.registerSystem(GalaxySystem);
   world.registerSystem(ManipulationSystem);
   world.registerSystem(PanelSystem);
-  world.registerSystem(DockSystem);
-  world.registerSystem(PickerSystem);
   world.registerSystem(TutorialSystem);
-  const picker = world.getSystem(PickerSystem)!;
   const galaxy = world.getSystem(GalaxySystem)!;
   window.__orrery = {
     world,
     state: appState,
     commands,
-    /** True once there is something to use: the galaxy, or the project picker. */
+    /** True once the galaxy is built and attached. */
     get ready() {
-      return galaxy.ready || picker.shown;
+      return galaxy.ready;
     },
     get kit() {
       return galaxy.host.kit;

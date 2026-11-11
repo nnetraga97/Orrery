@@ -12,7 +12,7 @@ test('each step advances on its own event', () => {
     ['point', 'selected', 'turn'],
     ['turn', 'orbited', 'open'],
     ['open', 'landed', 'read'],
-    ['read', 'statementShown', 'done'],
+    ['read', 'codeShown', 'done'],
   ];
   for (const [from, event, to] of path) assert.equal(nextStep(from, event), to);
 });

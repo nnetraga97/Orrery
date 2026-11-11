@@ -1,12 +1,13 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { angularBox, panelPlacements } from './layout.ts';
+import { angularBox, clampReach, panelPlacements } from './layout.ts';
 import type { Seat } from './layout.ts';
+import type { Vec3 } from './table-frame.ts';
 
 const seats: Seat[] = [{ eye: [0, 1.2, 0] }, { eye: [0, 1.25, 0.05] }];
 
-test('the four panels are placed', () => {
-  assert.deepEqual(Object.keys(panelPlacements(seats[0])).sort(), ['agentPanel', 'codePage', 'dock', 'tutorial']);
+test('the three windows are placed', () => {
+  assert.deepEqual(Object.keys(panelPlacements(seats[0])).sort(), ['agentPanel', 'codeCard', 'tutorial']);
 });
 
 test('every panel centre is 0.9 to 1.2 m from the head', () => {
@@ -52,7 +53,20 @@ test('each panel faces the head', () => {
   }
 });
 
-test('the code page keeps the size the plan gives it', () => {
-  const page = panelPlacements(seats[0]).codePage;
-  assert.deepEqual([page.width, page.height], [0.86, 0.77]);
+test('the windows keep the sizes the style page gives them', () => {
+  const p = panelPlacements(seats[0]);
+  assert.deepEqual([p.codeCard.width, p.codeCard.height], [0.46, 0.34]);
+  assert.deepEqual([p.agentPanel.width, p.agentPanel.height], [0.4, 0.72]);
+  assert.deepEqual([p.tutorial.width, p.tutorial.height], [0.3, 0.1]);
+});
+
+test('clampReach keeps a moved window 0.5 to 1.4 m from the eye, along the same direction', () => {
+  const eye: Vec3 = [0, 1.2, 0];
+  const near = clampReach(eye, [0, 1.2, -0.2], 0.5, 1.4);
+  assert.deepEqual(near.map(v => +v.toFixed(9)), [0, 1.2, -0.5]);
+  const far = clampReach(eye, [3, 1.2, 0], 0.5, 1.4);
+  assert.deepEqual(far.map(v => +v.toFixed(9)), [1.4, 1.2, 0]);
+  assert.deepEqual(clampReach(eye, [0.3, 1.0, -0.8], 0.5, 1.4), [0.3, 1.0, -0.8]);
+  // The eye itself: pushed straight ahead.
+  assert.deepEqual(clampReach(eye, [0, 1.2, 0], 0.5, 1.4).map(v => +v.toFixed(9)), [0, 1.2, -0.5]);
 });

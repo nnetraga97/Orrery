@@ -1,7 +1,8 @@
-// Where the panels sit around a seated user, who faces -Z. Each panel is placed by its angle from the eye and its
-// distance, and turned to face the eye. Limits: every centre 0.9-1.2 m from the head, within ±32° to either side and
-// between 20° below and 12° above eye level, and no two panels overlapping as seen from the head. The narrower glasses
-// view (37° either side, 25° up, 43° down) contains these.
+// Where the windows first appear around a seated user, who faces -Z, and how far a moved window may go. Each window
+// is placed by its angle from the eye and its distance, and turned to face the eye. Limits: every centre 0.9-1.2 m
+// from the head, within ±32° to either side and between 20° below and 12° above eye level, and no two windows
+// overlapping as seen from the head. The narrower glasses view (37° either side, 25° up, 43° down) contains these
+// centres. The model floats in the middle; the chat sits to its left and the code card to its right.
 import type { Vec3 } from './table-frame.ts';
 
 export interface Seat {
@@ -15,16 +16,14 @@ export interface Placement {
   width: number;
   height: number;
 }
-export type PanelName = 'codePage' | 'agentPanel' | 'dock' | 'tutorial';
+export type PanelName = 'codeCard' | 'agentPanel' | 'tutorial';
 
 const RAD = Math.PI / 180;
 // yaw: degrees to the right; pitch: degrees above eye level; distance in metres; size in metres.
 const SPEC: Record<PanelName, { yaw: number; pitch: number; distance: number; width: number; height: number }> = {
-  codePage: { yaw: 32, pitch: -6, distance: 1.2, width: 0.86, height: 0.77 },
-  agentPanel: { yaw: -32, pitch: -6, distance: 1.15, width: 0.6, height: 0.7 },
-  tutorial: { yaw: 0, pitch: 10, distance: 1.1, width: 0.4, height: 0.12 },
-  // Low at the table's far edge: the table's near edge is too close to the head for a panel.
-  dock: { yaw: 0, pitch: -19, distance: 0.95, width: 0.4, height: 0.09 },
+  codeCard: { yaw: 30, pitch: -4, distance: 1.0, width: 0.46, height: 0.34 },
+  agentPanel: { yaw: -30, pitch: -6, distance: 1.1, width: 0.4, height: 0.72 },
+  tutorial: { yaw: 0, pitch: 12, distance: 1.0, width: 0.3, height: 0.1 },
 };
 
 export function panelPlacements(seat: Seat): Record<PanelName, Placement> {
@@ -62,4 +61,23 @@ export function angularBox(seat: Seat, p: Placement) {
     halfWidth: Math.atan(p.width / 2 / d) / RAD,
     halfHeight: Math.atan(p.height / 2 / d) / RAD,
   };
+}
+
+/** A moved window's position, kept between min and max metres from the eye along the same direction. */
+export function clampReach(eye: Vec3, position: Vec3, min: number, max: number): Vec3 {
+  let dx = position[0] - eye[0],
+    dy = position[1] - eye[1],
+    dz = position[2] - eye[2];
+  let d = Math.hypot(dx, dy, dz);
+  if (d < 1e-9) {
+    dx = 0;
+    dy = 0;
+    dz = -1;
+    d = 1;
+    const k = min / d;
+    return [eye[0] + dx * k, eye[1] + dy * k, eye[2] + dz * k];
+  }
+  if (d >= min && d <= max) return position;
+  const k = (d < min ? min : max) / d;
+  return [eye[0] + dx * k, eye[1] + dy * k, eye[2] + dz * k];
 }

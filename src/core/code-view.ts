@@ -1,6 +1,6 @@
-// What the code page shows: from the inspector's state (one file's highlighted lines, its functions and what is
-// selected), the rows on screen. Function mode shows the selected function with a little context; file mode the whole
-// file. scrollTop counts lines from the top of what is shown.
+// What the code card shows: from the inspector's state (one file's highlighted lines, its functions and what is
+// selected), the rows on screen. The card shows the selected function with 3 lines of context each side (the whole
+// file only when a selected line lies outside every function). scrollTop counts lines from the top of what is shown.
 
 /** One run of source text with an optional token class (tok-keyword, tok-string, ...). */
 export interface Segment {
@@ -22,7 +22,6 @@ export interface CodeView {
   selectedRegion: number | null;
   selectedRange: LineRange | null;
   hoveredRange: LineRange | null;
-  mode: 'function' | 'file';
 }
 export interface CodeRow {
   number: number;
@@ -33,10 +32,10 @@ export interface CodeRow {
 
 export const CONTEXT_LINES = 3;
 
-/** The lines the page shows: the selected function plus context in function mode, otherwise the whole file. */
+/** The lines the card shows: the selected function plus context, otherwise the whole file. */
 export function shownRange(view: CodeView): LineRange {
   const total = view.lines.length;
-  const region = view.mode === 'function' && view.selectedRegion != null ? view.regions[view.selectedRegion] : null;
+  const region = view.selectedRegion != null ? view.regions[view.selectedRegion] : null;
   if (!region) return { start: 1, end: total };
   return { start: Math.max(1, region.start - CONTEXT_LINES), end: Math.min(total, region.end + CONTEXT_LINES) };
 }
@@ -45,6 +44,11 @@ export function shownRange(view: CodeView): LineRange {
 export function maxScrollTop(view: CodeView, rows: number): number {
   const range = shownRange(view);
   return Math.max(0, range.end - range.start + 1 - rows);
+}
+
+/** Whether the card has something to show: a selected function or a selected range. */
+export function hasSelection(view: CodeView | null): boolean {
+  return !!view && view.lines.length > 0 && (view.selectedRegion != null || view.selectedRange != null);
 }
 
 const inRange = (n: number, r: LineRange | null) => !!r && n >= r.start && n <= r.end;
@@ -81,7 +85,7 @@ export function visibleLines(
   return rows;
 }
 
-/** The scrollTop that puts the range's first line a third of the way down the page, clamped. */
+/** The scrollTop that puts the range's first line a third of the way down the card, clamped. */
 export function scrollToRange(view: CodeView, range: LineRange, rows: number): number {
   const shown = shownRange(view);
   const wanted = range.start - shown.start - Math.floor(rows / 3);

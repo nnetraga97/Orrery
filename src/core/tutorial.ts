@@ -1,7 +1,7 @@
 // The tutorial as a state machine: four gestures in order, each step advanced by the app event that proves it.
 
 export type TutorialStep = 'point' | 'turn' | 'open' | 'read' | 'done';
-export type TutorialEvent = 'selected' | 'orbited' | 'landed' | 'statementShown' | 'skip';
+export type TutorialEvent = 'selected' | 'orbited' | 'landed' | 'codeShown' | 'skip';
 
 export const TUTORIAL_STEPS: readonly TutorialStep[] = ['point', 'turn', 'open', 'read', 'done'];
 
@@ -10,14 +10,14 @@ export const TUTORIAL_TEXT: Record<Exclude<TutorialStep, 'done'>, string> = {
   point: 'Point at the glowing planet and pinch.',
   turn: 'Pinch in the air and drag to turn the model.',
   open: 'Pinch the planet again to open it.',
-  read: 'Pinch a building to read its code.',
+  read: 'Pinch a town on the globe to read its code.',
 };
 
 const ADVANCES: Record<TutorialStep, TutorialEvent | null> = {
   point: 'selected',
   turn: 'orbited',
   open: 'landed',
-  read: 'statementShown',
+  read: 'codeShown',
   done: null,
 };
 

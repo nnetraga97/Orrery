@@ -3,17 +3,16 @@
 import type { HitRegion } from '../core/panel-hit.ts';
 import { visibleLines } from '../core/code-view.ts';
 import type { CodeView, Segment } from '../core/code-view.ts';
-import { loadCodeFont } from './code-font.ts';
-import { CODE_LAYOUT, CODE_PAGE, drawCodePage } from './draw-code-page.ts';
-import { iconPaths } from '../galaxy-bridge/icons.ts';
-import { DOCK, DOCK_BUTTONS, drawDock } from './draw-dock.ts';
-import { INFO_CARD, drawInfoCard } from './draw-info-card.ts';
-import { PROJECT_CARD, drawProjectCard } from './draw-project-picker.ts';
-import { TUTORIAL_PANEL, drawTutorial } from './draw-tutorial.ts';
 import { TUTORIAL_TEXT } from '../core/tutorial.ts';
-import { STATUS_CARD, drawStatusCard } from './draw-status-card.ts';
+import { STYLE_PX_PER_M } from './canvas-panel.ts';
+import { CODE_CARD, CODE_LAYOUT, codeCardSize, drawCodeCard } from './draw-code-card.ts';
+import { INFO_CARD, drawInfoCard, infoCardTitle } from './draw-info-card.ts';
+import { STATUS_CARD, drawStatusCard, statusTitle } from './draw-status-card.ts';
+import { TUTORIAL_PANEL, drawTutorial, tutorialTitle } from './draw-tutorial.ts';
+import { loadFonts } from './fonts.ts';
+import { THEME, closeMark, glassPanel, grabBar } from './paint.ts';
 
-type Draw = (ctx: CanvasRenderingContext2D, w: number, h: number) => HitRegion[];
+type Draw = (ctx: CanvasRenderingContext2D, w: number, h: number, u: number) => HitRegion[];
 const regions: Record<string, HitRegion[]> = {};
 
 // A small TypeScript sample, tokenised by keyword, string and number.
@@ -59,67 +58,84 @@ const sampleView: CodeView = {
   selectedRegion: 0,
   selectedRange: { start: 12, end: 14 },
   hoveredRange: { start: 15, end: 15 },
-  mode: 'file',
 };
 
-function show(name: string, widthPx: number, heightPx: number, draw: Draw) {
+interface Size {
+  widthPx: number;
+  heightPx: number;
+  widthM: number;
+}
+interface Frame {
+  title: string;
+  hue?: string;
+  closable?: boolean;
+  movable?: boolean;
+}
+
+/** Draws one panel on its own canvas, inside the same window frame CanvasPanel draws in the room. */
+function show(name: string, size: Size, draw: Draw, frame?: Frame) {
+  const u = size.widthPx / size.widthM / STYLE_PX_PER_M;
+  const strip = frame ? Math.round(26 * u) : 0;
   const figure = document.createElement('figure');
   const caption = document.createElement('figcaption');
   caption.textContent = name;
   const canvas = document.createElement('canvas');
-  canvas.width = widthPx;
-  canvas.height = heightPx;
-  canvas.style.width = `${Math.round(widthPx / 2)}px`;
+  canvas.width = size.widthPx;
+  canvas.height = size.heightPx + strip;
+  canvas.style.width = `${Math.round(size.widthPx / 2)}px`;
   figure.append(caption, canvas);
   document.getElementById('panels')!.append(figure);
-  regions[name] = draw(canvas.getContext('2d')!, widthPx, heightPx);
+  const ctx = canvas.getContext('2d')!;
+  const w = size.widthPx,
+    h = size.heightPx;
+  if (frame) glassPanel(ctx, 0, 0, w, h, u, { title: frame.title, hue: frame.hue });
+  const out = draw(ctx, w, h, u);
+  if (frame?.closable) out.push(closeMark(ctx, 0, 0, w, u));
+  if (frame?.movable) grabBar(ctx, w / 2, h + 10 * u, u);
+  regions[name] = out;
 }
 
 /** Every panel, in the order the plan adds them. Later tasks append here. */
 export async function drawAll() {
-  await loadCodeFont();
-  show('infoCard', INFO_CARD.widthPx, INFO_CARD.heightPx, (ctx, w, h) =>
-    drawInfoCard(ctx, w, h, {
-      key: 'file:core/range.ts',
-      kind: 'File',
-      title: 'range.ts',
-      sub: 'core/range.ts',
-      color: '#7cc4ff',
-      text: '461 lines · imports 2 · imported by 41\nGroup: core',
-      actions: [{ label: 'Open', primary: true }, { label: 'Deselect' }],
-    }),
-  );
-  show('codePage', CODE_PAGE.widthPx, CODE_PAGE.heightPx, (ctx, w, h) => {
-    const rows = visibleLines(sampleView, { rows: CODE_LAYOUT.rows, columns: CODE_LAYOUT.columns, scrollTop: 0 });
-    return drawCodePage(ctx, w, h, rows, {
-      file: sampleView.file,
-      functionName: 'containsPosition',
-      mode: sampleView.mode,
-      shown: { first: rows[0].number, last: rows[rows.length - 1].number, total: sampleView.lines.length },
-      hovered: 'line:11',
-    });
+  await loadFonts();
+  const cannon = {
+    key: 'cannon',
+    kind: 'Cannon',
+    title: 'Agent cannon',
+    sub: 'Fires the agent at a function',
+    text: 'Pinch a town, then Fire to send the agent there.',
+    actions: [{ label: 'Fire', primary: true }, { label: 'Dismiss' }],
+  };
+  show('infoCard', INFO_CARD, (ctx, w, h, u) => drawInfoCard(ctx, w, h, u, cannon, 'action:0'), {
+    title: infoCardTitle(cannon),
+    closable: true,
+    movable: true,
   });
-  const icons = Object.fromEntries(DOCK_BUTTONS.map(b => [b.icon, iconPaths(b.icon)]));
-  show('dock', DOCK.widthPx, DOCK.heightPx, (ctx, w, h) => drawDock(ctx, w, h, { hovered: 'agent', on: { code: true }, icons }));
-  show('projectCard', PROJECT_CARD.widthPx, PROJECT_CARD.heightPx, (ctx, w, h) =>
-    drawProjectCard(ctx, w, h, {
-      name: 'editor-core',
-      title: 'Editor core',
-      blurb: 'The text model of an open-source code editor. 229 files.',
-      licence: 'MIT',
+  const card = (rows: number, more: boolean) => (ctx: CanvasRenderingContext2D, w: number, h: number, u: number) => {
+    const shown = visibleLines(sampleView, { rows, columns: CODE_LAYOUT.columns, scrollTop: 0 });
+    return drawCodeCard(ctx, w, h, u, shown, {
+      shown: { first: shown[0].number, last: shown[shown.length - 1].number, total: sampleView.lines.length },
+      more,
+      hovered: 'line:17',
+    });
+  };
+  const codeFrame = { title: 'range.ts · containsPosition', closable: true, movable: true };
+  show('codeCard', CODE_CARD, card(CODE_LAYOUT.rows, false), codeFrame);
+  show('codeCardMore', { ...CODE_CARD, heightPx: codeCardSize(CODE_LAYOUT.moreRows).heightPx }, card(CODE_LAYOUT.moreRows, true), codeFrame);
+  (['point', 'turn', 'open', 'read'] as const).forEach((step, k) =>
+    show(`tutorial-${step}`, TUTORIAL_PANEL, (ctx, w, h, u) => drawTutorial(ctx, w, h, u, step, TUTORIAL_TEXT[step]), {
+      title: tutorialTitle(k + 1),
     }),
   );
-  (['point', 'turn', 'open', 'read'] as const).forEach((step, k) =>
-    show(`tutorial-${step}`, TUTORIAL_PANEL.widthPx, TUTORIAL_PANEL.heightPx, (ctx, w, h) =>
-      drawTutorial(ctx, w, h, step, TUTORIAL_TEXT[step], k + 1),
-    ),
-  );
-  show('loadingCard', STATUS_CARD.widthPx, STATUS_CARD.heightPx, (ctx, w, h) =>
-    drawStatusCard(ctx, w, h, { kind: 'loading', title: 'Opening project', detail: 'editor-core' }),
-  );
-  show('errorCard', STATUS_CARD.widthPx, STATUS_CARD.heightPx, (ctx, w, h) =>
-    drawStatusCard(ctx, w, h, { kind: 'error', text: 'Could not open editor-core: Failed to fetch' }),
-  );
+  const loadingCard = { kind: 'loading', title: 'Opening project', detail: 'editor-core' } as const;
+  show('loadingCard', STATUS_CARD, (ctx, w, h, u) => drawStatusCard(ctx, w, h, u, loadingCard), {
+    title: statusTitle(loadingCard),
+  });
+  const errorCard = { kind: 'error', text: 'Could not open editor-core: Failed to fetch' } as const;
+  show('errorCard', STATUS_CARD, (ctx, w, h, u) => drawStatusCard(ctx, w, h, u, errorCard, 'retry'), {
+    title: statusTitle(errorCard),
+    hue: THEME.alert,
+  });
 }
 
 drawAll().then(() => {

@@ -1,6 +1,8 @@
 // Scene labels as sprites facing the viewer. The copied code defines labels (text, a model-space position, a colour,
 // optional click); src/core/labels.ts decides which show and how big; this layer keeps a pool of sprites in the room
-// and draws each one's text on its own small canvas, redrawing only when the text changes.
+// and draws each one's text on its own small canvas, redrawing only when the text changes. Labels are micro labels
+// (docs/visual-style.md): small capitals in `line` on an `ink` backing; the copied code's per-label colours are not
+// used, so warm colours stay reserved for faults and attention.
 import {
   CanvasTexture,
   Group,
@@ -13,6 +15,9 @@ import {
 } from '@iwsdk/core';
 import type { Entity, Intersection, Raycaster, World } from '@iwsdk/core';
 import { chooseLabels, DEFAULT_LABEL_LIMITS } from '../core/labels.ts';
+import { THEME } from '../core/theme.ts';
+import { loadFonts } from '../panels/fonts.ts';
+import { microLabel, microLabelWidth } from '../panels/paint.ts';
 import type { LabelCandidate } from '../core/labels.ts';
 import type { Pose, Vec3 } from '../core/table-frame.ts';
 import type { Vector3Like } from '../ports/host.ts';
@@ -21,9 +26,8 @@ import type { LabelDefinition } from '../ports/scene-kit.ts';
 const POOL = 32;
 const CANVAS_W = 512,
   CANVAS_H = 96,
-  BAR = 10,
-  PAD = 22,
-  FONT = '600 52px system-ui, sans-serif';
+  PAD = 18,
+  LABEL_PX = 46;
 
 interface Label {
   definition: LabelDefinition;
@@ -89,26 +93,27 @@ export function createLabelLayer(world: World) {
   function draw(slot: Slot, text: string, color: string) {
     const ctx = slot.canvas.getContext('2d')!;
     ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
-    ctx.font = FONT;
     let shown = text;
-    const room = CANVAS_W - BAR - PAD * 2;
-    if (ctx.measureText(shown).width > room) {
-      while (shown.length > 1 && ctx.measureText(shown + '…').width > room) shown = shown.slice(0, -1);
+    const room = CANVAS_W - PAD * 2;
+    if (microLabelWidth(ctx, shown, LABEL_PX) > room) {
+      while (shown.length > 1 && microLabelWidth(ctx, shown + '…', LABEL_PX) > room) shown = shown.slice(0, -1);
       shown += '…';
     }
-    const width = Math.min(room, ctx.measureText(shown).width);
-    ctx.fillStyle = 'rgba(8, 12, 22, 0.72)';
-    ctx.fillRect(0, 8, BAR + PAD * 2 + width, CANVAS_H - 16);
-    ctx.fillStyle = color || '#dce6f2';
-    ctx.fillRect(0, 8, BAR, CANVAS_H - 16);
-    ctx.fillStyle = '#ffffff';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(shown, BAR + PAD, CANVAS_H / 2 + 2);
+    const width = Math.min(room, microLabelWidth(ctx, shown, LABEL_PX));
+    ctx.globalAlpha = THEME.inkAlpha;
+    ctx.fillStyle = THEME.ink;
+    ctx.fillRect(0, 14, PAD * 2 + width, CANVAS_H - 28);
+    ctx.globalAlpha = 1;
+    microLabel(ctx, shown, PAD, CANVAS_H / 2 + LABEL_PX * 0.36, LABEL_PX, THEME.line);
     slot.text = text;
     slot.color = color;
-    slot.textWidth = BAR + PAD * 2 + width;
+    slot.textWidth = PAD * 2 + width;
     slot.texture.needsUpdate = true;
   }
+  // Labels drawn before the fonts arrived are drawn again once they have.
+  void loadFonts().then(() => {
+    for (const slot of slots) if (slot.text) draw(slot, slot.text, slot.color);
+  });
 
   // Per-frame scratch, reused.
   const candidates: LabelCandidate[] = [];

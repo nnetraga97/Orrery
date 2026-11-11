@@ -1,13 +1,17 @@
-// The tutorial: four gestures taught once per device (src/core/tutorial.ts). A panel above the table says what to do
-// and offers Skip; a ring pulses around one planet during the first step. Steps advance on app state: a selection, an
-// orbit, a landing, a statement shown. Help on the dock starts it again.
-import { DoubleSide, Mesh, MeshBasicMaterial, TorusGeometry, Vector3, createSystem } from '@iwsdk/core';
+// The tutorial: four gestures taught once per device (src/core/tutorial.ts). A card above the model says what to do
+// and offers Skip; a steady glowing ring marks one planet during the first step. Steps advance on app state: a
+// selection, an orbit, a landing, the code card shown for a town. commands.restartTutorial starts it again (from the
+// Settings tab in the next plan).
+import { AdditiveBlending, DoubleSide, Mesh, MeshBasicMaterial, TorusGeometry, Vector3, createSystem } from '@iwsdk/core';
+import { hasSelection } from '../core/code-view.ts';
+import { THEME } from '../core/theme.ts';
 import { TUTORIAL_STEPS, TUTORIAL_TEXT, nextStep } from '../core/tutorial.ts';
 import type { TutorialEvent, TutorialStep } from '../core/tutorial.ts';
 import type { StoragePort } from '../ports/storage.ts';
 import { CanvasPanel } from '../panels/canvas-panel.ts';
-import { TUTORIAL_PANEL, drawTutorial } from '../panels/draw-tutorial.ts';
-import { codeView, orbits, phase, selectedPath, tutorialRestarts, tutorialStep } from '../state/app-state.ts';
+import { TUTORIAL_PANEL, drawTutorial, tutorialTitle } from '../panels/draw-tutorial.ts';
+import { loadFonts } from '../panels/fonts.ts';
+import { codeCardOpen, codeView, orbits, phase, selectedPath, tutorialRestarts, tutorialStep } from '../state/app-state.ts';
 import { GalaxySystem } from './galaxy-system.ts';
 import { headPosition } from './head.ts';
 import { PLACEMENTS, place } from './panel-system.ts';
@@ -27,7 +31,17 @@ export class TutorialSystem extends createSystem({}) {
     this.head = new Vector3();
     this.at = new Vector3();
     this.storage = (this.globals.storage as StoragePort | undefined) ?? null;
-    this.panel = new CanvasPanel({ name: 'tutorial', ...TUTORIAL_PANEL, renderer: this.renderer }).attach(this.world);
+    // The card waits for the fonts; a step set earlier is drawn once they arrive.
+    void loadFonts().then(() => {
+      this.fontReady = true;
+      this.draw();
+    });
+    this.panel = new CanvasPanel({
+      name: 'tutorial',
+      ...TUTORIAL_PANEL,
+      renderer: this.renderer,
+      window: { title: () => tutorialTitle(TUTORIAL_STEPS.indexOf(tutorialStep.peek()) + 1) },
+    }).attach(this.world);
     place(this.panel, PLACEMENTS.tutorial);
     this.panel.visible = false;
     this.panel.onHover = () => this.draw();
@@ -36,7 +50,15 @@ export class TutorialSystem extends createSystem({}) {
     };
     this.ring = new Mesh(
       new TorusGeometry(RING_RADIUS, 0.003, 8, 64),
-      new MeshBasicMaterial({ color: '#7cc4ff', transparent: true, depthTest: false, side: DoubleSide }),
+      new MeshBasicMaterial({
+        color: THEME.line,
+        transparent: true,
+        depthTest: false,
+        depthWrite: false,
+        blending: AdditiveBlending,
+        toneMapped: false,
+        side: DoubleSide,
+      }),
     );
     this.ring.renderOrder = 40;
     this.ring.visible = false;
@@ -45,7 +67,7 @@ export class TutorialSystem extends createSystem({}) {
     let lastPhase = phase.peek(),
       lastSelected = selectedPath.peek(),
       lastOrbits = orbits.peek(),
-      lastRange = codeView.peek()?.selectedRange ?? null,
+      lastShown = codeCardOpen.peek() && hasSelection(codeView.peek()),
       lastRestarts = tutorialRestarts.peek();
     this.cleanupFuncs.push(
       phase.subscribe(p => {
@@ -64,12 +86,14 @@ export class TutorialSystem extends createSystem({}) {
         lastOrbits = n;
         this.raise('orbited');
       }),
-      codeView.subscribe(view => {
-        const range = view?.selectedRange ?? null;
-        if (range === lastRange) return;
-        lastRange = range;
-        if (range && phase.peek() === 'landed') this.raise('statementShown');
-      }),
+      ...[codeView, codeCardOpen].map(s =>
+        s.subscribe(() => {
+          const shown = codeCardOpen.peek() && hasSelection(codeView.peek());
+          if (shown === lastShown) return;
+          lastShown = shown;
+          if (shown && phase.peek() === 'landed') this.raise('codeShown');
+        }),
+      ),
       tutorialRestarts.subscribe(n => {
         if (n === lastRestarts) return;
         lastRestarts = n;
@@ -93,12 +117,13 @@ export class TutorialSystem extends createSystem({}) {
     if (next === 'done') this.storage?.set(SEEN_KEY, '1');
   }
 
+  private fontReady = false;
+
   private draw() {
     const step = tutorialStep.peek();
-    this.panel.visible = step !== 'done';
-    if (step === 'done') return;
-    const index = TUTORIAL_STEPS.indexOf(step) + 1;
-    this.panel.redraw((ctx, w, h) => drawTutorial(ctx, w, h, step, TUTORIAL_TEXT[step], index, this.panel.hovered));
+    this.panel.visible = step !== 'done' && this.fontReady;
+    if (step === 'done' || !this.fontReady) return;
+    this.panel.redraw((ctx, w, h) => drawTutorial(ctx, w, h, this.panel.u, step, TUTORIAL_TEXT[step], this.panel.hovered));
   }
 
   /** The planet the first step points at: the largest one. */
@@ -119,7 +144,8 @@ export class TutorialSystem extends createSystem({}) {
     return best;
   }
 
-  update(_delta: number, time: number) {
+  update(delta: number) {
+    this.panel.tick(delta);
     const step: TutorialStep = tutorialStep.peek();
     const kit = this.world.getSystem(GalaxySystem)?.host.kit;
     const pulsing = step === 'point' && phase.peek() === 'overview' && !!kit?.bodyPos;
@@ -132,6 +158,6 @@ export class TutorialSystem extends createSystem({}) {
     headPosition(this.renderer, this.player, this.camera, this.head);
     this.ring.position.copy(this.at);
     this.ring.lookAt(this.head);
-    this.ring.scale.setScalar(1 + 0.25 * Math.sin(time * 5));
+    this.ring.scale.setScalar(1);
   }
 }

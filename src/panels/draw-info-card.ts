@@ -1,6 +1,8 @@
-// An info card: what a pinned thing in the scene is (a file, a black hole, an import lane), with its actions.
+// An attached card: what a pinned thing in the scene is (the cannon, the station, a moon), with its actions. It is a
+// window whose title is "kind · title" (drawn by CanvasPanel); this draws the sub-title, up to three body lines and up
+// to three buttons. Files get no card: a selected file shows only its marker.
 import type { HitRegion } from '../core/panel-hit.ts';
-import { COLORS, UI_FONT, button, fit, panelBackground, wrap } from './paint.ts';
+import { THEME, button, fit, font, stateOf, wrap } from './paint.ts';
 
 export interface InfoCard {
   key: string;
@@ -13,61 +15,56 @@ export interface InfoCard {
   actions: { label: string; primary?: boolean }[];
 }
 
-export const INFO_CARD = { widthPx: 1024, heightPx: 640, widthM: 0.34, heightM: 0.2125 };
-const PAD = 48,
-  MAX_BODY_LINES = 4,
-  BUTTON_H = 84;
+export const INFO_CARD = { widthPx: 952, heightPx: 544, widthM: 0.28, heightM: 0.16 };
+const MAX_BODY_LINES = 3;
 
-/** Draws the card; regions are `action:<k>` for each action and `close`. */
+/** The card's window title. */
+export const infoCardTitle = (card: InfoCard) => (card.kind ? `${card.kind} · ${card.title}` : card.title);
+
+/** Draws the card's contents; regions are `action:<k>` for each action. */
 export function drawInfoCard(
   ctx: CanvasRenderingContext2D,
   w: number,
   h: number,
+  u: number,
   card: InfoCard,
   hovered: string | null = null,
 ): HitRegion[] {
-  panelBackground(ctx, w, h, card.color || COLORS.accent);
   const regions: HitRegion[] = [];
-  let y = PAD + 30;
-  ctx.fillStyle = COLORS.dim;
-  ctx.font = `600 30px ${UI_FONT}`;
-  ctx.fillText(fit(ctx, card.kind.toUpperCase(), w - PAD * 2 - 90), PAD, y);
-  regions.push(button(ctx, 'close', '✕', w - PAD - 72, PAD - 12, 72, 72, { hovered: hovered === 'close', size: 36 }));
-  y += 62;
-  ctx.fillStyle = COLORS.text;
-  ctx.font = `700 54px ${UI_FONT}`;
-  ctx.fillText(fit(ctx, card.title, w - PAD * 2), PAD, y);
+  const pad = 14 * u;
+  let y = 36 * u;
   if (card.sub) {
-    y += 46;
-    ctx.fillStyle = COLORS.dim;
-    ctx.font = `400 32px ${UI_FONT}`;
-    ctx.fillText(fit(ctx, card.sub, w - PAD * 2), PAD, y);
-  }
-  if (card.text) {
-    ctx.font = `400 34px ${UI_FONT}`;
-    ctx.fillStyle = COLORS.text;
-    const lines = wrap(ctx, card.text, w - PAD * 2);
-    const shown = lines.slice(0, MAX_BODY_LINES);
-    if (lines.length > MAX_BODY_LINES) shown[MAX_BODY_LINES - 1] = fit(ctx, shown[MAX_BODY_LINES - 1] + ' …', w - PAD * 2);
-    y += 20;
-    for (const line of shown) {
-      y += 46;
-      ctx.fillText(line, PAD, y);
-    }
+    y += 16 * u;
+    ctx.font = font('body', 14 * u);
+    ctx.fillStyle = THEME.line;
+    ctx.fillText(fit(ctx, card.sub, w - pad * 2), pad, y);
   }
   const actions = card.actions.slice(0, 3);
+  const bh = 30 * u,
+    by = h - pad - bh;
+  if (card.text) {
+    ctx.font = font('body', 15 * u);
+    ctx.fillStyle = THEME.white;
+    const lines = wrap(ctx, card.text, w - pad * 2);
+    // As many lines as fit above the buttons, at most three.
+    const room = Math.max(1, Math.min(MAX_BODY_LINES, Math.floor(((actions.length ? by : h) - y - 8 * u) / (20 * u))));
+    const shown = lines.slice(0, room);
+    if (lines.length > room) shown[room - 1] = fit(ctx, shown[room - 1] + ' …', w - pad * 2);
+    for (const line of shown) {
+      y += 20 * u;
+      ctx.fillText(line, pad, y);
+    }
+  }
   if (actions.length) {
-    const gap = 20,
-      bw = (w - PAD * 2 - gap * (actions.length - 1)) / actions.length,
-      by = h - PAD - BUTTON_H;
-    actions.forEach((a, k) =>
-      regions.push(
-        button(ctx, `action:${k}`, a.label, PAD + k * (bw + gap), by, bw, BUTTON_H, {
-          hovered: hovered === `action:${k}`,
-          primary: !!a.primary,
-        }),
-      ),
-    );
+    const gap = 8 * u,
+      bw = (w - pad * 2 - gap * (actions.length - 1)) / actions.length;
+    actions.forEach((a, k) => {
+      const r = button(ctx, `action:${k}`, a.label, pad + k * (bw + gap), by, bw, bh, u, {
+        state: stateOf(hovered, `action:${k}`),
+        px: 13,
+      });
+      if (r) regions.push(r);
+    });
   }
   return regions;
 }

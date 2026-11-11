@@ -1,5 +1,5 @@
 // Runs the copied galaxy inside IWSDK: opens a dataset through the bridge, attaches the galaxy's scene to the world,
-// steps the scene kit every frame and poses the model on the table from the kit's virtual camera.
+// steps the scene kit every frame and poses the model in the air from the kit's virtual camera.
 import { Quaternion, Vector3, createSystem } from '@iwsdk/core';
 import type { Entity } from '@iwsdk/core';
 import { GalaxyRoot } from '../components/galaxy-root.ts';
@@ -19,23 +19,24 @@ import { connectCommands, openDataset } from '../state/commands.ts';
 import { headObject } from './head.ts';
 import { createRoom } from './room.ts';
 
-// Where the model sits: above the table in front of the seat, pitched 30° down from level so its far edge tilts up
-// toward the user.
-const PITCH = (-30 * Math.PI) / 180;
+// Where the model floats: an invisible point in the air in front of the seat, a little below a seated eye, pitched 20°
+// down from level so its far side tilts up toward the user. There is no table under it.
+const PITCH = (-20 * Math.PI) / 180;
 export const TABLE_ANCHOR: TableAnchor = {
-  position: [0, 0.85, -0.55],
+  position: [0, 1.05, -0.95],
   orientation: [Math.sin(PITCH / 2), 0, 0, Math.cos(PITCH / 2)],
-  width: 0.8,
+  width: 1.0,
   minScale: 0.0005,
-  maxScale: 4,
+  maxScale: 5,
 };
 
-// A landed planet stays a globe this wide on the table (the owner's choice), however close the copied code flies.
+// A landed planet stays a globe this wide (the owner's choice), however close the copied code flies.
 export const LANDED_GLOBE_DIAMETER = 0.64;
-// Where a landed globe's centre sits: resting on the table top (0.83 m), a little further back than the overview so
-// its top stays inside the narrower glasses view for a seated user.
-export const LANDED_CENTER: Vec3 = [0, 0.83 + LANDED_GLOBE_DIAMETER / 2 + 0.01, -0.75];
+// Where a landed globe's centre floats: a little below a seated eye.
+export const LANDED_CENTER: Vec3 = [0, 1.1, -0.95];
 const ANCHOR_EASE_SECONDS = 0.6;
+/** The project the app opens on. */
+export const DEMO_DATASET = 'editor-core';
 
 export class GalaxySystem extends createSystem({ roots: { required: [GalaxyRoot] } }) {
   host!: XrHost;
@@ -83,9 +84,8 @@ export class GalaxySystem extends createSystem({ roots: { required: [GalaxyRoot]
         },
       }),
     );
-    // ?dataset=<name> opens a project at once; without it the project picker (PickerSystem) offers the choice.
-    const requested = new URLSearchParams(location.search).get('dataset');
-    if (requested) openDataset(requested);
+    // The app opens on the demo project; ?dataset=<name> opens another (the Settings tab lists them in the next plan).
+    openDataset(new URLSearchParams(location.search).get('dataset') || DEMO_DATASET);
   }
 
   /** Whether a constellation is built and attached. */
@@ -123,7 +123,7 @@ export class GalaxySystem extends createSystem({ roots: { required: [GalaxyRoot]
   }
 
   private focus: Vec3 = [0, 0, 0];
-  // The anchor in use: eased between the table anchor (overview) and the landed globe's centre.
+  // The anchor in use: eased between the model's anchor (overview) and the landed globe's centre.
   private anchor: TableAnchor = { ...TABLE_ANCHOR, position: [...TABLE_ANCHOR.position] as Vec3 };
   private ease = 0;
 
@@ -136,7 +136,7 @@ export class GalaxySystem extends createSystem({ roots: { required: [GalaxyRoot]
       this.anchor.position[i] = TABLE_ANCHOR.position[i] + (LANDED_CENTER[i] - TABLE_ANCHOR.position[i]) * e;
   }
 
-  /** While landed: the whole globe on the table, its centre on the anchor, turned as the virtual camera sees it. */
+  /** While landed: the whole globe, its centre on the anchor, turned as the virtual camera sees it. */
   private landedPose(kit: NonNullable<XrHost['kit']>) {
     const i = kit.pinned;
     if (i == null || !kit.bodyPos || !kit.bodySize) return tablePose(kit.virtual(), this.anchor);

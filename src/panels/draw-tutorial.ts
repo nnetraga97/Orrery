@@ -1,67 +1,55 @@
-// The tutorial panel: a drawn hand showing the gesture, one short sentence, and a Skip button.
+// The tutorial card, 0.30 × 0.10 m above the model: a drawn hand showing the gesture, one short sentence, and a Skip
+// button. It is a window titled "Step n of 4" (drawn by CanvasPanel); the hand is drawn in glowing lines.
 import type { HitRegion } from '../core/panel-hit.ts';
 import type { TutorialStep } from '../core/tutorial.ts';
-import { COLORS, UI_FONT, button, panelBackground, wrap } from './paint.ts';
+import { THEME, button, font, glowStroke, stateOf, wrap } from './paint.ts';
 
-export const TUTORIAL_PANEL = { widthPx: 1280, heightPx: 384, widthM: 0.4, heightM: 0.12 };
+export const TUTORIAL_PANEL = { widthPx: 1020, heightPx: 340, widthM: 0.3, heightM: 0.1 };
+
+export const tutorialTitle = (index: number) => `Step ${index} of 4`;
 
 /** A hand in profile pinching (thumb and index meeting), with a ray, a drag arrow or a second pinch per step. */
 function drawHand(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, step: TutorialStep) {
   ctx.save();
   ctx.translate(x, y);
   ctx.scale(s, s);
-  ctx.lineWidth = 6;
-  ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
-  ctx.strokeStyle = COLORS.text;
+  const hand = new Path2D();
   // Palm and wrist.
-  ctx.beginPath();
-  ctx.moveTo(10, 150);
-  ctx.lineTo(10, 95);
-  ctx.quadraticCurveTo(12, 60, 50, 55);
-  ctx.lineTo(95, 50);
-  ctx.moveTo(10, 150);
-  ctx.lineTo(80, 150);
-  ctx.quadraticCurveTo(110, 148, 112, 118);
-  ctx.stroke();
+  hand.moveTo(10, 150);
+  hand.lineTo(10, 95);
+  hand.quadraticCurveTo(12, 60, 50, 55);
+  hand.lineTo(95, 50);
+  hand.moveTo(10, 150);
+  hand.lineTo(80, 150);
+  hand.quadraticCurveTo(110, 148, 112, 118);
   // Index finger curling down to the thumb.
-  ctx.beginPath();
-  ctx.moveTo(95, 50);
-  ctx.quadraticCurveTo(150, 40, 150, 80);
-  ctx.stroke();
+  hand.moveTo(95, 50);
+  hand.quadraticCurveTo(150, 40, 150, 80);
   // Thumb rising to meet it.
-  ctx.beginPath();
-  ctx.moveTo(112, 118);
-  ctx.quadraticCurveTo(140, 110, 148, 88);
-  ctx.stroke();
+  hand.moveTo(112, 118);
+  hand.quadraticCurveTo(140, 110, 148, 88);
+  glowStroke(ctx, hand, THEME.white, 4);
   // Pinch point.
-  ctx.fillStyle = COLORS.accent;
+  ctx.fillStyle = THEME.line;
   ctx.beginPath();
-  ctx.arc(150, 84, 9, 0, Math.PI * 2);
+  ctx.arc(150, 84, 8, 0, Math.PI * 2);
   ctx.fill();
-  ctx.strokeStyle = COLORS.accent;
+  const gesture = new Path2D();
   if (step === 'point' || step === 'read') {
-    ctx.setLineDash([10, 10]);
-    ctx.beginPath();
-    ctx.moveTo(160, 70);
-    ctx.lineTo(250, 20);
-    ctx.stroke();
-    ctx.setLineDash([]);
-  } else if (step === 'turn') {
-    ctx.beginPath();
-    ctx.moveTo(170, 120);
-    ctx.quadraticCurveTo(215, 150, 255, 112);
-    ctx.lineTo(240, 112);
-    ctx.moveTo(255, 112);
-    ctx.lineTo(253, 128);
-    ctx.stroke();
-  } else if (step === 'open') {
-    for (const r of [22, 38]) {
-      ctx.beginPath();
-      ctx.arc(150, 84, r, -0.9, 0.9);
-      ctx.stroke();
+    for (let k = 0; k < 5; k++) {
+      gesture.moveTo(160 + k * 18, 70 - k * 10);
+      gesture.lineTo(169 + k * 18, 65 - k * 10);
     }
+  } else if (step === 'turn') {
+    gesture.moveTo(170, 120);
+    gesture.quadraticCurveTo(215, 150, 255, 112);
+    gesture.lineTo(240, 112);
+    gesture.moveTo(255, 112);
+    gesture.lineTo(253, 128);
+  } else if (step === 'open') {
+    for (const r of [22, 38]) gesture.arc(150, 84, r, -0.9, 0.9);
   }
+  glowStroke(ctx, gesture, THEME.line, 4);
   ctx.restore();
 }
 
@@ -69,21 +57,21 @@ export function drawTutorial(
   ctx: CanvasRenderingContext2D,
   w: number,
   h: number,
+  u: number,
   step: TutorialStep,
   text: string,
-  index: number,
   hovered: string | null = null,
 ): HitRegion[] {
-  panelBackground(ctx, w, h, COLORS.accent);
-  drawHand(ctx, 40, 60, 1.35, step);
-  const x = 420;
-  ctx.fillStyle = COLORS.dim;
-  ctx.font = `600 30px ${UI_FONT}`;
-  ctx.fillText(`STEP ${index} OF 4`, x, 90);
-  ctx.fillStyle = COLORS.text;
-  ctx.font = `700 50px ${UI_FONT}`;
-  wrap(ctx, text, w - x - 230)
-    .slice(0, 3)
-    .forEach((line, k) => ctx.fillText(line, x, 160 + k * 62));
-  return [button(ctx, 'skip', 'Skip', w - 210, h - 130, 170, 90, { hovered: hovered === 'skip' })];
+  drawHand(ctx, 12 * u, 36 * u, 0.2 * u, step);
+  const x = 74 * u,
+    bw = 52 * u,
+    bh = 22 * u;
+  ctx.fillStyle = THEME.white;
+  ctx.font = font('body', 15 * u);
+  wrap(ctx, text, w - x - 12 * u)
+    .slice(0, 2)
+    .forEach((line, k) => ctx.fillText(line, x, 52 * u + k * 19 * u));
+  // Skip sits in the title row, where a window's close mark would be.
+  const skip = button(ctx, 'skip', 'Skip', w - bw - 8 * u, 7 * u, bw, bh, u, { state: stateOf(hovered, 'skip'), px: 12 });
+  return skip ? [skip] : [];
 }

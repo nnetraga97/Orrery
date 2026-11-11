@@ -1,6 +1,6 @@
 // Typed commands: the only way panels, gestures and tests ask the app to change. The galaxy system connects the
 // handler that carries them out; until it does, a command does nothing.
-import { agentOpen, codePageOpen, codeRequest, dataset, pinned, tutorialRestarts } from './app-state.ts';
+import { agentOpen, codeCardOpen, codeRequest, dataset, pinned, tutorialRestarts } from './app-state.ts';
 
 export interface CommandHandler {
   openDataset(name: string): void;
@@ -37,24 +37,24 @@ export function goHome(): void {
   handler?.goHome();
 }
 
-/** Shows `line` of `path` on the code page: lands on the file if needed, then selects the function holding the line
- * and scrolls there (the landed planet focuses the line, and the inspector follows its selection). */
+/** Shows `line` of `path` on the code card: lands on the file if needed, then selects the function holding the line
+ * and opens the card with the line banded (the landed planet focuses the line, and the inspector follows it). */
 export function showCode(path: string, line: number): void {
-  codePageOpen.value = true;
   codeRequest.value = { path, line };
+  codeCardOpen.value = true;
   handler?.landOn(path, line);
 }
 
-/** Shows or hides the code page. */
-export function toggleCode(): void {
-  codePageOpen.value = !codePageOpen.peek();
+/** Shows the chat window (the Chat tab). */
+export function showChat(): void {
+  agentOpen.value = true;
 }
-/** Opens or closes the agent panel. */
-export function toggleAgent(): void {
-  agentOpen.value = !agentOpen.peek();
+/** Hides the chat window (its close mark). */
+export function hideChat(): void {
+  agentOpen.value = false;
 }
-/** Starts the tutorial again. */
-export function showHelp(): void {
+/** Starts the tutorial again (from Settings in the next plan). */
+export function restartTutorial(): void {
   tutorialRestarts.value = tutorialRestarts.peek() + 1;
 }
 
@@ -74,9 +74,9 @@ export const commands = {
   leavePlanet,
   goHome,
   showCode,
-  toggleCode,
-  toggleAgent,
-  showHelp,
+  showChat,
+  hideChat,
+  restartTutorial,
   closeCard,
   retry,
 };

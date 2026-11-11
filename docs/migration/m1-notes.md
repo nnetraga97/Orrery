@@ -20,26 +20,18 @@ aiming and pinching.
 ## Field of view (narrower glasses view)
 
 Limits: 37° either side, 25° up, 43° down, measured against the view axis (`.claude/skills/iwsdk-glasses-test`).
-Angles computed from the room geometry for a head at the origin, looking straight ahead and pitched down.
+Remeasured after the design review (`docs/plans/changes-after-review.md`): there is no table, and the model floats at
+`[0, 1.05, -0.95]`, pitched 20° down, 1.0 m wide. Angles for a seated eye at 1.2 m at the origin, from the room
+geometry; overview bounds measured in a browser tab (x −0.38..0.75, y 1.02..1.38, z −1.63..−0.88).
 
-| Element | Seated, eyes 1.2 m, 25° down | Standing, eyes 1.6 m, 25° down |
+| Element | Looking straight ahead | Looking 15° down |
 | --- | --- | --- |
-| Table far edge | 0° / +5° | 0° / −13° |
-| Table left / right edge | ∓34° / −9° | ∓29° / −29° |
-| Table near edge (10 cm in front of the head) | 0° / −50° **out** | 0° / −58° **out** |
-| Landed globe top / bottom | 0° / +22°, 0° / −26° | 0° / −13°, 0° / −38° |
-| Overview galaxy far corners | −21°, +27° / +20° | −18°, +24° / +3° |
-| Overview galaxy near corners | −43°, +52° / −24° **out** | −35°, +44° / −41° (right **out**) |
+| Overview model | −23°..+40°, −12°..+6° (right edge **out**) | −23°..+40°, +3°..+21° (right edge **out**) |
+| Landed globe (0.64 m, centre `[0, 1.10, −0.95]`) | −19°..+19°, −24°..+13° | −19°..+19°, −9°..+28° (top **out**) |
 
-Looking straight ahead (no pitch) the table's sides and the landed globe's lower half fall below the view; a seated
-user needs to look about 15–25° down. Two things do not fit at any comfortable angle:
-
-- the table's near edge, which sits under the chin because the head is only 10 cm behind it;
-- the overview's near corners, because the copied home view frames the galaxy about 1.1 m wide and 0.3 m beyond the
-  table anchor.
-
-The panel positions are decided in Task 14, whose layout tests keep every panel within ±32° and between 20° below and
-12° above eye level, inside these limits; they are checked in Task 19.
+Looking straight ahead the landed globe fits whole. The overview's right edge falls outside because the copied home
+view frames the galaxy off-centre; the competition is judged on Quest 3 and 3S, whose view is far wider, so the model
+is not shrunk or moved to fit the glasses.
 
 ## Draw calls and triangles (baseline)
 
@@ -75,18 +67,19 @@ Same set-up as above, starting on the project picker (no `?dataset=`). Every ste
 
 Building hover from a hand ray is not forwarded to the landed planet (pinches are); hovering lines on the page works.
 
-## Field of view with the panels (narrower glasses view)
+## Field of view with the windows (narrower glasses view)
 
-Panel corners from a seated eye at 1.2 m (`src/core/layout.ts`):
+Window corners from a seated eye at 1.2 m (`src/core/layout.ts`), after the design review:
 
-| Panel | Looking straight ahead | Looking 15° down |
+| Window | Looking straight ahead | Looking 15° down |
 | --- | --- | --- |
-| Code page | 12°..52° right, −34°..+17° — right part **out** | 11°..55°, −19°..+32° — **out** |
-| Dock | −13°..+13°, −22°..−16° | −12°..+12°, −7°..−1° |
-| Tutorial | −11°..+11°, +7°..+13° | −12°..+12°, +22°..+28° — top **out** |
+| Code card (0.46 × 0.34 m, 30° right, 1.0 m) | +17°..+43°, −18°..+8° (right edge **out**) | +17°..+45°, −3°..+23° (right edge **out**) |
+| Chat window (0.40 × 0.72 m, 30° left, 1.1 m) | −40°..−20°, −29°..+16° (left edge **out**) | −44°..−18°, −14°..+31° (left edge, top **out**) |
+| Tutorial card (0.30 × 0.10 m, 12° up, 1.0 m) | −9°..+9°, +9°..+15° | −10°..+10°, +24°..+30° (top **out**) |
 
-The layout rules (centres within ±32°, −20°..+12°) hold, but a 0.86 m page at 1.2 m is 40° wide: on the glasses the
-user turns about 15–20° toward it to see it whole. On Quest it fits.
+Every window's centre is inside the glasses' view (the layout tests keep centres within ±32° and −20°..+12°). On the
+glasses the user turns about 10° toward the code card or the chat to see its outer edge; on Quest every window fits.
+The tutorial card sits above the model, so it is in view looking straight ahead, not looking down.
 
 ## Draw calls and triangles
 

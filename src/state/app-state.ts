@@ -22,18 +22,19 @@ export const error = signal<string | null>(null);
 export type { CodeRegion, CodeView, LineRange, Segment } from '../core/code-view.ts';
 export const codeView = signal<CodeView | null>(null);
 /** Inspector calls kept for the next plan (debugger tabs, transport, stack, evidence). */
-/** A line the app asked to show (commands.showCode), until the code page has selected it. */
+/** A line the app asked to show (commands.showCode), until the code card has selected it. */
 export const codeRequest = signal<{ path: string; line: number } | null>(null);
-/** Lines scrolled from the top of what the code page shows. */
+/** Lines scrolled from the top of what the code card shows. */
 export const codeScroll = signal(0);
-/** Whether the code page is shown when there is code to show (the dock's Code button). */
-export const codePageOpen = signal(true);
-/** Whether the agent panel is open (the next plan builds it). */
-export const agentOpen = signal(false);
-/** Bumped to restart the tutorial (the dock's Help button). */
+/** Whether the code card is open: set when the user picks a function or a statement, or by showCode; cleared by
+ * its close mark and by a new landing (whose start town the copied code picks by itself). */
+export const codeCardOpen = signal(false);
+/** Rows the code card shows: 12, or 24 after `More`. */
+export const codeCardRows = signal(12);
+/** Whether the chat window is shown (closed from its close mark, brought back by the Chat tab). */
+export const agentOpen = signal(true);
+/** Bumped to restart the tutorial (commands.restartTutorial). */
 export const tutorialRestarts = signal(0);
-/** Whether the palm menu is enabled (see DockSystem). */
-export const palmMenu = signal(true);
 /** Counts orbit gestures (a pinch-drag that turned the model). */
 export const orbits = signal(0);
 /** The tutorial's step. */
@@ -51,11 +52,11 @@ export const appState = {
   error,
   codeView,
   codeScroll,
-  codePageOpen,
+  codeCardOpen,
+  codeCardRows,
   codeRequest,
   agentOpen,
   tutorialRestarts,
-  palmMenu,
   orbits,
   tutorialStep,
   inspectorExtras,

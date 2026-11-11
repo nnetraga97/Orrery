@@ -1,11 +1,9 @@
 // The planet inspector contract (host.inspector.create), for the XR app. The desktop mounts a React panel; here the
-// inspector turns what the landed planet asks to show into one signal, codeView, which the code page draws. The
-// options (callbacks such as onStatement and onMethod, and data such as towns) are kept for the page to call back.
+// inspector turns what the landed planet asks to show into one signal, codeView, which the code card draws. The
+// options (callbacks such as onStatement and onMethod, and data such as towns) are kept for the card to call back.
 import { maxScrollTop, scrollToRange, shownRange } from '../core/code-view.ts';
-import { pageScroll } from '../core/scroll.ts';
-import { CODE_LAYOUT } from '../panels/draw-code-page.ts';
 import type { InspectorOptions, InspectorPort } from '../ports/host.ts';
-import { codeRequest, codeScroll, codeView, inspectorExtras } from '../state/app-state.ts';
+import { codeCardOpen, codeCardRows, codeRequest, codeScroll, codeView, inspectorExtras } from '../state/app-state.ts';
 import type { CodeRegion, CodeView, LineRange, Segment } from '../state/app-state.ts';
 
 /** A town element (a building, fork or loop): its source item's lines and its region. */
@@ -38,13 +36,13 @@ function publish(patch: Partial<CodeView>) {
   if (view) codeView.value = { ...view, ...patch };
 }
 
-/** Scrolls the page so the selected statement (or the selected function) sits a third of the way down. */
+/** Scrolls the card so the selected statement (or the selected function) sits a third of the way down. */
 function scrollToSelection() {
   const view = codeView.peek();
   if (!view) return;
   const region = view.selectedRegion != null ? view.regions[view.selectedRegion] : null;
   const range = view.selectedRange ?? region ?? null;
-  codeScroll.value = range ? scrollToRange(view, range, CODE_LAYOUT.rows) : 0;
+  codeScroll.value = range ? scrollToRange(view, range, codeCardRows.peek()) : 0;
 }
 
 const keep = (name: string) => (...args: unknown[]) => {
@@ -63,9 +61,10 @@ export function createInspector(options: InspectorOptions): InspectorPort {
     selectedRegion: null,
     selectedRange: null,
     hoveredRange: null,
-    mode: 'function',
   };
   codeScroll.value = 0;
+  // A landing picks its start town by itself: the card waits for the user's pick, unless showCode asked for a line.
+  codeCardOpen.value = codeRequest.peek() != null;
   const selectRegion = (k: number | null) => {
     const next = k != null && k >= 0 ? k : null;
     if (next !== codeView.peek()?.selectedRegion) publish({ selectedRegion: next, selectedRange: null });
@@ -84,8 +83,12 @@ export function createInspector(options: InspectorOptions): InspectorPort {
   };
   return {
     setRegion: k => selectRegion(k),
-    openMethod: k => selectRegion(k),
+    openMethod: k => {
+      codeCardOpen.value = true;
+      selectRegion(k);
+    },
     showStatement(element) {
+      codeCardOpen.value = true;
       const range = rangeOfElement(element);
       const k = (element as TownElement | null)?.k;
       publish({ selectedRange: range, ...(typeof k === 'number' && k >= 0 ? { selectedRegion: k } : {}) });
@@ -108,7 +111,7 @@ export function createInspector(options: InspectorOptions): InspectorPort {
   };
 }
 
-// ---- the code page's own actions (called by the panel system) ----
+// ---- the code card's own actions (called by the panel system) ----
 
 interface TownsLike {
   elementsOf(k: number): TownElement[];
@@ -152,30 +155,15 @@ export function pressLine(n: number) {
   else publish({ selectedRegion: k, selectedRange: { start: n, end: n } });
 }
 
-/** Hovering line `n` (or nothing) on the page. */
+/** Hovering line `n` (or nothing) on the card. */
 export function hoverLine(n: number | null) {
   publish({ hoveredRange: n == null ? null : { start: n, end: n } });
 }
 
-/** Function / Whole file. */
-export function toggleMode() {
+/** The largest scroll for the card as it is now. */
+export const cardMaxScroll = () => {
   const view = codeView.peek();
-  if (!view) return;
-  publish({ mode: view.mode === 'function' ? 'file' : 'function' });
-  scrollToSelection();
-}
-
-/** Page up (-1) or down (1). */
-export function page(direction: 1 | -1) {
-  const view = codeView.peek();
-  if (!view) return;
-  codeScroll.value = pageScroll(codeScroll.peek(), direction, CODE_LAYOUT.rows, maxScrollTop(view, CODE_LAYOUT.rows));
-}
-
-/** The largest scroll for the page as it is now. */
-export const pageMaxScroll = () => {
-  const view = codeView.peek();
-  return view ? maxScrollTop(view, CODE_LAYOUT.rows) : 0;
+  return view ? maxScrollTop(view, codeCardRows.peek()) : 0;
 };
 
 export { shownRange };

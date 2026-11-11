@@ -1,73 +1,59 @@
-// The fixed room around the seat: a dark table under the model with a faint rim, and a large dark floor with a subtle
-// radial grid, so the room has a horizon and the user is not floating. Nothing here moves.
-import {
-  CanvasTexture,
-  CircleGeometry,
-  CylinderGeometry,
-  Group,
-  Mesh,
-  MeshBasicMaterial,
-  MeshStandardMaterial,
-  SRGBColorSpace,
-  TorusGeometry,
-} from '@iwsdk/core';
+// The fixed room around the seat: a large dark floor with a faint grid in the `grid` token that fades with distance,
+// so the room has a horizon and the user is not floating. There is no table: the model floats in the air. Nothing here
+// moves.
+import { CanvasTexture, CircleGeometry, Group, Mesh, MeshBasicMaterial, SRGBColorSpace } from '@iwsdk/core';
 import type { World } from '@iwsdk/core';
+import { THEME } from '../core/theme.ts';
 
-export const TABLE = { center: [0, 0.83, -0.55] as const, radius: 0.45, thickness: 0.03 };
-const FLOOR_RADIUS = 8;
+const FLOOR_RADIUS = 9;
+/** Grid spacing in metres. */
+const CELL = 0.5;
 
 function floorTexture() {
   const size = 2048,
     canvas = document.createElement('canvas');
   canvas.width = canvas.height = size;
   const ctx = canvas.getContext('2d')!;
-  const c = size / 2;
-  const glow = ctx.createRadialGradient(c, c, 0, c, c, c);
-  glow.addColorStop(0, '#0d1424');
-  glow.addColorStop(1, '#03050a');
-  ctx.fillStyle = glow;
+  const c = size / 2,
+    pxPerM = c / FLOOR_RADIUS;
+  ctx.fillStyle = '#02060d';
   ctx.fillRect(0, 0, size, size);
-  ctx.strokeStyle = 'rgba(120, 150, 210, 0.07)';
+  // Grid lines, one pass; the fade is applied afterwards with a radial mask.
+  ctx.strokeStyle = THEME.grid;
   ctx.lineWidth = 2;
-  // A ring every metre and a spoke every 15 degrees.
-  for (let r = 1; r < FLOOR_RADIUS; r++) {
+  ctx.globalAlpha = 0.45;
+  for (let m = -FLOOR_RADIUS; m <= FLOOR_RADIUS + 1e-6; m += CELL) {
+    const p = c + m * pxPerM;
     ctx.beginPath();
-    ctx.arc(c, c, (r / FLOOR_RADIUS) * c, 0, Math.PI * 2);
+    ctx.moveTo(p, 0);
+    ctx.lineTo(p, size);
+    ctx.moveTo(0, p);
+    ctx.lineTo(size, p);
     ctx.stroke();
   }
-  for (let k = 0; k < 24; k++) {
-    const a = (k / 24) * Math.PI * 2;
-    ctx.beginPath();
-    ctx.moveTo(c + Math.cos(a) * c * 0.06, c + Math.sin(a) * c * 0.06);
-    ctx.lineTo(c + Math.cos(a) * c, c + Math.sin(a) * c);
-    ctx.stroke();
-  }
+  ctx.globalAlpha = 1;
+  const fade = ctx.createRadialGradient(c, c, pxPerM * 0.8, c, c, c);
+  fade.addColorStop(0, 'rgba(2, 6, 13, 0.25)');
+  fade.addColorStop(0.45, 'rgba(2, 6, 13, 0.6)');
+  fade.addColorStop(0.8, 'rgba(2, 6, 13, 0.95)');
+  fade.addColorStop(1, 'rgba(2, 6, 13, 1)');
+  ctx.fillStyle = fade;
+  ctx.fillRect(0, 0, size, size);
   const texture = new CanvasTexture(canvas);
   texture.colorSpace = SRGBColorSpace;
+  texture.anisotropy = 8;
   return texture;
 }
 
 export function createRoom(world: World) {
   const room = new Group();
   room.name = 'room';
-  const floor = new Mesh(new CircleGeometry(FLOOR_RADIUS, 96), new MeshBasicMaterial({ map: floorTexture() }));
+  const floor = new Mesh(
+    new CircleGeometry(FLOOR_RADIUS, 96),
+    new MeshBasicMaterial({ map: floorTexture(), toneMapped: false }),
+  );
   floor.name = 'room-floor';
   floor.rotation.x = -Math.PI / 2;
   room.add(floor);
-  const table = new Mesh(
-    new CylinderGeometry(TABLE.radius, TABLE.radius * 0.96, TABLE.thickness, 96),
-    new MeshStandardMaterial({ color: '#06080e', roughness: 0.9, metalness: 0, envMapIntensity: 0.25 }),
-  );
-  table.name = 'room-table';
-  table.position.set(TABLE.center[0], TABLE.center[1] - TABLE.thickness / 2, TABLE.center[2]);
-  room.add(table);
-  const rim = new Mesh(
-    new TorusGeometry(TABLE.radius, 0.004, 8, 128),
-    new MeshBasicMaterial({ color: '#6f8fd0', transparent: true, opacity: 0.35 }),
-  );
-  rim.name = 'room-table-rim';
-  rim.rotation.x = -Math.PI / 2;
-  rim.position.set(TABLE.center[0], TABLE.center[1], TABLE.center[2]);
-  room.add(rim);
   return world.createTransformEntity(room);
 }

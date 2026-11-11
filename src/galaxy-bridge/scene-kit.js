@@ -11,6 +11,9 @@ import { dotTex } from '../../galaxy/viewer/scene/textures.js';
 import { cameraInput, dampingBlend } from '../../galaxy/viewer/scene/camera-input.js';
 import { pickScene } from '../../galaxy/viewer/scene/scene-picking.js';
 import { applyDolly, applyOrbit } from '../core/orbit.ts';
+import { THEME } from '../core/theme.ts';
+import { loadFonts } from '../panels/fonts.ts';
+import { glowStroke, microLabel } from '../panels/paint.ts';
 
 // The virtual stage: the desktop stage was about 1600 × 1000 pixels. The virtual camera uses its aspect.
 const STAGE_WIDTH = 1600,
@@ -191,26 +194,46 @@ export function createSceneKit({ camPos, host, renderer, anchor = null, labels =
     followPrev = null,
     flyDist = 42,
     markerHidden = false;
-  const ringTex = new THREE.CanvasTexture(
-    (() => {
-      const c = document.createElement('canvas');
-      c.width = c.height = 128;
-      const x = c.getContext('2d');
-      x.strokeStyle = '#ffffff';
-      x.lineWidth = 7;
-      x.beginPath();
-      x.arc(64, 64, 52, 0, 7);
-      x.stroke();
-      return c;
-    })(),
-  );
-  ringTex.colorSpace = THREE.SRGBColorSpace;
+  // The marker over the selected file (docs/visual-style.md): its name in small capitals over a small glowing diamond.
+  // No ring, no pointer triangle, no pulse.
+  const MARKER_W = 512,
+    MARKER_H = 128;
+  const markerCanvas = document.createElement('canvas');
+  markerCanvas.width = MARKER_W;
+  markerCanvas.height = MARKER_H;
+  const markerTex = new THREE.CanvasTexture(markerCanvas);
+  markerTex.colorSpace = THREE.SRGBColorSpace;
+  let markerText = null;
+  function drawMarker(text) {
+    markerText = text;
+    const x = markerCanvas.getContext('2d');
+    x.clearRect(0, 0, MARKER_W, MARKER_H);
+    microLabel(x, text, MARKER_W / 2, 52, 44, THEME.line, 'center');
+    const d = new Path2D(),
+      cx = MARKER_W / 2,
+      cy = 94,
+      r = 15;
+    d.moveTo(cx, cy - r);
+    d.lineTo(cx + r, cy);
+    d.lineTo(cx, cy + r);
+    d.lineTo(cx - r, cy);
+    d.closePath();
+    glowStroke(x, d, THEME.line, 3.5);
+    markerTex.needsUpdate = true;
+  }
   const marker = new THREE.Sprite(
-    new THREE.SpriteMaterial({ map: ringTex, color: '#ffffff', depthTest: false, transparent: true }),
+    new THREE.SpriteMaterial({ map: markerTex, depthTest: false, transparent: true, toneMapped: false }),
   );
+  marker.name = 'selection-marker';
+  // Anchored at its bottom edge, lifted a little so the diamond floats just above the body.
+  marker.center.set(0.5, -0.25);
   marker.visible = false;
   marker.renderOrder = 10;
   scene.add(marker);
+  const markerName = i => host.data.nodes()[i]?.name ?? '';
+  void loadFonts().then(() => {
+    if (markerText != null) drawMarker(markerText);
+  });
   // flyTo(p, dist): keep the view direction. With { cam }, fly to that camera position; { arc } swings around the origin.
   // With { frame }, p / cam / dist are in a moving local frame (() => { origin, scale }) and the flight tracks it.
   let navigationRevision = 0;
@@ -295,6 +318,7 @@ export function createSceneKit({ camPos, host, renderer, anchor = null, labels =
     followPrev = null;
     following = true;
     marker.visible = i != null && !markerHidden;
+    if (i != null) drawMarker(markerName(i));
     if (tint) tint(i);
     (customHighlight || highlight)(i, posOfSel);
     if (i != null && fly) flyTo(new THREE.Vector3(), flyDist, { frame: bodyFrame(i) });
@@ -434,7 +458,7 @@ export function createSceneKit({ camPos, host, renderer, anchor = null, labels =
       marker.visible = !markerHidden;
       marker.position.copy(posOfSel(pinned));
       const d = camera.position.distanceTo(marker.position);
-      marker.scale.setScalar(d * 0.045 * (1 + 0.12 * Math.sin(t * 5)));
+      marker.scale.set(d * 0.16, (d * 0.16 * MARKER_H) / MARKER_W, 1);
     }
     if (pending) updatePick();
     if (pgeo) {
