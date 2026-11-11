@@ -165,8 +165,8 @@ function drawLine(ctx: CanvasRenderingContext2D, line: Line, m: ChatMetrics, u: 
     else {
       const ring = new Path2D();
       ring.arc(cx, mid, r, 0, Math.PI * 2);
-      glowStroke(ctx, ring, THEME.lineDim, 1.5, 0.4);
-      if (status === 'inProgress') {
+      glowStroke(ctx, ring, status === 'inProgress' ? THEME.line : THEME.lineDim, 1.5, 0.4);
+      if (status === 'inProgress' && line.live) {
         const arc = new Path2D(),
           a = state.reduceMotion ? 0 : state.clock * Math.PI * 2;
         arc.arc(cx, mid, r, a, a + Math.PI * 0.6);
@@ -261,7 +261,7 @@ export function drawTranscript(
 
 /** True while anything in the layout moves (a live row, the working glyph, a spinning plan ring). */
 export const isAnimated = (layout: ChatLayout) =>
-  layout.lines.some(l => l.live || l.icon?.name === 'working' || l.marker?.status === 'inProgress');
+  layout.lines.some(l => l.live || l.icon?.name === 'working');
 
 /** The transcript's rectangle in the chat window: below the title bar, above the composer. */
 export function chatView(w: number, h: number, u: number, composerHeight = 0) {

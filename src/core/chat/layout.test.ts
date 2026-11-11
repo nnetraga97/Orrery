@@ -236,3 +236,9 @@ test('message actions: Reuse under the user, Reply under the agent', () => {
   assert.deepEqual(layout.regions.map(r => r.id), ['button:reuse:u', 'button:reply:a']);
   assert.deepEqual(lay({ items: [{ id: 'u', type: 'userMessage', text: 'x' }] }).regions, []);
 });
+
+test("a plan step spins only while the turn runs", () => {
+  const plan: ChatItem = { id: 'p', type: 'plan', plan: [{ step: 'Fix', status: 'inProgress' }] };
+  assert.equal(lay({ items: [plan], live: true }).lines.find(l => l.kind === 'planStep')!.live, true);
+  assert.equal(lay({ items: [plan], live: false }).lines.find(l => l.kind === 'planStep')!.live, undefined);
+});

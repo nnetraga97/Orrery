@@ -117,3 +117,10 @@ the review wins; where both name something that no longer exists, the replacemen
   the measurements, what was reduced and what remains are in `docs/migration/m1-notes.md`, "Draw budget". The headset
   tier and its 37.5 MB initial download are under "Headset tier". `docs/headset-session.md` is the device script,
   with the review's three questions (the code card at 12 lines, the tab strip, the grab bar).
+- Checks before the live check (emulator, Quest 3 profile, seated, hands): a reload without clearing storage restored
+  the chat and its fix together (a chat now stores the files it changed and the workspace is put back to match;
+  before, the chat came back with the workspace broken again). Stop mid-turn by pinch: the chat reads "stopped",
+  nothing is left running and the window stops redrawing (rows still running now settle as failed). Steer during the
+  agent's question: delivered with the answer, after the tool results. Queue: sent by itself when the turn ended.
+  Dragging the transcript scrolled it (682 → 207 px). A steer had started a second plan card, and a finished turn's
+  "in progress" step kept spinning: a plan now belongs to the user's request, and only a running turn's step spins.

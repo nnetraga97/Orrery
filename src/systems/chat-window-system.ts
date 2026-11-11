@@ -74,6 +74,11 @@ export class ChatWindowSystem extends createSystem({}) {
   /** Left-handed (a setting): the microphone at the composer's left end. */
   micLeft = false;
 
+  /** The transcript's scroll position and whether it is redrawing for motion (for the test hook). */
+  get scroll() {
+    return { top: this.scrollTop, height: this.bodyHeight, view: this.viewHeight, animated: this.animated };
+  }
+
   /** Redraws with the current settings. */
   refresh() {
     this.dirty = true;

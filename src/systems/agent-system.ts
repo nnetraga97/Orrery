@@ -71,6 +71,8 @@ export class AgentSystem extends createSystem({}) {
   private calls = new Map<string, Pending>();
   private live = { thinking: '', text: '', thinkingStart: 0, call: 0 };
   private turn = 0;
+  /** Counts the user's requests (not steers), so each request keeps one plan card. */
+  private planTurn = 0;
   private changedThisTurn = false;
   private fixedAt = 0;
   private auto = false;
@@ -164,7 +166,15 @@ export class AgentSystem extends createSystem({}) {
   }
 
   /** Makes a thread the open chat: its conversation continues where it was left. */
+  /** Makes a thread the open chat, and puts the workspace in the state it describes: the scenario's starting files
+   * with this chat's edits applied. A chat and its edits are restored together, never one without the other. */
   private adopt(t: StoredThread) {
+    const ws = this.workspace;
+    if (ws) {
+      ws.reset();
+      for (const [path, text] of Object.entries(t.files ?? {})) ws.write(path, text);
+      void this.settleScenario();
+    }
     let messages = t.messages as Message[];
     // Calls left open when the app was closed are answered, so the conversation stays valid.
     const last = messages[messages.length - 1];
@@ -180,6 +190,7 @@ export class AgentSystem extends createSystem({}) {
     this.notices.clear();
     chatToggles.value = new Map();
     this.turn = this.items.filter(i => i.type === 'userMessage').length;
+    this.planTurn = this.turn;
     thread.value = { ...t, messages, items: this.items, requests: [], status: 'idle' };
     this.events.session(t.id, this.port.label);
   }
@@ -200,10 +211,25 @@ export class AgentSystem extends createSystem({}) {
     this.adopt(t);
   }
 
+  /** The scenario's state after the workspace was put back: done if the chat had fixed it, else broken. */
+  private async settleScenario() {
+    const s = this.scenario;
+    if (!s || !this.workspace) return;
+    const text = await this.workspace.read(s.breakPatch.file).catch(() => null);
+    scenarioState.value = text != null && isFixed(s, text) ? 'done' : 'broken';
+  }
+
   private save() {
     const t = thread.peek();
     if (!t || !t.items?.length) return;
-    this.store.save(t);
+    const ws = this.workspace,
+      files: Record<string, string> = {};
+    for (const path of ws?.changed() ?? []) {
+      const text = ws!.edited(path);
+      if (text != null) files[path] = text;
+    }
+    thread.value = { ...t, files };
+    this.store.save(thread.peek()!);
     threads.value = this.store.list().filter(x => x.dataset === this.opened);
   }
 
@@ -343,7 +369,8 @@ export class AgentSystem extends createSystem({}) {
       case 'show_user':
         return void this.items.push({ ...base, type: 'dynamicToolCall', tool: 'show_user', title: `Pointed at ${input.file}${input.line ? `:${input.line}` : ''}`, arguments: input });
       case 'update_plan': {
-        const id = `plan-${this.turn}`,
+        // One plan per request from the user: a steer adds to the same turn's plan.
+        const id = `plan-${this.planTurn}`,
           plan = ((input.steps as { text: string; status: string }[]) ?? []).map(s => ({ step: s.text, status: s.status }));
         const k = this.items.findIndex(i => i.id === id);
         if (k >= 0) this.items[k] = { ...this.items[k], plan };
@@ -430,6 +457,12 @@ export class AgentSystem extends createSystem({}) {
   private async finishTurn(outcome: TurnOutcome) {
     this.requests = [];
     answers.value = new Map();
+    // A stopped or failed turn leaves nothing running: half-streamed text goes, open rows settle as failed.
+    if (outcome !== 'completed') {
+      this.items = this.items
+        .filter(i => !i.id?.startsWith('live-'))
+        .map(i => (i.status === 'inProgress' || i.status === 'running' ? { ...i, status: 'failed' } : i));
+    }
     if (this.changedThisTurn && this.workspace) {
       const diff = await this.workspace.turnDiff();
       if (diff) this.items.push({ id: `diff-${this.turn}`, type: 'turnDiff', diff });
@@ -467,6 +500,7 @@ export class AgentSystem extends createSystem({}) {
 
   private say(text: string, attachContext: boolean, steer = false) {
     playSound('send');
+    if (!steer) this.planTurn++;
     const context = attachContext ? this.looking() : null;
     this.turn++;
     this.items.push({ id: `u${Date.now().toString(36)}${this.turn}`, type: 'userMessage', text, attachmentNames: context ? [context.label] : [] });

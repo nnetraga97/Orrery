@@ -8,6 +8,8 @@ export type StoredThread = ChatThread & {
   dataset: string;
   /** The conversation in the wire format (src/core/agent/wire.ts). */
   messages: unknown[];
+  /** The workspace files this chat changed, by path, with their text: restored together with the chat. */
+  files?: Record<string, string>;
   createdAt: number;
   updatedAt: number;
 };

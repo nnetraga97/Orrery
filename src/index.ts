@@ -98,6 +98,10 @@ World.create(document.getElementById('scene-container') as HTMLDivElement, proje
       return p ? { x: p.x, y: p.y, z: p.z } : null;
     },
     regions: (panel: string) => PANELS.get(panel)?.regions.map(r => r.id) ?? [],
+    /** The chat transcript's scroll position (tests drag it with an emulated hand). */
+    get chatScroll() {
+      return world.getSystem(ChatWindowSystem)?.scroll ?? null;
+    },
     /** The agent's in-memory workspace (read, changed, diff…). */
     get workspace() {
       return agent.ws;

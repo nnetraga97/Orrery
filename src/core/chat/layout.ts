@@ -507,7 +507,7 @@ function group(b: Builder, items: ChatItem[], itemKey: string, live: boolean, mo
   if (open) items.forEach((item, i) => row(b, item, `${itemKey}.${i}`, b.left + b.m.indent, model));
 }
 
-function planCard(b: Builder, item: ChatItem) {
+function planCard(b: Builder, item: ChatItem, live: boolean) {
   const steps = item.plan || [],
     done = steps.filter(s => s.status === 'completed').length,
     top = b.y,
@@ -521,6 +521,8 @@ function planCard(b: Builder, item: ChatItem) {
     const first = b.lines.length;
     b.text('planStep', [{ text: step.step || step.text || '', font: 'body', tone: status === 'completed' ? 'dim' : 'text' }], x + b.icon() + 14, b.right - 22 - (x + b.icon() + 14));
     b.lines[first].marker = { x, status };
+    // Only a running turn's current step spins.
+    if (live && status === 'inProgress') b.lines[first].live = true;
   }
   b.gap(12);
   b.box('card', b.left, top, b.right - b.left, b.y - top);
@@ -691,7 +693,7 @@ export function layoutChat(model: ChatModel, metrics: ChatMetrics, measure: Meas
       if (item.type === 'userMessage' || item.role === 'user') {
         userMessage(b, item);
         if (model.messageActions) messageAction(b, `button:reuse:${item.id ?? entry.key}`, 'Reuse', 'right');
-      } else if (item.type === 'plan') planCard(b, item);
+      } else if (item.type === 'plan') planCard(b, item, model.live);
       else if (item.type === 'turnDiff') turnDiff(b, item, entry.key, model);
       else {
         markdown(b, parseMarkdown(textOf(item)), b.left);
