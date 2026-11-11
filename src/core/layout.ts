@@ -81,3 +81,6 @@ export function clampReach(eye: Vec3, position: Vec3, min: number, max: number):
   const k = (d < min ? min : max) / d;
   return [eye[0] + dx * k, eye[1] + dy * k, eye[2] + dz * k];
 }
+
+/** The seated eye the windows are laid out for (room metres; the user faces -Z). */
+export const DEFAULT_SEAT: Seat = { eye: [0, 1.2, 0] };

@@ -70,6 +70,10 @@ export function createAgentEvents(provider: string) {
     message(role: 'assistant' | 'reasoning' | 'error', text: string) {
       if (text.trim()) ingest('message', { role, text: text.slice(0, 4000) });
     },
+    /** The tokens the last request filled (no model capacity is guessed: the gauge shows what was reported). */
+    usage(context: number) {
+      ingest('usage', { context });
+    },
     turnFinished(outcome: 'completed' | 'failed' | 'interrupted') {
       ingest('turn.finished', { outcome });
     },

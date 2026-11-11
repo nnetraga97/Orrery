@@ -1,7 +1,9 @@
 // The XR app's draw budget (docs/plans/m3-m4-agent-and-polish.md, Task 18: at most 300 draw calls and 750,000
-// triangles): the copied scene is asked for its light rig models, a few ship hulls at a time, and a lighter island.
-// Switches added to the copied code by tools/migrate/apply-patches.mjs; the flat reference view keeps everything.
-import { IslandDetail } from '../../galaxy/viewer/agents/sky-island.js';
+// triangles): the copied scene is asked for its light rig models and a few ship hulls at a time. The island keeps every
+// modelled building (the owner's choice: blocks read as a heap); the headset asset tier simplifies those models instead
+// (tools/assets/build-assets.mjs). Switches added to the copied code by tools/migrate/apply-patches.mjs; the flat
+// reference view keeps everything.
+import { IslandMotion } from '../../galaxy/viewer/agents/sky-island.js';
 import { FleetLimits } from '../../galaxy/viewer/galaxy/constellation-fleet.js';
 import { RiggedAssets } from '../../galaxy/viewer/scene/rigged-assets.js';
 
@@ -11,5 +13,6 @@ export const VISIBLE_HULLS = 6;
 export function applyHeadsetBudget() {
   RiggedAssets.preferLod(true);
   FleetLimits.visible = VISIBLE_HULLS;
-  IslandDetail.full = false;
+  // At a seated user's scale the island's idle motions (propellers, smoke, fans, lanterns, the relay dish) read as noise.
+  IslandMotion.idle = false;
 }

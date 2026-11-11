@@ -320,7 +320,17 @@ export class AgentSystem extends createSystem({}) {
   private onStream(event: StreamEvent) {
     if ((event.type === 'thinking' || event.type === 'text') && !this.live.thinking && !this.live.text) playSound('replyStarted');
     if (event.type === 'error') playSound('error');
+    if (event.type === 'usage') {
+      // The context the request filled, for the context district's gauge. Only a measured count: the recorded session
+      // reports none.
+      const u = event.usage;
+      const context = u.input + (u.cacheRead ?? 0) + (u.cacheWrite ?? 0) + u.output;
+      if (context > 0) this.events.usage(context);
+      return;
+    }
     if (event.type === 'thinking') {
+      // The cannon says "Thinking…" once per reply, when the reasoning starts.
+      if (!this.live.thinkingStart) this.events.message('reasoning', 'Thinking');
       if (!this.live.thinkingStart) this.live.thinkingStart = performance.now();
       this.live.thinking += event.delta;
       this.setLive('live-thinking', { type: 'reasoning', status: 'inProgress', text: this.live.thinking });
