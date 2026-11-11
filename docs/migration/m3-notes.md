@@ -65,3 +65,13 @@ the review wins; where both name something that no longer exists, the replacemen
   version of the function rightly keeps that text. The check used is the scenario's own: the unique broken text is
   gone (`isFixed`). Result: status `idle`, `changed` `["core/range.ts"]`, `fixed` `true`. The show_user card, the
   problem card and the transcript on the chat window are drawn in Task 11.
+- Task 11: the chat window system draws the transcript (or the chat list) over the composer and routes pinches by
+  region id; holding `mic`, `say:…` or `queue:again:…` talks (`CanvasPanel.onPressStart` / `onPressEnd`). The window
+  moves by its existing grab bar (no `OneHandGrabbable`). The attached cards (`src/systems/callout-system.ts`) sit
+  beside the bug's planet, on the side toward the middle of the view (the chat window stands on the left and would
+  hide a card on the far side), and draw over the chat window. They anchor to the file's planet (`bodyPos` plus its
+  size), not to the function's town: the copied code has no town position to ask for. The "Show me" card is
+  0.24 × 0.09 m like the problem card. Emulator check, Quest 3 profile, seated, hands only: pinched "Fix it" and Send,
+  pinched the first option and Send answer, pinched Approve once; the problem card turned green ("Fixed"). Again with
+  `?say=Fix it|Fix only this function`: held the microphone, then held "Say your answer"; the answer reached the model
+  and the card turned green. The test hook gains `__orrery.target(panel, region)` and `__orrery.regions(panel)`.

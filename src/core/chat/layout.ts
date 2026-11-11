@@ -66,7 +66,8 @@ export type Line = {
 };
 export type BoxKind = 'bubble' | 'card' | 'code' | 'terminal' | 'band' | 'errorBar' | 'chip' | 'option' | 'field' | 'mic';
 export type Box = { kind: BoxKind; x: number; y: number; w: number; h: number; tone?: Tone; id?: string };
-export type Region = { id: string; x: number; y: number; w: number; h: number };
+/** A pinchable area; a toggle also says whether what it opens is open now. */
+export type Region = { id: string; x: number; y: number; w: number; h: number; open?: boolean };
 export type ChatLayout = { lines: Line[]; boxes: Box[]; regions: Region[]; height: number };
 
 export type ChatMetrics = {
@@ -238,8 +239,8 @@ export class Builder {
   gap(px = this.m.gap) {
     this.y += px;
   }
-  region(id: string, x: number, y: number, w: number, h: number) {
-    this.regions.push({ id, x, y, w, h });
+  region(id: string, x: number, y: number, w: number, h: number, open?: boolean) {
+    this.regions.push(open === undefined ? { id, x, y, w, h } : { id, x, y, w, h, open });
   }
   box(kind: BoxKind, x: number, y: number, w: number, h: number, extra: Partial<Box> = {}) {
     const box: Box = { kind, x, y, w, h, ...extra };
@@ -445,7 +446,7 @@ function row(b: Builder, item: ChatItem, key: string, x: number, model: ChatMode
       live: t.live,
       chevron: expandable ? { x: b.right - b.icon(), open } : undefined,
     });
-    if (expandable) b.region(id, x, line.y, b.right - x, line.height);
+    if (expandable) b.region(id, x, line.y, b.right - x, line.height, open);
     if (expandable && open) detail(b, item, textX);
     return;
   }
@@ -475,7 +476,7 @@ function row(b: Builder, item: ChatItem, key: string, x: number, model: ChatMode
     live: a.live,
     chevron: expandable ? { x: b.right - b.icon(), open } : undefined,
   });
-  if (expandable) b.region(id, x, line.y, b.right - x, line.height);
+  if (expandable) b.region(id, x, line.y, b.right - x, line.height, open);
   if (expandable && open) detail(b, item, textX);
 }
 
@@ -502,7 +503,7 @@ function group(b: Builder, items: ChatItem[], itemKey: string, live: boolean, mo
   const spans: Span[] = [{ text: summary, x: b.left, font: 'body', tone: 'line' }];
   if (failed) spans.push({ text: failText, x: b.left + b.measure(summary, 'body') + 14, font: 'small', tone: 'failed' });
   const line = b.line('groupHead', spans, 'body', { live, chevron: { x: b.right - b.icon(), open } });
-  b.region(`toggle:${key}`, b.left, line.y, b.right - b.left, line.height);
+  b.region(`toggle:${key}`, b.left, line.y, b.right - b.left, line.height, open);
   if (open) items.forEach((item, i) => row(b, item, `${itemKey}.${i}`, b.left + b.m.indent, model));
 }
 
@@ -554,7 +555,7 @@ function turnDiff(b: Builder, item: ChatItem, key: string, model: ChatModel) {
   }
   if (sum.removed) spans.push({ text: `−${sum.removed}`, x: cx, font: 'small', tone: 'removed' });
   const line = b.line('changes', spans, 'body', { icon: { name: 'diff', x: b.left, tone: 'line' }, chevron: { x: b.right - b.icon(), open } });
-  b.region(`toggle:${item.id ?? key}`, b.left, line.y, b.right - b.left, line.height);
+  b.region(`toggle:${item.id ?? key}`, b.left, line.y, b.right - b.left, line.height, open);
   if (open) diffs(b, changes, textX);
 }
 
@@ -641,7 +642,7 @@ function requestCard(b: Builder, request: ChatRequest, model: ChatModel) {
         icon: { name: 'diff', x, tone: 'line' },
         chevron: { x: b.right - inset - b.icon(), open },
       });
-      b.region(`toggle:${id}`, x, line.y, inner, line.height);
+      b.region(`toggle:${id}`, x, line.y, inner, line.height, open);
       if (open) diffs(b, request.changes, x);
     }
     b.gap(12);

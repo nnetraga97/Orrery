@@ -254,7 +254,7 @@ export function drawTranscript(
     const ry = r.y - top;
     const y0 = Math.max(ry, 0),
       y1 = Math.min(ry + r.h, h);
-    if (y1 > y0) regions.push({ id: r.id, x: x + r.x, y: y + y0, w: r.w, h: y1 - y0 });
+    if (y1 > y0) regions.push({ ...r, x: x + r.x, y: y + y0, w: r.w, h: y1 - y0 });
   }
   return regions;
 }

@@ -5,11 +5,13 @@ import { createBrowserSpeech } from './adapters/browser-speech.ts';
 import { createFakeAgent } from './adapters/fake-agent.ts';
 import { createFakeSpeech } from './adapters/fake-speech.ts';
 import { createLocalStorage } from './adapters/local-storage.ts';
+import { PANELS } from './panels/canvas-panel.ts';
 import { createStaticDataset } from './adapters/static-dataset.ts';
 import { galaxyState } from './galaxy-bridge/galaxy-session.js';
 import { appState } from './state/app-state.ts';
 import { commands } from './state/commands.ts';
 import { AgentSystem } from './systems/agent-system.ts';
+import { CalloutSystem } from './systems/callout-system.ts';
 import { ChatWindowSystem } from './systems/chat-window-system.ts';
 import { GalaxySystem } from './systems/galaxy-system.ts';
 import { ManipulationSystem } from './systems/manipulation-system.ts';
@@ -37,6 +39,7 @@ World.create(document.getElementById('scene-container') as HTMLDivElement, proje
   world.registerSystem(TutorialSystem);
   world.registerSystem(VoiceSystem);
   world.registerSystem(AgentSystem);
+  world.registerSystem(CalloutSystem);
   const agent = world.getSystem(AgentSystem)!;
   const galaxy = world.getSystem(GalaxySystem)!;
   window.__orrery = {
@@ -47,6 +50,12 @@ World.create(document.getElementById('scene-container') as HTMLDivElement, proje
     get ready() {
       return galaxy.ready;
     },
+    /** Where a window's region is in the room, and its regions (tests aim the emulated hands with it). */
+    target: (panel: string, region: string) => {
+      const p = PANELS.get(panel)?.worldOf(region);
+      return p ? { x: p.x, y: p.y, z: p.z } : null;
+    },
+    regions: (panel: string) => PANELS.get(panel)?.regions.map(r => r.id) ?? [],
     /** The agent's in-memory workspace (read, changed, diff…). */
     get workspace() {
       return agent.ws;

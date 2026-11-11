@@ -245,10 +245,10 @@ docs/headset-session.md             the two-hour device checklist
 
 **Files:** Modify `src/systems/panel-system.ts`, `src/state/commands.ts`, `src/panels/test-page.ts`.
 
-- [ ] **Step 1.** Place the chat panel at `agentPanel` from `layout.ts` (left of the table). It is a floating panel the user can also move: give its entity `OneHandGrabbable` with translate and rotate, constrained to stay 0.6–1.3 m from the seat. A `Reset layout` button in settings puts it back. Wire every hit region: toggles, options, "Say your answer", send, decline and approve, chips, queue controls, thread list. A vertical drag scrolls.
-- [ ] **Step 2.** The dock's `Agent` button shows and hides it. A problem card for the scenario (`draw-problem-card.ts`) sits above the table at the start: its title, its problem text and a `Start` button that opens the chat; it turns green with "Fixed" when the workspace no longer contains the broken text.
-- [ ] **Step 3. Check.** `npm run verify`. In the emulator, with hands only: open the chat, pinch the suggestion "Fix it", answer the question by pinching an option, pinch `Approve once`, and see the problem card turn green. Then repeat using the fake voice (`?say=`) for the answer.
-- [ ] **Step 4. Commit:** `Put the chat in the room as a floating panel`
+- [x] **Step 1.** Place the chat panel at `agentPanel` from `layout.ts` (left of the table). It is a floating panel the user can also move: give its entity `OneHandGrabbable` with translate and rotate, constrained to stay 0.6–1.3 m from the seat. A `Reset layout` button in settings puts it back. Wire every hit region: toggles, options, "Say your answer", send, decline and approve, chips, queue controls, thread list. A vertical drag scrolls.
+- [x] **Step 2.** The dock's `Agent` button shows and hides it. A problem card for the scenario (`draw-problem-card.ts`) sits above the table at the start: its title, its problem text and a `Start` button that opens the chat; it turns green with "Fixed" when the workspace no longer contains the broken text.
+- [x] **Step 3. Check.** `npm run verify`. In the emulator, with hands only: open the chat, pinch the suggestion "Fix it", answer the question by pinching an option, pinch `Approve once`, and see the problem card turn green. Then repeat using the fake voice (`?say=`) for the answer.
+- [x] **Step 4. Commit:** `Put the chat in the room as a floating panel`
 
 ### Task 12: The server functions
 
