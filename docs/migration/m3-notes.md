@@ -108,3 +108,8 @@ the review wins; where both name something that no longer exists, the replacemen
   (Quest 3 profile, seated): opened Settings and chose 140% by pinch, then completed the scenario with the right hand
   only and no voice, starting from the problem card; it turned green and the agent's replay of the fixed run started.
   At 140% the code card overlaps the globe from the seat: a device-session item.
+- Task 17: `PauseSystem` sets `paused` when the session is hidden or blurred (or the page is hidden). The galaxy's
+  clock skips the paused time, windows and cards stop updating, the microphone is let go, sound is suspended and a
+  playing replay holds its step; a model call in flight is left to finish. Start-up: about 0.5 s on a desktop browser
+  (`docs/migration/m1-notes.md`). There is no table or project card any more to load first; the cannon and island
+  load after the galaxy's first frame. Pausing was not exercised in the emulator (it cannot blur a session).

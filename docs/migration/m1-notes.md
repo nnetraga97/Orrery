@@ -202,3 +202,11 @@ right side, fall outside the view. Turned about 25° toward either window, the w
 code card 26° × 19°). The overview model's right edge falls outside looking straight ahead. Not changed.
 
 Not checked: real eye-tracking accuracy on small targets (code lines are about 1.2° tall), and comfort, on the device.
+
+## Start-up time (M4, Task 17)
+
+From navigation to the first frame with the galaxy shown and taking input (`__orrery.startupMs`), in the headless
+desktop browser of the smoke test, served from the local build: 552, 460 and 472 ms over three loads. The goal was
+under 5 s. The agent's cannon and its island now join after that first frame (`attachCannon`), and the chat's fonts
+load before its first draw. A served deployment adds network time for `graph.js` and the first models; the headset
+session should measure it there.

@@ -11,7 +11,7 @@ import { CanvasPanel } from '../panels/canvas-panel.ts';
 import { CALLOUT, calloutHue, calloutTitle, drawCallout } from '../panels/draw-problem-card.ts';
 import type { Callout } from '../panels/draw-problem-card.ts';
 import { loadFonts } from '../panels/fonts.ts';
-import { agentPointer, composer, layoutResets, phase, replay, scenario, scenarioState } from '../state/app-state.ts';
+import { agentPointer, composer, layoutResets, paused, phase, replay, scenario, scenarioState } from '../state/app-state.ts';
 import { dismissReplayNotice, followReplay, showChatPage, showCode } from '../state/commands.ts';
 import { GalaxySystem } from './galaxy-system.ts';
 import { headPosition } from './head.ts';
@@ -151,6 +151,7 @@ export class CalloutSystem extends createSystem({}) {
   }
 
   update(delta: number) {
+    if (paused.peek()) return;
     headPosition(this.renderer, this.player, this.camera, this.head);
     this.clock += delta;
     const s = scenario.peek();

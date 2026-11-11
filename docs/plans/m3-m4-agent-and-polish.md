@@ -308,9 +308,9 @@ Functions use the web-standard shape `export default async function handler(requ
 
 **Files:** Modify `src/systems/*.ts`, `src/index.ts`.
 
-- [ ] **Step 1.** Subscribe to `world.visibilityState`: when the session is blurred or hidden, stop the galaxy's time, stop redrawing panels, stop listening; resume cleanly. An in-flight model call is not cancelled.
-- [ ] **Step 2.** Start-up order: room, table, project cards and tutorial first; the galaxy's heavy models (island, cannon, rigs) load after the first frame; the chat's fonts load before its first draw. Record the time from navigation to the first interactive frame in `docs/migration/m1-notes.md`; aim for under 5 s on a desktop browser.
-- [ ] **Step 3. Check and commit.** `npm run verify`. Commit: `Pause cleanly and start fast`
+- [x] **Step 1.** Subscribe to `world.visibilityState`: when the session is blurred or hidden, stop the galaxy's time, stop redrawing panels, stop listening; resume cleanly. An in-flight model call is not cancelled.
+- [x] **Step 2.** Start-up order: room, table, project cards and tutorial first; the galaxy's heavy models (island, cannon, rigs) load after the first frame; the chat's fonts load before its first draw. Record the time from navigation to the first interactive frame in `docs/migration/m1-notes.md`; aim for under 5 s on a desktop browser.
+- [x] **Step 3. Check and commit.** `npm run verify`. Commit: `Pause cleanly and start fast`
 
 ### Task 18: Frame rate and the headset asset tier
 

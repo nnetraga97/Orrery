@@ -112,6 +112,10 @@ export const soundLevel = signal({ volume: 0.6, mute: false });
 export const settings = signal<Settings>(DEFAULT_SETTINGS);
 /** Bumped by Reset layout: every window goes back to its place. */
 export const layoutResets = signal(0);
+/** The session is hidden or blurred (a system dialog over it): time stops, windows stop redrawing, nothing listens. */
+export const paused = signal(false);
+/** Milliseconds from navigation to the first frame with the galaxy shown and taking input. */
+export const startupMs = signal<number | null>(null);
 /** Inspector calls kept for the next plan (debugger tabs, transport, stack, evidence). */
 export const inspectorExtras = signal<Record<string, unknown[]>>({});
 
@@ -152,5 +156,7 @@ export const appState = {
   soundLevel,
   settings,
   layoutResets,
+  paused,
+  startupMs,
 };
 export type AppState = typeof appState;

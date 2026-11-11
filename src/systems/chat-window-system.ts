@@ -30,6 +30,7 @@ import {
   composer,
   dataset,
   layoutResets,
+  paused,
   provider,
   scenario,
   speech,
@@ -298,6 +299,7 @@ export class ChatWindowSystem extends createSystem({}) {
   }
 
   update(delta: number) {
+    if (paused.peek()) return;
     headPosition(this.renderer, this.player, this.camera, this.head);
     this.chat.tick(delta, this.head);
     this.clock += delta;

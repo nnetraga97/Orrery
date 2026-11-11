@@ -18,7 +18,7 @@ import { STATUS_CARD, drawStatusCard, statusTitle } from '../panels/draw-status-
 import type { StatusCard } from '../panels/draw-status-card.ts';
 import { loadFonts } from '../panels/fonts.ts';
 import { cardFromItem } from '../panels/info-card-content.ts';
-import { codeCardOpen, codeCardRows, codeScroll, codeView, error, layoutResets, loading, pinned, replay } from '../state/app-state.ts';
+import { codeCardOpen, codeCardRows, codeScroll, codeView, error, layoutResets, loading, paused, pinned, replay } from '../state/app-state.ts';
 import { closeCard, replayBack, replayPlay, replayStep, retry } from '../state/commands.ts';
 import { GalaxySystem, TABLE_ANCHOR } from './galaxy-system.ts';
 import { headPosition } from './head.ts';
@@ -229,6 +229,7 @@ export class PanelSystem extends createSystem({}) {
   }
 
   update(delta: number) {
+    if (paused.peek()) return;
     headPosition(this.renderer, this.player, this.camera, this.head);
     if (this.info.visible && !this.info.moved) {
       const anchor = this.item?.anchor;

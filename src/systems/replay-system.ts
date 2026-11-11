@@ -8,7 +8,7 @@ import { createSystem } from '@iwsdk/core';
 import { createReplay, replayErrors } from '../core/replay.ts';
 import type { Replay, ReplayData } from '../core/replay.ts';
 import { galaxyState } from '../galaxy-bridge/galaxy-session.js';
-import { codeCardOpen, replay, replayRequest, scenario, scenarioState } from '../state/app-state.ts';
+import { codeCardOpen, paused, replay, replayRequest, scenario, scenarioState } from '../state/app-state.ts';
 import { connectReplay, playSound, showCode } from '../state/commands.ts';
 import { ChatWindowSystem } from './chat-window-system.ts';
 
@@ -147,6 +147,11 @@ export class ReplaySystem extends createSystem({}) {
   }
 
   update() {
+    // A playing replay holds its step while paused (it would otherwise jump ahead on resume).
+    if (paused.peek()) {
+      if (this.run?.playing) this.run.play(STEP_MS, performance.now());
+      return;
+    }
     if (this.run?.tick(performance.now())) {
       playSound('replayStep');
       this.show();
