@@ -17,9 +17,15 @@
     "bake": "node tools/bake-dataset.mjs",
     "assets": "node tools/assets/build-assets.mjs",
     "smoke": "node tools/smoke-flat.mjs",
-    "postinstall": "node tools/copy-runtime.mjs"
+    "postinstall": "node tools/copy-runtime.mjs",
+    "test:core": "node --experimental-strip-types --test \"src/core/**/*.test.ts\"",
+    "smoke:xr": "node tools/smoke-page.mjs --page=index.html",
+    "verify": "npm run typecheck && npm run check && npm run test:core && npm run build && npm run smoke && npm run smoke:xr"
   },
   "dependencies": {
+    "@fontsource/barlow": "^5.3.0",
+    "@fontsource/barlow-condensed": "^5.3.0",
+    "@fontsource/jetbrains-mono": "^5.3.0",
     "@iwsdk/core": "1.1.0-rc.2",
     "@pmndrs/uikit": "^1.0.74",
     "@pmndrs/uikit-horizon": "^1.0.74",
@@ -40,6 +46,7 @@
     "@types/d3": "^7.4.3",
     "@types/three": "^0.185.0",
     "ignore": "^7.0.14",
+    "playwright": "^1.65.0",
     "sharp": "0.35.4",
     "typescript": "^5.9.3",
     "vite": "^7.1.4"
@@ -49,6 +56,6 @@
     "three": "npm:super-three@0.185.0"
   },
   "engines": {
-    "node": ">=20.19.0 <21.0.0-0 || >=22.12.0 <23.0.0-0 || >=24.0.0"
+    "node": ">=22.12.0 <23.0.0-0 || >=24.0.0"
   }
 }

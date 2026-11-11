@@ -1,11 +1,6 @@
-/**
- * Copyright (c) Meta Platforms, Inc. and affiliates.
- *
- * This source code is licensed under the MIT license found in the
- * LICENSE file in the root directory of this source tree.
- */
-
+// The component manifest the editor and the runtime share (iwsdk.config.json points here).
 import { defineComponents } from '@iwsdk/core';
-import { Robot } from './robot-component.js';
+import { GalaxyRoot } from './components/galaxy-root.ts';
+import { Panel } from './components/panel.ts';
 
-export default defineComponents([Robot]);
+export default defineComponents([GalaxyRoot, Panel]);

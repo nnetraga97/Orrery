@@ -69,7 +69,9 @@ export function constellation(host) {
   };
 
   // The scene outlives every build: renderer, camera, sky, starfield and the agent's cannon stay as files change.
-  const T = scene3D([0, 120, 160], { space: true }, host);
+  const T = host.sceneKit
+    ? host.sceneKit([0, 120, 160], { space: true })
+    : scene3D([0, 120, 160], { space: true }, host);
   const ctx = { host, T, u, memory, model, instances, lod, frame: frameState, scratch: { e3, tmp, tmp2 } };
   ctx.orbits = createOrbits(ctx);
   ctx.bodies = createBodies(ctx);
