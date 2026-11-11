@@ -20,6 +20,19 @@ export interface ChatHandler {
 }
 let chat: ChatHandler | null = null;
 
+/** Everything pinched on the chat window, by region id (src/core/chat/layout.ts and composer-layout.ts name them),
+ * carried out by the agent system. */
+let chatActions: ((id: string) => void) | null = null;
+export function connectChatActions(next: (id: string) => void): () => void {
+  chatActions = next;
+  return () => {
+    if (chatActions === next) chatActions = null;
+  };
+}
+export function chatAction(id: string): void {
+  chatActions?.(id);
+}
+
 /** Push-to-talk, carried out by the voice system. */
 export interface VoiceHandler {
   press(target: VoiceTarget): void;
@@ -127,6 +140,7 @@ export const commands = {
   showChat,
   hideChat,
   showChatPage,
+  chatAction,
   pressMic,
   releaseMic,
   newChat,

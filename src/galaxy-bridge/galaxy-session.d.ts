@@ -58,3 +58,9 @@ export function languageOf(path: string): { frontEnd?: string; [member: string]:
 export function loadTypeScript(): Promise<unknown>;
 /** The copied icon set: shape(name) is the SVG markup inside a 24-unit viewBox. */
 export const UIIcons: { shape(name: string): string };
+/** A file's text: the source override's (the workspace's edits) when it has one, else the baked file's; null if neither. */
+export function readSource(dataset: string, path: string): Promise<string | null>;
+/** Lets the host supply edited text: `fn(dataset, path)` returns a string, or null to read the baked file. */
+export function setSourceOverride(fn: ((dataset: string, path: string) => string | null) | null): void;
+/** Where a baked file's text lives. */
+export function sourceUrl(dataset: string, path: string): string;

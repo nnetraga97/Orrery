@@ -58,3 +58,10 @@ the review wins; where both name something that no longer exists, the replacemen
   unavailable, the one notice ("Voice isn't available here. Pinch a suggestion instead.") shows above the composer
   and the microphone turns amber. Heard words go to the composer, to a held question's "Say your answer", or to a
   queued message being said again (`voiceTarget`). Check: `"read": "Fix it"`.
+- Task 10: the tool executor (`src/core/agent/run-tool.ts`) and the recorded reply choice
+  (`src/core/agent/recorded.ts`) are in core, so a core test plays the whole recorded session through the real loop
+  and workspace. The agent system also handles every pinch on the chat window by region id (`chatAction`). The plan's
+  Step 8 check for `fixed` (the file no longer contains `>= range.endColumn) {…return true`) can never pass: the strict
+  version of the function rightly keeps that text. The check used is the scenario's own: the unique broken text is
+  gone (`isFixed`). Result: status `idle`, `changed` `["core/range.ts"]`, `fixed` `true`. The show_user card, the
+  problem card and the transcript on the chat window are drawn in Task 11.

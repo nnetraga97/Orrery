@@ -1,0 +1,229 @@
+{
+  "id": "range-edge",
+  "note": "A hand-written session in the wire format (src/core/agent/wire.ts). Each turn is chosen by how many tool results the request holds.",
+  "turns": [
+    {
+      "stopReason": "tool_use",
+      "blocks": [
+        {
+          "type": "thinking",
+          "text": "**Finding the edge check**\nThe question is about a position at the end of a range. Range has a containsPosition helper; I will search for it.",
+          "opaque": {
+            "recorded": true
+          }
+        },
+        {
+          "type": "text",
+          "text": "Let me find where a position is tested against a range."
+        },
+        {
+          "type": "tool_use",
+          "id": "rec_search",
+          "name": "search",
+          "input": {
+            "pattern": "containsPosition",
+            "path": "core"
+          }
+        }
+      ]
+    },
+    {
+      "stopReason": "tool_use",
+      "blocks": [
+        {
+          "type": "text",
+          "text": "`Range.containsPosition` in core/range.ts looks like the one. Reading it."
+        },
+        {
+          "type": "tool_use",
+          "id": "rec_read",
+          "name": "read_file",
+          "input": {
+            "path": "core/range.ts",
+            "start_line": 80,
+            "end_line": 120
+          }
+        }
+      ]
+    },
+    {
+      "stopReason": "tool_use",
+      "blocks": [
+        {
+          "type": "thinking",
+          "text": "**Comparing the two edges**\nThe start edge uses `<`, so a position at the start column counts as inside. The end edge uses `>=`, so a position at the end column counts as outside. The comment says both edges count as inside, and the strict version below is the one meant to exclude them.",
+          "opaque": {
+            "recorded": true
+          }
+        },
+        {
+          "type": "text",
+          "text": "Found it. The end-edge check uses `>=`, so a position exactly at the end of the range is treated as outside, although the comment says the edges count as inside."
+        },
+        {
+          "type": "tool_use",
+          "id": "rec_show",
+          "name": "show_user",
+          "input": {
+            "file": "core/range.ts",
+            "line": 97,
+            "message": "This end-edge check uses >=, so a cursor exactly at the end of a selection counts as outside. It should be >."
+          }
+        },
+        {
+          "type": "tool_use",
+          "id": "rec_plan1",
+          "name": "update_plan",
+          "input": {
+            "steps": [
+              {
+                "text": "Find the end-edge check",
+                "status": "completed"
+              },
+              {
+                "text": "Agree how far the fix goes",
+                "status": "inProgress"
+              },
+              {
+                "text": "Fix the comparison",
+                "status": "pending"
+              },
+              {
+                "text": "Replay the fixed run",
+                "status": "pending"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "stopReason": "tool_use",
+      "blocks": [
+        {
+          "type": "text",
+          "text": "One question before I change anything."
+        },
+        {
+          "type": "tool_use",
+          "id": "rec_ask",
+          "name": "ask_user",
+          "input": {
+            "questions": [
+              {
+                "id": "scope",
+                "header": "Scope",
+                "question": "How far should the fix go?",
+                "options": [
+                  {
+                    "label": "Fix only this function",
+                    "description": "Change the end-edge check in containsPosition."
+                  },
+                  {
+                    "label": "Also check the strict version",
+                    "description": "Look at strictContainsPosition as well (it is meant to exclude the edges)."
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "stopReason": "tool_use",
+      "blocks": [
+        {
+          "type": "text",
+          "text": "Fixing the end-edge comparison."
+        },
+        {
+          "type": "tool_use",
+          "id": "rec_plan2",
+          "name": "update_plan",
+          "input": {
+            "steps": [
+              {
+                "text": "Find the end-edge check",
+                "status": "completed"
+              },
+              {
+                "text": "Agree how far the fix goes",
+                "status": "completed"
+              },
+              {
+                "text": "Fix the comparison",
+                "status": "inProgress"
+              },
+              {
+                "text": "Replay the fixed run",
+                "status": "pending"
+              }
+            ]
+          }
+        },
+        {
+          "type": "tool_use",
+          "id": "rec_fix",
+          "name": "replace_in_file",
+          "input": {
+            "path": "core/range.ts",
+            "old_text": "\t\tif (position.lineNumber === range.startLineNumber && position.column < range.startColumn) {\n\t\t\treturn false;\n\t\t}\n\t\tif (position.lineNumber === range.endLineNumber && position.column >= range.endColumn) {",
+            "new_text": "\t\tif (position.lineNumber === range.startLineNumber && position.column < range.startColumn) {\n\t\t\treturn false;\n\t\t}\n\t\tif (position.lineNumber === range.endLineNumber && position.column > range.endColumn) {"
+          }
+        }
+      ]
+    },
+    {
+      "stopReason": "tool_use",
+      "blocks": [
+        {
+          "type": "text",
+          "text": "Now replaying the same call with the fix in place."
+        },
+        {
+          "type": "tool_use",
+          "id": "rec_replay",
+          "name": "run_replay",
+          "input": {
+            "which": "fixed"
+          }
+        },
+        {
+          "type": "tool_use",
+          "id": "rec_plan3",
+          "name": "update_plan",
+          "input": {
+            "steps": [
+              {
+                "text": "Find the end-edge check",
+                "status": "completed"
+              },
+              {
+                "text": "Agree how far the fix goes",
+                "status": "completed"
+              },
+              {
+                "text": "Fix the comparison",
+                "status": "completed"
+              },
+              {
+                "text": "Replay the fixed run",
+                "status": "completed"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "stopReason": "end",
+      "blocks": [
+        {
+          "type": "text",
+          "text": "## Fixed 🎉\n\n`Range.containsPosition` now treats a position **at** the end of a range as inside it:\n\n- The end-edge check uses `>` instead of `>=`, matching the start edge and the comment.\n- `strictContainsPosition` is unchanged: it is meant to exclude both edges.\n\n```ts\nif (position.lineNumber === range.endLineNumber && position.column > range.endColumn) {\n```\n\nThe replay shows the check now returns `true` for a cursor at (3, 9) in the range (3, 1)–(3, 9)."
+        }
+      ]
+    }
+  ]
+}

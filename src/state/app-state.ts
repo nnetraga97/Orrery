@@ -4,6 +4,7 @@ import { initialComposer } from '../core/chat/composer.ts';
 import type { ComposerState } from '../core/chat/composer.ts';
 import type { AnswerState } from '../core/chat/requests.ts';
 import type { StoredThread, ThreadSummary } from '../core/chat/threads.ts';
+import type { Scenario } from '../core/scenario.ts';
 import { idleSpeech } from '../core/speech.ts';
 import type { SpeechState } from '../core/speech.ts';
 import type { CodeView } from '../core/code-view.ts';
@@ -63,6 +64,27 @@ export type VoiceTarget =
 export const voiceTarget = signal<VoiceTarget>({ kind: 'composer' });
 /** Answers given so far to the agent's open questions, by request id. */
 export const answers = signal<ReadonlyMap<string, AnswerState>>(new Map());
+/** Which expandable rows and groups of the transcript the reader opened or closed, by toggle key. */
+export const chatToggles = signal<ReadonlyMap<string, boolean>>(new Map());
+/** The agent's pointer (show_user): a place in the code and what to look at, until dismissed. */
+export const agentPointer = signal<{ file: string; line: number | null; message: string } | null>(null);
+/** A replay the agent or the user asked for, until the replay system takes it. */
+export const replayRequest = signal<{ which: 'failing' | 'fixed' } | null>(null);
+/** The bug scenario of the open project, if it has one. */
+export const scenario = signal<Scenario | null>(null);
+/** The scenario's state: broken, fixed just now (shown green for five seconds), or done. */
+export const scenarioState = signal<'none' | 'broken' | 'fixed' | 'done'>('none');
+/** Files the agent has changed in the workspace. */
+export const changedFiles = signal<string[]>([]);
+/** The chat's provider, its label, whether it can answer, and the providers to choose from. */
+export const provider = signal<{ id: string; label: string; available: boolean; choices: { id: string; label: string; available: boolean }[]; models: string[]; model: string }>({
+  id: 'recorded',
+  label: 'Recorded',
+  available: true,
+  choices: [{ id: 'recorded', label: 'Recorded', available: true }],
+  models: [],
+  model: '',
+});
 /** Inspector calls kept for the next plan (debugger tabs, transport, stack, evidence). */
 export const inspectorExtras = signal<Record<string, unknown[]>>({});
 
@@ -92,5 +114,12 @@ export const appState = {
   speech,
   voiceTarget,
   answers,
+  chatToggles,
+  agentPointer,
+  replayRequest,
+  scenario,
+  scenarioState,
+  changedFiles,
+  provider,
 };
 export type AppState = typeof appState;
