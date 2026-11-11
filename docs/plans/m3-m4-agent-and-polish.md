@@ -151,8 +151,8 @@ docs/headset-session.md             the two-hour device checklist
 
 **Files:** Create `src/core/chat/markdown.ts` + test.
 
-- [ ] **Step 1. Tests first.** `parseMarkdown(text)` returns blocks: `paragraph`, `heading` (levels 1–4, all drawn alike), `list` (ordered or unordered, items not nested), `code` (with `language`), each holding inline runs `{ text, bold?, code? }`. Line breaks inside a paragraph are kept. No links, tables, italics or HTML: they stay as literal text. Port the behaviour of `reference/desktop-app/viewer/app/panels/Markdown.tsx`. Include a test whose text contains an emoji and one with an unclosed code fence.
-- [ ] **Step 2. Implement, check, commit:** `Parse the chat's Markdown subset`
+- [x] **Step 1. Tests first.** `parseMarkdown(text)` returns blocks: `paragraph`, `heading` (levels 1–4, all drawn alike), `list` (ordered or unordered, items not nested), `code` (with `language`), each holding inline runs `{ text, bold?, code? }`. Line breaks inside a paragraph are kept. No links, tables, italics or HTML: they stay as literal text. Port the behaviour of `reference/desktop-app/viewer/app/panels/Markdown.tsx`. Include a test whose text contains an emoji and one with an unclosed code fence.
+- [x] **Step 2. Implement, check, commit:** `Parse the chat's Markdown subset`
 
 ### Task 3: Chat layout
 

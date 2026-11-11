@@ -1,0 +1,24 @@
+# M3 + M4 notes
+
+How `docs/plans/m3-m4-agent-and-polish.md` was applied after the design review
+(`docs/plans/changes-after-review.md`) and the first plan's rework. Where the plan's text and the review differ,
+the review wins; where both name something that no longer exists, the replacement is listed here.
+
+## What stands in for what
+
+| The plan says | Built as |
+| --- | --- |
+| Colours `#282f3a`, `#7fc79a`, `#e48c8c`, `#e59a92`, … | `THEME` tokens only (`src/core/theme.ts`): added lines `ok`, removed lines and failures `alert`, the glyph `work`. |
+| Chat canvas 1536×1840 for 0.64×0.77 m, text 30 px | `CHAT_WINDOW`: 1200×2160 for 0.40×0.72 m, body text 26 px (review, Task 4). |
+| `src/galaxy-bridge/icons.ts` with `drawIcon` | `src/panels/icons.ts`. Panels may not import the copied code, so the composition root hands it `UIIcons.shape` (`setIconShapes`). A name the module lacks draws as a small circle. |
+| The dock, its `Agent` and `Help` buttons, the palm menu | The tab strip: Chat shows and hides the chat, Replay starts a replay, Settings shows settings inside the chat window. `palmMenu` is not a setting. |
+| The microphone orb | The microphone button at the right end of the composer (review, Tasks 8 and 9). |
+| The table, project cards | There is no table; the project is chosen in Settings ("Project"). |
+| `OneHandGrabbable` on the chat panel, 0.6–1.3 m | The window's existing grab bar (`CanvasPanel` window option `movable`, clamped 0.5–1.4 m by `clampReach`). |
+| A problem card above the table with `Start` | A red attached card (0.24×0.09 m) beside the bug's town with the scenario's title and function, plus a red fault dot. Pinching it opens the chat with the first prompt ready. Fixed: `ok` for five seconds, then gone. |
+| The replay panel with a timeline | No panel: the code card's footer gets `Back`, `Step`, `Play` and "3 / 7"; the step's note and up to four variables sit under its header. |
+| The "Show me" info card | An attached card beside the function's town: "Agent · file:line", the message, `Show me`, `Dismiss`. |
+
+## Deviations found while building
+
+- Task 1: branch `m3-m4` was made from `main`, which already holds the merged first plan (`origin/m1-m2` is merged).
