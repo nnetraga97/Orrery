@@ -21,12 +21,16 @@ import { ReplaySystem } from './systems/replay-system.ts';
 import { SettingsSystem } from './systems/settings-system.ts';
 import { SoundSystem } from './systems/sound-system.ts';
 import './galaxy-bridge/panel-icons.ts';
+import { chooseTier, installAssetTier } from './galaxy-bridge/asset-tier.ts';
 import { PanelSystem } from './systems/panel-system.ts';
 import { PauseSystem } from './systems/pause-system.ts';
 import { TutorialSystem } from './systems/tutorial-system.ts';
 import { VoiceSystem } from './systems/voice-system.ts';
 
 const query = new URLSearchParams(location.search);
+// The headset tier's smaller models and textures in a headset's browser (or with ?tier=quest).
+const assetTier = chooseTier(location.search, navigator.userAgent);
+installAssetTier(assetTier);
 
 World.create(document.getElementById('scene-container') as HTMLDivElement, projectOptions).then(world => {
   world.globals.datasets = createStaticDataset();
@@ -105,6 +109,7 @@ World.create(document.getElementById('scene-container') as HTMLDivElement, proje
     get startupMs() {
       return appState.startupMs.peek();
     },
+    assetTier,
     stats: () => ({
       calls: world.renderer.info.render.calls,
       triangles: world.renderer.info.render.triangles,

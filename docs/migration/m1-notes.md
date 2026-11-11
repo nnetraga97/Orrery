@@ -210,3 +210,48 @@ desktop browser of the smoke test, served from the local build: 552, 460 and 472
 under 5 s. The agent's cannon and its island now join after that first frame (`attachCannon`), and the chat's fonts
 load before its first draw. A served deployment adds network time for `graph.js` and the first models; the headset
 session should measure it there.
+
+## Draw budget (M4, Task 18)
+
+Budgets: at most 300 draw calls and 750,000 triangles at each of three states. `__orrery.stats()` in the smoke test's
+browser tab (1440 × 900, editor-core), the landed state on `core/range.ts`, "all panels" adding the code card, a
+replay, the agent's "Show me" card, the chat and the problem card. The landed counts vary between runs (339 to 391
+calls) with where the copied camera flew.
+
+| State | Before (calls / triangles) | After (calls / triangles) | Budget met |
+| --- | --- | --- | --- |
+| Overview | 121 / 211,266 | 121 / 211,266 | yes |
+| Landed | 339 / 3,394,393 | 348–389 / 2,038,435–2,040,663 | **no** |
+| Landed, all panels | 176 / 1,871,557 | 125 / 1,116,175 | calls yes, triangles **no** |
+
+Reductions applied, in the plan's order: the light (`-lod`) model of every rig (the arc ship alone was 354k triangles);
+at most six ship hulls drawn at once (the rest are engine glints, which still take a pinch); the island's modelled
+buildings only for its first landmark and first house (the rest are simple blocks, and their sheets are not loaded);
+the label pool lowered from 32 to 24. Switches in `src/galaxy-bridge/budget.js`, added to the copied code by
+`tools/migrate/apply-patches.mjs`.
+
+Not met: what remains landed is the landed planet's own towns (about 0.95 million triangles from the copied town
+renderer), the other planets' library models (about 0.3 million) and the cannon's district and moons. Merging static
+town props (the plan's last step) would cut draw calls but not triangles, and was not done: the town renderer builds
+its instanced batches itself. Reaching 750,000 needs one of: lighter towns (fewer or simpler buildings on the landed
+globe), or hiding the rest of the galaxy while landed, which is waiting for the owner's decision
+(`docs/plans/changes-after-review.md`, "Waiting for the owner"). The device session (item 3) will show whether the
+headset holds its frame rate anyway.
+
+## Headset tier (M4, Task 18)
+
+`node tools/assets/build-assets.mjs <codebase-viz> --tier=quest` writes `public/assets-quest/` (99.6 MB): textures at
+most 512 px for the kit, vehicles and buildings and 1024 px elsewhere, and the island's and cannon's geometry quantized
+(KHR_mesh_quantization; three's loader reads it without a decoder). The app uses it in a headset's browser, or with
+`?tier=quest` (`src/galaxy-bridge/asset-tier.ts`, through three's loading manager).
+
+Initial download, before a planet is opened (resource timing in the smoke test's browser, all files):
+
+| Tier | Total | Models and images | Code |
+| --- | --- | --- | --- |
+| Full | 43.1 MB | 39.4 MB | 3.2 MB |
+| Headset | 37.5 MB | 33.8 MB | 3.2 MB |
+
+The budget was under 40 MB: met by the headset tier. The landed towns are identical in both tiers (same triangle
+counts). Fixed foveation is set to a medium level (0.5) each time an immersive session becomes visible; the
+framebuffer scale is left at its default.

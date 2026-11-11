@@ -13,6 +13,7 @@ import { bridgePointer } from '../galaxy-bridge/pointer-bridge.ts';
 import { createPointScaler } from '../galaxy-bridge/point-sizes.ts';
 import { attachCannon, fileIndex, galaxyState, installActions, openGalaxy } from '../galaxy-bridge/galaxy-session.js';
 import type { GalaxyView } from '../galaxy-bridge/galaxy-session.js';
+import { applyHeadsetBudget } from '../galaxy-bridge/budget.js';
 import { outlinePinnedTown } from '../galaxy-bridge/town-outline.ts';
 import { preferWindowsForGaze } from '../galaxy-bridge/gaze-priority.ts';
 import { flushXrFrames, installXrFrames } from '../galaxy-bridge/xr-frames.ts';
@@ -78,6 +79,8 @@ export class GalaxySystem extends createSystem({}) {
   };
 
   init() {
+    // Light rigs, a few ship hulls and a lighter island, within the headset's draw budget.
+    applyHeadsetBudget();
     this.head = new Vector3();
     this.gaze = new Vector3();
     this.headTurn = new Quaternion();

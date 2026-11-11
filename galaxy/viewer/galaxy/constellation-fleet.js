@@ -8,6 +8,9 @@ import { RiggedAssets, ShipScale } from '../scene/rigged-assets.js';
 import { dotTex } from '../scene/textures.js';
 import { keyHash } from './constellation-orbits.js';
 
+// How many ship hulls are drawn at once; a host may lower it (the XR app does, for a headset's budget).
+export const FleetLimits = { visible: 900 };
+
 // ---------- shared assets ----------
 let shipGeometryPromise = null;
 export function loadShipGeometry() {
@@ -306,7 +309,7 @@ export function createFleet(ctx) {
     const shipPx = T.controls.domElement.clientHeight / (2 * Math.tan(THREE.MathUtils.degToRad(T.camera.fov) / 2));
     let k = 0;
     for (const r of list) {
-      if (k >= MAX_SHIPS) break;
+      if (k >= Math.min(MAX_SHIPS, FleetLimits.visible)) break;
       const p = r.progress != null ? r.progress : (t * r.speed + r.phase) % 1;
       if (p < 0 || p > 1) continue;
       if (r.lane && r.lane.frame !== frameState.fleetFrame) {

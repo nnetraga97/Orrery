@@ -113,3 +113,7 @@ the review wins; where both name something that no longer exists, the replacemen
   playing replay holds its step; a model call in flight is left to finish. Start-up: about 0.5 s on a desktop browser
   (`docs/migration/m1-notes.md`). There is no table or project card any more to load first; the cannon and island
   load after the galaxy's first frame. Pausing was not exercised in the emulator (it cannot blur a session).
+- Task 18: the draw budget is not met landed (about 350–390 calls and 2.0 million triangles against 300 and 750,000);
+  the measurements, what was reduced and what remains are in `docs/migration/m1-notes.md`, "Draw budget". The headset
+  tier and its 37.5 MB initial download are under "Headset tier". `docs/headset-session.md` is the device script,
+  with the review's three questions (the code card at 12 lines, the tab strip, the grab bar).

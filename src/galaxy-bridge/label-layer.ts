@@ -23,7 +23,8 @@ import type { Pose, Vec3 } from '../core/table-frame.ts';
 import type { Vector3Like } from '../ports/host.ts';
 import type { LabelDefinition } from '../ports/scene-kit.ts';
 
-const POOL = 32;
+/** Labels shown at once (lowered from 32 for the headset's draw budget: each is a draw call). */
+const POOL = 24;
 const CANVAS_W = 512,
   CANVAS_H = 96,
   PAD = 18,

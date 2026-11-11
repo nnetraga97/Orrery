@@ -13,6 +13,10 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { glowTex } from '../scene/textures.js';
 
+// A host may ask for a lighter island: only the first landmark and the first house use their modelled buildings, the
+// rest are simple blocks (the XR app does, for a headset's budget).
+export const IslandDetail = { full: true };
+
 const TAU = Math.PI * 2;
 const UP = new THREE.Vector3(0, 1, 0);
 const DUSK = new THREE.Color(0.68, 0.7, 0.82); // retain readable stone and roofs while asleep
@@ -536,7 +540,7 @@ export function createSkyIsland({ width }) {
     // their footprint; a placeholder block stands in until a sheet is available.
     const sheetNames = [
       ...new Set(
-        [...L.landmarks, ...L.houses.lots]
+        (IslandDetail.full ? [...L.landmarks, ...L.houses.lots] : [L.landmarks[0], L.houses.lots[0]].filter(Boolean))
           .map(m => m.mesh)
           .filter(Boolean)
           .map(r => r.split('#')[0]),
@@ -579,7 +583,9 @@ export function createSkyIsland({ width }) {
       const z = m.z ?? L.tiers[m.tier];
       const f = frame(m.angle, m.r, z);
       f.userData.landmark = m.id;
-      const shell = (m.mesh && building(m.mesh, m.size)) || block(m.size, m.height, palette.wall, palette.roofs[i % 3]);
+      const shell =
+        (m.mesh && (IslandDetail.full || i === 0) && building(m.mesh, m.size)) ||
+        block(m.size, m.height, palette.wall, palette.roofs[i % 3]);
       if (shell.userData.height) m = { ...m, height: shell.userData.height };
       shell.name = 'Landmark_' + m.id;
       f.add(shell);
@@ -635,7 +641,7 @@ export function createSkyIsland({ width }) {
       let height = size * (1.1 + (0.6 * ((i * 3) % 4)) / 3);
       const f = frame(lot.angle, lot.r, lot.z);
       f.name = lot.id;
-      const mesh = lot.mesh && building(lot.mesh, size);
+      const mesh = lot.mesh && (IslandDetail.full || i === 0) && building(lot.mesh, size);
       if (mesh) height = mesh.userData.height;
       f.add(mesh || block(size, height, houseColors[i % houseColors.length], houseRoofs[(i * 3) % houseRoofs.length]));
       f.userData.house = i;
