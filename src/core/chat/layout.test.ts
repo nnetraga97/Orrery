@@ -2,7 +2,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { chatMetrics, clampScroll, layoutChat, stickToBottom, visibleSlice, wrapRuns } from './layout.ts';
 import type { ChatModel, Line } from './layout.ts';
-import type { ChatItem } from './types.ts';
+import { answerState, choose, speak } from './requests.ts';
+import type { ChatItem, ChatRequest } from './types.ts';
 
 // Every character is 10 px wide, whatever the font.
 const measure = (text: string) => text.length * 10;
@@ -149,4 +150,68 @@ test('stickToBottom follows new output only near the bottom', () => {
   assert.equal(stickToBottom(0, 100, 200, 300), 0);
   assert.equal(clampScroll(-5, 1000, 300), 0);
   assert.equal(clampScroll(900, 1000, 300), 700);
+});
+
+const question: ChatRequest = {
+  id: 'q1',
+  type: 'questions',
+  questions: [
+    { id: 'scope', question: 'How far?', options: [{ label: 'Only this', description: 'The one function' }, { label: 'Also strict' }] },
+    { question: 'Anything else?' },
+  ],
+};
+const approval: ChatRequest = {
+  id: 'a1',
+  type: 'fileChangeApproval',
+  reason: 'Fix the end edge',
+  changes: [{ path: 'core/range.ts', diff: '@@ -1 +1 @@\n-a\n+b' }],
+};
+
+test('a question card: one region per option, a say row per question, and Send answer', () => {
+  const layout = lay({ requests: [question], footer: 'Waiting for your response' });
+  assert.deepEqual(layout.regions.map(r => r.id), [
+    'option:q1:scope:0',
+    'option:q1:scope:1',
+    'say:q1:scope',
+    'say:q1:1',
+    'button:send:q1',
+  ]);
+  assert.equal(text(layout.lines.find(l => l.kind === 'cardTitle')!), 'A QUESTION FOR YOU');
+  assert.ok(layout.lines.some(l => l.kind === 'option' && text(l) === 'The one function'));
+  assert.equal(layout.boxes[0].kind, 'card');
+  assert.equal(layout.lines.at(-1)!.kind, 'footer');
+});
+
+test('the chosen option is marked; a spoken answer shows and clears the mark', () => {
+  const chosen = lay({ requests: [question], answers: new Map([['q1', choose(answerState(question), 'scope', 1)]]) });
+  assert.deepEqual(chosen.lines.filter(l => l.choice).map(l => l.choice!.chosen), [false, true]);
+  const spoken = lay({ requests: [question], answers: new Map([['q1', speak(choose(answerState(question), 'scope', 1), 'scope', 'just the edge')]]) });
+  assert.deepEqual(spoken.lines.filter(l => l.choice).map(l => l.choice!.chosen), [false, false]);
+  assert.ok(spoken.lines.some(l => l.kind === 'spoken' && text(l) === '“just the edge”'));
+});
+
+test('the validation message shows under Send answer until every question is answered', () => {
+  const notices = new Map([['q1', 'Answer each question before sending.']]);
+  assert.ok(lay({ requests: [question], notices }).lines.some(l => l.kind === 'notice' && text(l).startsWith('Answer each')));
+  const answered = speak(choose(answerState(question), 'scope', 0), '1', 'no');
+  assert.ok(!lay({ requests: [question], notices, answers: new Map([['q1', answered]]) }).lines.some(l => l.kind === 'notice'));
+});
+
+test('a secret question is refused with an error row and no Send', () => {
+  const layout = lay({ requests: [{ id: 's', type: 'questions', questions: [{ id: 'k', question: 'Key?', isSecret: true }] }] });
+  assert.ok(layout.lines.some(l => l.kind === 'notice' && text(l) === 'This app cannot ask for secrets.'));
+  assert.deepEqual(layout.regions.map(r => r.id), []);
+});
+
+test('an approval card: Review changes opens the diff; Decline and Approve once', () => {
+  const closed = lay({ requests: [approval] });
+  assert.equal(text(closed.lines.find(l => l.kind === 'cardTitle')!), 'APPROVE FILE CHANGES');
+  assert.deepEqual(closed.regions.map(r => r.id), ['toggle:review:a1', 'button:decline:a1', 'button:approve:a1']);
+  const buttons = closed.lines.find(l => l.kind === 'buttons')!.buttons!;
+  assert.deepEqual(buttons.map(b => [b.label, b.tone]), [['Decline', undefined], ['Approve once', 'ok']]);
+  assert.ok(!closed.lines.some(l => l.kind === 'diffLine'));
+  const open = lay({ requests: [approval], open: new Map([['review:a1', true]]) });
+  assert.equal(open.lines.filter(l => l.kind === 'diffLine').length, 3);
+  const action = lay({ requests: [{ id: 'c', type: 'commandApproval', command: 'npm test' }] });
+  assert.equal(text(action.lines.find(l => l.kind === 'cardTitle')!), 'APPROVE THIS ACTION');
 });

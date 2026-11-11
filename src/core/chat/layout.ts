@@ -6,7 +6,9 @@ import { arrange } from './arrange.ts';
 import { describe, failures, isLive, pathOf, stat, summarize, textOf, thinkingLabel, total } from './describe.ts';
 import { parseMarkdown } from './markdown.ts';
 import type { Block, Run } from './markdown.ts';
-import type { ChatChange, ChatItem } from './types.ts';
+import { NO_SECRETS, answerOf, answerState, isQuestionRequest, questionId } from './requests.ts';
+import type { AnswerState } from './requests.ts';
+import type { ChatChange, ChatItem, ChatRequest } from './types.ts';
 
 export type FontKey = 'body' | 'bold' | 'mono' | 'label' | 'small';
 export type Tone = 'text' | 'dim' | 'line' | 'added' | 'removed' | 'failed' | 'ok' | 'hunk' | 'work' | 'amber';
@@ -118,7 +120,15 @@ export type ChatModel = {
   error?: string | null;
   /** "Waiting for your response", "Stopped", "Turn failed". */
   footer?: string | null;
-  /** Lays out request cards (questions, approvals) after the messages. Set by requests (Task 5). */
+  /** The agent's open questions and approvals, drawn as cards after the messages. */
+  requests?: ChatRequest[];
+  /** The answers given so far, by request id. */
+  answers?: ReadonlyMap<string, AnswerState>;
+  /** The message under a question card's Send button, by request id ("Answer each question before sending."). */
+  notices?: ReadonlyMap<string, string>;
+  /** The "Say your answer" row being held, as its region id. */
+  listening?: string | null;
+  /** Rows after everything else (the composer's queue or follow-up rows may use it). */
   extras?: (b: Builder) => void;
 };
 
@@ -236,11 +246,14 @@ export class Builder {
   }
   /** A button row: buttons laid right to left from the right edge. */
   buttons(defs: { id: string; label: string; tone?: 'ok' | 'alert'; disabled?: boolean }[], right = this.right) {
-    const h = this.lh('label') + 16,
-      pad = 22,
+    // About 2.3 cm tall in the room: a comfortable target for a pinch or a glance.
+    const h = this.lh('label') + 40,
+      pad = 30,
       gap = 14;
     let x = right;
-    const buttons = defs
+    // Placed from the right edge leftward, so the last button sits rightmost; listed left to right.
+    const buttons = [...defs]
+      .reverse()
       .map(d => {
         const w = Math.ceil(this.measure(d.label.toUpperCase(), 'label')) + pad * 2;
         x -= w;
@@ -518,6 +531,112 @@ function turnDiff(b: Builder, item: ChatItem, key: string, model: ChatModel) {
   if (open) diffs(b, changes, textX);
 }
 
+/**
+ * A question or approval card: a small glass panel. Questions: "A question for you", each question's text, one row per
+ * option (`option:<requestId>:<questionId>:<index>`), a "Say your answer" row (`say:<requestId>:<questionId>`), the
+ * spoken answer once given, and Send answer (`button:send:<requestId>`) with the validation message. Approvals: the
+ * title, reason and command, a "Review changes" row (`toggle:review:<requestId>`) that opens the diff, and Decline and
+ * Approve once (`button:decline:<id>`, `button:approve:<id>`).
+ */
+function requestCard(b: Builder, request: ChatRequest, model: ChatModel) {
+  const firstBox = b.boxes.length,
+    top = b.y,
+    inset = 22,
+    x = b.left + inset,
+    inner = b.right - inset - x;
+  b.gap(14);
+  if (isQuestionRequest(request)) {
+    const state = model.answers?.get(request.id) ?? answerState(request);
+    b.line('cardTitle', [{ text: 'A QUESTION FOR YOU', x, font: 'label', tone: 'line' }], 'label');
+    (request.questions ?? []).forEach((q, qi) => {
+      const qid = questionId(q, qi);
+      b.gap(8);
+      b.text('question', [{ text: q.question || q.header || 'Your answer', font: 'bold', tone: 'text' }], x, inner);
+      if (q.isSecret) {
+        b.text('notice', [{ text: NO_SECRETS, font: 'small', tone: 'failed' }], x, inner);
+        return;
+      }
+      const chosen = state.spoken[qid] ? -1 : (state.choices[qid] ?? -1);
+      (q.options ?? []).forEach((option, oi) => {
+        const id = `option:${request.id}:${qid}:${oi}`,
+          rowTop = b.y,
+          textX = x + 16 + b.icon() + 14;
+        b.gap(8);
+        const first = b.lines.length;
+        b.text('option', [{ text: option.label || option.value || String(oi), font: 'bold', tone: 'text' }], textX, b.right - inset - 16 - textX);
+        b.lines[first].choice = { x: x + 16, chosen: chosen === oi };
+        if (option.description) b.text('option', [{ text: option.description, font: 'small', tone: 'line' }], textX, b.right - inset - 16 - textX);
+        b.gap(8);
+        b.box('option', x, rowTop, inner, b.y - rowTop, { id });
+        b.region(id, x, rowTop, inner, b.y - rowTop);
+        b.gap(8);
+      });
+      const say = `say:${request.id}:${qid}`,
+        sayTop = b.y,
+        held = model.listening === say;
+      b.gap(6);
+      b.line('say', [{ text: held ? 'Listening…' : 'Say your answer', x: x + 16 + b.icon() + 14, font: 'body', tone: held ? 'text' : 'line' }], 'body', {
+        icon: { name: 'mic', x: x + 16, tone: held ? 'text' : 'line' },
+      });
+      b.gap(6);
+      b.box('option', x, sayTop, inner, b.y - sayTop, { id: say });
+      b.region(say, x, sayTop, inner, b.y - sayTop);
+      if (state.spoken[qid]) {
+        b.gap(6);
+        b.text('spoken', [{ text: `“${state.spoken[qid]}”`, font: 'body', tone: 'text' }], x + 16, inner - 16);
+      }
+    });
+    b.gap(12);
+    const answered = (request.questions ?? []).every((q, i) => answerOf(state, q, i) != null);
+    b.buttons([{ id: `button:send:${request.id}`, label: 'Send answer', disabled: (request.questions ?? []).some(q => q.isSecret) }], b.right - inset);
+    const notice = model.notices?.get(request.id);
+    if (notice && !answered) b.text('notice', [{ text: notice, font: 'small', tone: 'amber' }], x, inner);
+  } else {
+    b.line('cardTitle', [{ text: request.type === 'fileChangeApproval' ? 'APPROVE FILE CHANGES' : 'APPROVE THIS ACTION', x, font: 'label', tone: 'line' }], 'label');
+    if (request.reason) {
+      b.gap(6);
+      b.text('text', [{ text: request.reason, font: 'body', tone: 'text' }], x, inner);
+    }
+    if (request.command) {
+      b.gap(6);
+      const t = b.y;
+      b.gap(8);
+      b.mono('terminal', request.command, x + 14, 'line');
+      b.gap(8);
+      b.box('terminal', x, t, inner, b.y - t);
+    }
+    if (request.cwd) b.text('notice', [{ text: request.cwd, font: 'small', tone: 'dim' }], x, inner);
+    if (request.changes?.length) {
+      const id = `review:${request.id}`,
+        open = model.open?.get(id) ?? false;
+      b.gap(6);
+      const line = b.line('changes', [{ text: 'Review changes', x: x + b.icon() + 14, font: 'body', tone: 'line' }], 'body', {
+        icon: { name: 'diff', x, tone: 'line' },
+        chevron: { x: b.right - inset - b.icon(), open },
+      });
+      b.region(`toggle:${id}`, x, line.y, inner, line.height);
+      if (open) diffs(b, request.changes, x);
+    }
+    b.gap(12);
+    b.buttons(
+      [
+        { id: `button:decline:${request.id}`, label: 'Decline' },
+        { id: `button:approve:${request.id}`, label: 'Approve once', tone: 'ok' },
+      ],
+      b.right - inset,
+    );
+  }
+  b.gap(14);
+  // The card goes behind the option rows and blocks inside it.
+  b.boxes.splice(firstBox, 0, {
+    kind: 'card',
+    x: b.left,
+    y: top,
+    w: b.right - b.left,
+    h: b.y - top,
+  });
+}
+
 export function layoutChat(model: ChatModel, metrics: ChatMetrics, measure: Measure): ChatLayout {
   const b = new Builder(metrics, measure);
   const entries = arrange(model.items);
@@ -538,6 +657,10 @@ export function layoutChat(model: ChatModel, metrics: ChatMetrics, measure: Meas
       else markdown(b, parseMarkdown(textOf(item)), b.left);
     }
   });
+  for (const request of model.requests ?? []) {
+    b.gap();
+    requestCard(b, request, model);
+  }
   model.extras?.(b);
   if (model.working) {
     b.gap();

@@ -32,3 +32,6 @@ the review wins; where both name something that no longer exists, the replacemen
   the monospace face's ligatures (`>=` would otherwise draw as ≥). Every icon name the plan lists exists in the copied
   icon module; the microphone is the one shape this app adds (`src/panels/icons.ts`). Diff file headers (`---`, `+++`)
   are not repeated under the path. Screenshot: `docs/migration/panels-chat.png`.
+- Task 5: request cards are laid out by `layoutChat` from `model.requests` and `model.answers` (no separate hook). The
+  "Say your answer" row has the region `say:<requestId>:<questionId>`; holding it records the spoken answer (Task 9).
+  Approval buttons read left to right `Decline`, `Approve once` (outlined in `ok`). Chat buttons are about 2.3 cm tall.

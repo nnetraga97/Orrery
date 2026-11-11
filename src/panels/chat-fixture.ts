@@ -1,5 +1,5 @@
 // A transcript with one of every item kind, in each status, for the panels test page (panels.html).
-import type { ChatItem } from '../core/chat/types.ts';
+import type { ChatItem, ChatRequest } from '../core/chat/types.ts';
 
 const rangeDiff = [
   '--- a/core/range.ts',
@@ -50,3 +50,26 @@ export const CHAT_FIXTURE_OPEN = new Map<string, boolean>([
   ['f1', true],
   ['d1', false],
 ]);
+
+/** A two-question card and a file-change approval, for the test page. */
+export const QUESTION_FIXTURE: ChatRequest = {
+  id: 'q1',
+  type: 'questions',
+  questions: [
+    {
+      id: 'scope',
+      question: 'How far should the fix go?',
+      options: [
+        { label: 'Fix only this function', description: 'Change the end-edge check in containsPosition.' },
+        { label: 'Also check the strict version', description: 'Look at strictContainsPosition too.' },
+      ],
+    },
+    { id: 'tests', question: 'Should I replay the fixed run afterwards?', options: [{ label: 'Yes' }, { label: 'No' }] },
+  ],
+};
+export const APPROVAL_FIXTURE: ChatRequest = {
+  id: 'a1',
+  type: 'fileChangeApproval',
+  reason: 'Count a position at the end edge as inside the range.',
+  changes: [{ path: 'core/range.ts', diff: rangeDiff }],
+};

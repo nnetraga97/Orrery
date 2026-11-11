@@ -7,7 +7,8 @@ import { TUTORIAL_TEXT } from '../core/tutorial.ts';
 import { STYLE_PX_PER_M } from './canvas-panel.ts';
 import { chatMetrics, layoutChat } from '../core/chat/layout.ts';
 import type { ChatModel } from '../core/chat/layout.ts';
-import { CHAT_FIXTURE, CHAT_FIXTURE_OPEN } from './chat-fixture.ts';
+import { answerState, choose } from '../core/chat/requests.ts';
+import { APPROVAL_FIXTURE, CHAT_FIXTURE, CHAT_FIXTURE_OPEN, QUESTION_FIXTURE } from './chat-fixture.ts';
 import { canvasMeasure, chatView, drawTranscript } from './draw-chat.ts';
 import { CHAT_WINDOW, drawChatShell } from './draw-chat-shell.ts';
 import { TAB_STRIP, drawTabStrip } from './draw-tab-strip.ts';
@@ -182,6 +183,16 @@ export async function drawAll() {
     closable: true,
     movable: true,
   });
+  show('chatRequests', CHAT_WINDOW, transcript(false, {
+    items: CHAT_FIXTURE.slice(0, 2),
+    live: false,
+    working: null,
+    requests: [QUESTION_FIXTURE, APPROVAL_FIXTURE],
+    answers: new Map([['q1', choose(answerState(QUESTION_FIXTURE), 'scope', 0)]]),
+    notices: new Map([['q1', 'Answer each question before sending.']]),
+    open: new Map([['review:a1', true]]),
+    footer: 'Waiting for your response',
+  }), { title: 'Agent · Range end edge', closable: true, movable: true });
   const loadingCard = { kind: 'loading', title: 'Opening project', detail: 'editor-core' } as const;
   show('loadingCard', STATUS_CARD, (ctx, w, h, u) => drawStatusCard(ctx, w, h, u, loadingCard), {
     title: statusTitle(loadingCard),
