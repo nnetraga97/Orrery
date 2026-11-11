@@ -714,3 +714,44 @@ export const clampScroll = (scrollTop: number, height: number, viewHeight: numbe
   Math.max(0, Math.min(scrollTop, Math.max(0, height - viewHeight)));
 
 export { isLive };
+
+/**
+ * The chat list, shown in the chat window in place of the transcript: "New chat" at the top (`button:newChat`), then
+ * one row per chat with its title and badge (`thread:<id>`); the open chat is marked.
+ */
+export function layoutThreadList(
+  threads: readonly { id: string; title: string; badge: 'Working' | 'Needs input' | null }[],
+  currentId: string | null,
+  metrics: ChatMetrics,
+  measure: Measure,
+): ChatLayout {
+  const b = new Builder(metrics, measure);
+  b.line('cardTitle', [{ text: 'CHATS', x: b.left, font: 'label', tone: 'line' }], 'label');
+  b.gap(10);
+  const newTop = b.y;
+  b.gap(10);
+  b.line('option', [{ text: 'New chat', x: b.left + 16 + b.icon() + 14, font: 'bold', tone: 'text' }], 'body', {
+    icon: { name: 'plus', x: b.left + 16, tone: 'line' },
+  });
+  b.gap(10);
+  b.box('option', b.left, newTop, b.right - b.left, b.y - newTop, { id: 'button:newChat' });
+  b.region('button:newChat', b.left, newTop, b.right - b.left, b.y - newTop);
+  for (const t of threads) {
+    b.gap(10);
+    const id = `thread:${t.id}`,
+      top = b.y,
+      x = b.left + 16;
+    b.gap(10);
+    const badgeW = t.badge ? measure(t.badge.toUpperCase(), 'label') + 20 : 0;
+    const title = fitText(t.title, b.right - 16 - badgeW - x, 'body', measure);
+    const spans: Span[] = [{ text: title, x, font: t.id === currentId ? 'bold' : 'body', tone: t.id === currentId ? 'text' : 'line' }];
+    if (t.badge)
+      spans.push({ text: t.badge.toUpperCase(), x: b.right - 16 - badgeW + 20, font: 'label', tone: t.badge === 'Needs input' ? 'amber' : 'line' });
+    b.line('option', spans, 'body');
+    b.gap(10);
+    b.box('option', b.left, top, b.right - b.left, b.y - top, { id });
+    b.region(id, b.left, top, b.right - b.left, b.y - top);
+  }
+  b.gap(metrics.pad);
+  return { lines: b.lines, boxes: b.boxes, regions: b.regions, height: b.y };
+}

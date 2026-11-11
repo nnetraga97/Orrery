@@ -1,6 +1,7 @@
 // Typed commands: the only way panels, gestures and tests ask the app to change. The galaxy system connects the
 // handler that carries them out; until it does, a command does nothing.
-import { agentOpen, codeCardOpen, codeRequest, dataset, pinned, tutorialRestarts } from './app-state.ts';
+import { agentOpen, chatPage, codeCardOpen, codeRequest, dataset, pinned, tutorialRestarts } from './app-state.ts';
+import type { ChatPage } from './app-state.ts';
 
 export interface CommandHandler {
   openDataset(name: string): void;
@@ -11,6 +12,19 @@ export interface CommandHandler {
 }
 
 let handler: CommandHandler | null = null;
+
+/** The chat's commands, carried out by the agent system. */
+export interface ChatHandler {
+  newChat(): void;
+  openThread(id: string): void;
+}
+let chat: ChatHandler | null = null;
+export function connectChat(next: ChatHandler): () => void {
+  chat = next;
+  return () => {
+    if (chat === next) chat = null;
+  };
+}
 
 /** Connects the handler; returns the function that disconnects it. */
 export function connectCommands(next: CommandHandler): () => void {
@@ -53,6 +67,21 @@ export function showChat(): void {
 export function hideChat(): void {
   agentOpen.value = false;
 }
+/** Shows the transcript, the chat list or the settings in the chat window, and the window itself. */
+export function showChatPage(page: ChatPage): void {
+  chatPage.value = page;
+  agentOpen.value = true;
+}
+/** Starts a new chat for the current provider and project. */
+export function newChat(): void {
+  chat?.newChat();
+  chatPage.value = 'transcript';
+}
+/** Opens a kept chat. */
+export function openThread(id: string): void {
+  chat?.openThread(id);
+  chatPage.value = 'transcript';
+}
 /** Starts the tutorial again (from Settings in the next plan). */
 export function restartTutorial(): void {
   tutorialRestarts.value = tutorialRestarts.peek() + 1;
@@ -76,6 +105,9 @@ export const commands = {
   showCode,
   showChat,
   hideChat,
+  showChatPage,
+  newChat,
+  openThread,
   restartTutorial,
   closeCard,
   retry,

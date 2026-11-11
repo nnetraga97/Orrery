@@ -41,3 +41,11 @@ the review wins; where both name something that no longer exists, the replacemen
   static file" patch was rewritten (not stacked) so `loadSource` asks `sourceOverride` first and reads through
   `readSource`; `tools/migrate/apply-patches.mjs` applies it to the copied original. Edited files bypass the source
   cache, so a rebuild always sees the latest text.
+- Task 7: the thread store lives in core (`src/core/chat/thread-store.ts`, over any key-value store) so it is tested;
+  `StoragePort` gains `remove` and reports whether `set` was kept. A thread also carries its wire-format `messages`, so
+  a restored chat can carry on. Fifty chats are kept. The chat list is a page of the chat window (`chatPage`), opened
+  from the window's header; restoring the last chat on start is done by the agent system (Task 10), which owns the
+  thread.
+- The occasional "error during build" (also seen on the M1 + M2 merge) was Vite failing to empty `dist/data` with
+  ENOTEMPTY while macOS wrote a `.DS_Store` into it. `npm run build` now removes `dist/` first with retries
+  (`tools/clean-dist.mjs`).

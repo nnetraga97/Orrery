@@ -11,7 +11,7 @@
     "reference:status": "iwsdk reference status",
     "reference:warmup": "iwsdk reference warmup",
     "typecheck": "tsc --noEmit",
-    "build": "vite build",
+    "build": "node tools/clean-dist.mjs && vite build",
     "preview": "vite preview",
     "check": "node tools/check-boundaries.mjs && node tools/run-checks.mjs",
     "bake": "node tools/bake-dataset.mjs",

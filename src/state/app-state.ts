@@ -1,5 +1,6 @@
 // What the UI shows, as signals. Systems and the bridge publish here; panels read; commands (commands.ts) change it.
 import { signal } from '@iwsdk/core';
+import type { StoredThread, ThreadSummary } from '../core/chat/threads.ts';
 import type { CodeView } from '../core/code-view.ts';
 import type { TutorialStep } from '../core/tutorial.ts';
 import type { ContextItem } from '../ports/host.ts';
@@ -38,6 +39,13 @@ export const tutorialRestarts = signal(0);
 export const orbits = signal(0);
 /** The tutorial's step. */
 export const tutorialStep = signal<TutorialStep>('done');
+/** The open chat (its transcript, requests and conversation). */
+export const thread = signal<StoredThread | null>(null);
+/** The chats kept on this device, newest first. */
+export const threads = signal<ThreadSummary[]>([]);
+/** What the chat window shows: the transcript, the chat list or the settings. */
+export type ChatPage = 'transcript' | 'threads' | 'settings';
+export const chatPage = signal<ChatPage>('transcript');
 /** Inspector calls kept for the next plan (debugger tabs, transport, stack, evidence). */
 export const inspectorExtras = signal<Record<string, unknown[]>>({});
 
@@ -60,5 +68,8 @@ export const appState = {
   orbits,
   tutorialStep,
   inspectorExtras,
+  thread,
+  threads,
+  chatPage,
 };
 export type AppState = typeof appState;

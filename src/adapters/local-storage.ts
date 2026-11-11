@@ -13,8 +13,17 @@ export function createLocalStorage(prefix = 'orrery:'): StoragePort {
     set(key, value) {
       try {
         localStorage.setItem(prefix + key, value);
+        return true;
       } catch {
-        // Private browsing or blocked storage: the value lasts for this visit only.
+        // Private browsing, blocked or full storage: the value lasts for this visit only.
+        return false;
+      }
+    },
+    remove(key) {
+      try {
+        localStorage.removeItem(prefix + key);
+      } catch {
+        // Nothing stored to remove.
       }
     },
   };

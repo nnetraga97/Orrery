@@ -198,9 +198,9 @@ docs/headset-session.md             the two-hour device checklist
 
 **Files:** Create `src/core/chat/threads.ts` + test. Modify `src/ports/storage.ts`, `src/state/app-state.ts`.
 
-- [ ] **Step 1. Tests first.** `createThread(provider, dataset)`, `titleFor(thread)` (first user message, cut at 48 characters, else "New chat"), `badge(thread)` ("Working", "Needs input" or none), `upsert(list, thread)`, `lastFor(list, provider, dataset)`, and serialising to and from JSON with a size cap of 2 MB per thread (oldest tool output is cut first, never a message).
-- [ ] **Step 2.** Persist through `StoragePort`; restore the last thread for the provider and project on start. A chat list opens from the panel's header: rows with title and badge, "New chat" at the top.
-- [ ] **Step 3. Check and commit.** `npm run verify`. Commit: `Keep chats per project and restore the last one`
+- [x] **Step 1. Tests first.** `createThread(provider, dataset)`, `titleFor(thread)` (first user message, cut at 48 characters, else "New chat"), `badge(thread)` ("Working", "Needs input" or none), `upsert(list, thread)`, `lastFor(list, provider, dataset)`, and serialising to and from JSON with a size cap of 2 MB per thread (oldest tool output is cut first, never a message).
+- [x] **Step 2.** Persist through `StoragePort`; restore the last thread for the provider and project on start. A chat list opens from the panel's header: rows with title and badge, "New chat" at the top.
+- [x] **Step 3. Check and commit.** `npm run verify`. Commit: `Keep chats per project and restore the last one`
 
 ### Task 8: The composer without a keyboard
 

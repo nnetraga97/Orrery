@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { chatMetrics, clampScroll, layoutChat, stickToBottom, visibleSlice, wrapRuns } from './layout.ts';
+import { chatMetrics, clampScroll, layoutChat, layoutThreadList, stickToBottom, visibleSlice, wrapRuns } from './layout.ts';
 import type { ChatModel, Line } from './layout.ts';
 import { answerState, choose, speak } from './requests.ts';
 import type { ChatItem, ChatRequest } from './types.ts';
@@ -214,4 +214,19 @@ test('an approval card: Review changes opens the diff; Decline and Approve once'
   assert.equal(open.lines.filter(l => l.kind === 'diffLine').length, 3);
   const action = lay({ requests: [{ id: 'c', type: 'commandApproval', command: 'npm test' }] });
   assert.equal(text(action.lines.find(l => l.kind === 'cardTitle')!), 'APPROVE THIS ACTION');
+});
+
+test('the chat list: New chat first, then a row per chat with its badge', () => {
+  const layout = layoutThreadList(
+    [
+      { id: 'a', title: 'Fix it', badge: 'Needs input' },
+      { id: 'b', title: 'New chat', badge: null },
+    ],
+    'a',
+    metrics,
+    measure,
+  );
+  assert.deepEqual(layout.regions.map(r => r.id), ['button:newChat', 'thread:a', 'thread:b']);
+  const rows = layout.lines.filter(l => l.kind === 'option').map(text);
+  assert.deepEqual(rows, ['New chat', 'Fix itNEEDS INPUT', 'New chat']);
 });
