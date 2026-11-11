@@ -49,3 +49,51 @@ The panel positions are decided in Task 14, whose layout tests keep every panel 
 | --- | --- | --- |
 | Overview | 110 | 210,928 |
 | Landed globe (`core/range.ts`, detail ready) | 157 | 2,850,369 |
+
+# M2 notes: reading code
+
+Recorded on 2026-11-10 at the end of `docs/plans/m1-m2-galaxy-and-code.md` (Task 19).
+
+## Hand-only walk-through (emulator)
+
+Same set-up as above, starting on the project picker (no `?dataset=`). Every step by hand input only.
+
+| Step | Result |
+| --- | --- |
+| Pinch the "Editor core" card | Project opened; phase `overview` |
+| Point at a planet and pinch | `config/editorOptions.ts` selected; info card shown |
+| Pinch it again | Phase `landed`; globe 0.64 m on the table; code page shown, function mode |
+| Pinch and drag | The globe turned |
+| Pinch a building (open its town, read its code) | Its statement selected (line 2969); the page scrolled to it |
+| Pinch line 2967 on the page | The building holding it selected (range 2967), so its town focus moved to it |
+| Drag the page up 6 cm | Scrolled 120 → 122.9 lines |
+| Page down | Scrolled to 149 |
+| Whole file | Mode `file`, scrolled to keep the selection in view |
+| Home on the dock | Phase `overview`, nothing selected, the code page hidden |
+| Tutorial (separate run) | All four steps completed by hand; "seen" stored; the panel hid |
+| Palm menu | Shows when the left palm faces the head, hides when it turns away; its Code button works with the right hand's ray |
+
+Building hover from a hand ray is not forwarded to the landed planet (pinches are); hovering lines on the page works.
+
+## Field of view with the panels (narrower glasses view)
+
+Panel corners from a seated eye at 1.2 m (`src/core/layout.ts`):
+
+| Panel | Looking straight ahead | Looking 15° down |
+| --- | --- | --- |
+| Code page | 12°..52° right, −34°..+17° — right part **out** | 11°..55°, −19°..+32° — **out** |
+| Dock | −13°..+13°, −22°..−16° | −12°..+12°, −7°..−1° |
+| Tutorial | −11°..+11°, +7°..+13° | −12°..+12°, +22°..+28° — top **out** |
+
+The layout rules (centres within ±32°, −20°..+12°) hold, but a 0.86 m page at 1.2 m is 40° wide: on the glasses the
+user turns about 15–20° toward it to see it whole. On Quest it fits.
+
+## Draw calls and triangles
+
+| View | Draw calls | Triangles |
+| --- | --- | --- |
+| Overview | 116 | 212,984 |
+| Landed globe (`core/range.ts`) | 167 | 2,806,325 |
+| Landed globe with the code page | 171 | 2,916,133 |
+
+The landed counts vary by a few percent between runs with what the copied code has built at that moment.

@@ -387,11 +387,11 @@ A landed planet is an "overlay": an object with `scene`, `camera`, `frame()` ret
 
 ### Task 19: Review and report
 
-- [ ] **Step 1.** `npm run verify`. Repeat the hand-only walk-through of Task 12 and add: open a town, read its code, pinch a line and see its building glow, scroll, switch to whole file, press `Home`.
-- [ ] **Step 2.** Repeat the field-of-view check with the code page and dock visible.
-- [ ] **Step 3.** Update `docs/migration/m1-notes.md` with `__orrery.stats()` for overview, landed, and landed with the code page.
-- [ ] **Step 4.** Push: `git push -u origin m1-m2`. Do not merge.
-- [ ] **Step 5. Report:** which tasks passed; anything that differed; whether the palm menu is on or off; the three stats; anything in the copied code you had to patch; and what could only be judged in a real headset (text sharpness, reach, comfort).
+- [x] **Step 1.** `npm run verify`. Repeat the hand-only walk-through of Task 12 and add: open a town, read its code, pinch a line and see its building glow, scroll, switch to whole file, press `Home`.
+- [x] **Step 2.** Repeat the field-of-view check with the code page and dock visible.
+- [x] **Step 3.** Update `docs/migration/m1-notes.md` with `__orrery.stats()` for overview, landed, and landed with the code page.
+- [x] **Step 4.** Push: `git push -u origin m1-m2`. Do not merge.
+- [x] **Step 5. Report:** which tasks passed; anything that differed; whether the palm menu is on or off; the three stats; anything in the copied code you had to patch; and what could only be judged in a real headset (text sharpness, reach, comfort).
 
 ---
 
