@@ -6,6 +6,7 @@ import { createStaticDataset } from './adapters/static-dataset.ts';
 import { galaxyState } from './galaxy-bridge/galaxy-session.js';
 import { appState } from './state/app-state.ts';
 import { commands } from './state/commands.ts';
+import { ChatWindowSystem } from './systems/chat-window-system.ts';
 import { GalaxySystem } from './systems/galaxy-system.ts';
 import { ManipulationSystem } from './systems/manipulation-system.ts';
 import { PanelSystem } from './systems/panel-system.ts';
@@ -17,6 +18,7 @@ World.create(document.getElementById('scene-container') as HTMLDivElement, proje
   world.registerSystem(GalaxySystem);
   world.registerSystem(ManipulationSystem);
   world.registerSystem(PanelSystem);
+  world.registerSystem(ChatWindowSystem);
   world.registerSystem(TutorialSystem);
   const galaxy = world.getSystem(GalaxySystem)!;
   window.__orrery = {

@@ -5,6 +5,8 @@ import { visibleLines } from '../core/code-view.ts';
 import type { CodeView, Segment } from '../core/code-view.ts';
 import { TUTORIAL_TEXT } from '../core/tutorial.ts';
 import { STYLE_PX_PER_M } from './canvas-panel.ts';
+import { CHAT_WINDOW, drawChatShell } from './draw-chat-shell.ts';
+import { TAB_STRIP, drawTabStrip } from './draw-tab-strip.ts';
 import { CODE_CARD, CODE_LAYOUT, codeCardSize, drawCodeCard } from './draw-code-card.ts';
 import { INFO_CARD, drawInfoCard, infoCardTitle } from './draw-info-card.ts';
 import { STATUS_CARD, drawStatusCard, statusTitle } from './draw-status-card.ts';
@@ -126,6 +128,14 @@ export async function drawAll() {
     show(`tutorial-${step}`, TUTORIAL_PANEL, (ctx, w, h, u) => drawTutorial(ctx, w, h, u, step, TUTORIAL_TEXT[step]), {
       title: tutorialTitle(k + 1),
     }),
+  );
+  show('chatWindow', CHAT_WINDOW, (ctx, w, h, u) => drawChatShell(ctx, w, h, u), {
+    title: 'Agent',
+    closable: true,
+    movable: true,
+  });
+  show('tabStrip', TAB_STRIP, (ctx, w, h) =>
+    drawTabStrip(ctx, w, h, { active: 'chat', hovered: 'tab:home', disabled: ['replay', 'settings'] }),
   );
   const loadingCard = { kind: 'loading', title: 'Opening project', detail: 'editor-core' } as const;
   show('loadingCard', STATUS_CARD, (ctx, w, h, u) => drawStatusCard(ctx, w, h, u, loadingCard), {
