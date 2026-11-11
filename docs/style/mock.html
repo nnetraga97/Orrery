@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Orrery style reference</title>
+    <style>
+      html, body { margin: 0; background: #02060d; }
+      canvas { display: block; }
+    </style>
+  </head>
+  <body>
+    <canvas id="c" width="1600" height="1000"></canvas>
+    <script>
+      // Reference drawings for docs/visual-style.md. Each function is written to be copied into a panel's
+      // draw function: it takes a 2D context and plain numbers, and uses only the tokens below.
+      const T = {
+        ink: '#06101f', inkAlpha: 0.88, grid: '#1b3b5c', lineDim: '#2f6f9f', line: '#7fd4ff', glow: '#2aa7ff',
+        white: '#eaf6ff', amber: '#ffb21a', alert: '#ff4760', ok: '#3fe0c5', work: '#d97757',
+        label: '600 14px "Barlow Condensed", "Arial Narrow", sans-serif',
+        body: '400 17px "Barlow", system-ui, sans-serif',
+        small: '400 14px "Barlow", system-ui, sans-serif',
+        mono: '400 16px "JetBrains Mono", ui-monospace, monospace',
+      };
+      const c = document.getElementById('c'), x = c.getContext('2d');
+
+      // Light, not paint: strokes are drawn twice, a wide faint pass and a thin bright one, with additive blending.
+      function glowStroke(ctx, path, color, width = 1.5, strength = 1) {
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.strokeStyle = color;
+        ctx.globalAlpha = 0.18 * strength; ctx.lineWidth = width * 6; ctx.stroke(path);
+        ctx.globalAlpha = 0.9; ctx.lineWidth = width; ctx.stroke(path);
+        ctx.restore();
+      }
+
+      // Small capitals with wide spacing: used for every label, never for sentences.
+      function microLabel(ctx, text, lx, ly, color = T.line) {
+        ctx.save(); ctx.font = T.label; ctx.fillStyle = color; ctx.letterSpacing = '2px';
+        ctx.fillText(text.toUpperCase(), lx, ly); ctx.restore();
+      }
+
+      // A glass panel: a dark backing dense enough to read text on, a hairline frame, and bracketed corners.
+      function glassPanel(ctx, px, py, w, h, title, hue = T.line) {
+        ctx.save();
+        ctx.globalAlpha = T.inkAlpha; ctx.fillStyle = T.ink; ctx.fillRect(px, py, w, h); ctx.globalAlpha = 1;
+        const frame = new Path2D(); frame.rect(px + 0.5, py + 0.5, w - 1, h - 1);
+        ctx.strokeStyle = hue === T.line ? T.lineDim : hue; ctx.globalAlpha = 0.6; ctx.lineWidth = 1; ctx.stroke(frame); ctx.globalAlpha = 1;
+        const k = 14, corners = new Path2D();
+        for (const [cx, cy, sx, sy] of [[px, py, 1, 1], [px + w, py, -1, 1], [px, py + h, 1, -1], [px + w, py + h, -1, -1]]) {
+          corners.moveTo(cx + sx * k, cy); corners.lineTo(cx, cy); corners.lineTo(cx, cy + sy * k);
+        }
+        glowStroke(ctx, corners, hue, 2);
+        if (title) microLabel(ctx, title, px + 14, py + 24, hue);
+        ctx.restore();
+      }
+
+      // A window: a glass panel with a close mark, and under it a short grab bar. Pinch the bar to move the window.
+      // There is no line from a window to anything. A window that belongs to an object simply floats beside it.
+      function windowPanel(ctx, px, py, w, h, title, hue = T.line) {
+        glassPanel(ctx, px, py, w, h, title, hue);
+        ctx.save();
+        const close = new Path2D(); close.moveTo(px + w - 24, py + 13); close.lineTo(px + w - 14, py + 23); close.moveTo(px + w - 14, py + 13); close.lineTo(px + w - 24, py + 23);
+        glowStroke(ctx, close, T.lineDim, 1.5, 0.6);
+        const bar = new Path2D(); bar.roundRect(px + w / 2 - 34, py + h + 10, 68, 7, 3.5);
+        ctx.globalAlpha = 0.55; ctx.fillStyle = T.line; ctx.fill(bar);
+        ctx.restore();
+      }
+
+      // A button is an outline until it is pointed at; then it fills with light.
+      function button(ctx, bx, by, w, h, text, state = 'idle', hue = T.line) {
+        ctx.save();
+        const path = new Path2D(); path.rect(bx + 0.5, by + 0.5, w - 1, h - 1);
+        if (state !== 'idle') { ctx.globalAlpha = state === 'pressed' ? 0.42 : 0.2; ctx.fillStyle = hue === T.line ? T.glow : hue; ctx.fill(path); ctx.globalAlpha = 1; }
+        glowStroke(ctx, path, state === 'idle' ? T.lineDim : hue, 1.5, state === 'idle' ? 0.4 : 1.4);
+        ctx.textAlign = 'center'; microLabel(ctx, text, bx + w / 2, by + h / 2 + 5, state === 'idle' ? T.line : T.white);
+        ctx.restore();
+      }
+
+      // The tab strip: a slim column of icons attached to a window's left edge. The current tab is lit.
+      function tabStrip(ctx, px, py, icons, active) {
+        ctx.save();
+        const w = 44, h = icons.length * 46 + 10, body = new Path2D(); body.roundRect(px, py, w, h, 22);
+        ctx.globalAlpha = T.inkAlpha; ctx.fillStyle = T.ink; ctx.fill(body); ctx.globalAlpha = 1; glowStroke(ctx, body, T.lineDim, 1, 0.5);
+        icons.forEach((draw, i) => {
+          const cx = px + w / 2, cy = py + 28 + i * 46;
+          if (i === active) { const d = new Path2D(); d.arc(cx, cy, 17, 0, Math.PI * 2); ctx.globalAlpha = 0.35; ctx.fillStyle = T.glow; ctx.fill(d); ctx.globalAlpha = 1; }
+          ctx.save(); ctx.translate(cx, cy); ctx.strokeStyle = i === active ? T.white : T.line; ctx.lineWidth = 1.8; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; draw(ctx); ctx.restore();
+        });
+        ctx.restore();
+      }
+
+      // ---- the reference sheet ----
+      const bg = x.createRadialGradient(860, 470, 60, 860, 520, 950);
+      bg.addColorStop(0, '#0a1a30'); bg.addColorStop(1, '#02060d'); x.fillStyle = bg; x.fillRect(0, 0, 1600, 1000);
+
+      // The floor: a faint grid far below, so the room has a horizon. There is no table.
+      x.save(); x.globalCompositeOperation = 'lighter'; x.strokeStyle = T.grid; x.lineWidth = 1;
+      for (let i = 0; i <= 12; i++) { const yy = 800 + (i / 12) ** 2 * 200; x.globalAlpha = 0.12 + (i / 12) * 0.5; x.beginPath(); x.moveTo(0, yy); x.lineTo(1600, yy); x.stroke(); }
+      for (let i = -16; i <= 16; i++) { x.globalAlpha = 0.28; x.beginPath(); x.moveTo(800 + i * 26, 800); x.lineTo(800 + i * 150, 1000); x.stroke(); }
+      x.restore();
+
+      // The model floats in the middle of the view; most of the view stays empty.
+      const TX = 880;
+      const bodies = [[TX, 470], [TX - 110, 505], [TX + 120, 452], [TX - 190, 430], [TX + 215, 525]];
+      [[130, 38], [190, 54], [260, 74], [290, 84], [350, 104]].forEach(([rx, ry]) => { const o = new Path2D(); o.ellipse(TX, 482, rx, ry, -0.12, 0, Math.PI * 2); glowStroke(x, o, T.lineDim, 1, 0.7); });
+      bodies.forEach(([bx, by], i) => { const b = new Path2D(); b.arc(bx, by, i ? 9 - i : 13, 0, Math.PI * 2); x.fillStyle = i ? '#17385c' : '#000'; x.fill(b); glowStroke(x, b, i ? T.line : T.white, 1.5, 1.5); });
+
+      // The selected file: a label and a diamond, nothing more.
+      x.save(); x.textAlign = 'center'; microLabel(x, 'range.ts', TX + 120, 408); x.restore();
+      const dia = new Path2D(); dia.moveTo(TX + 120, 418); dia.lineTo(TX + 129, 427); dia.lineTo(TX + 120, 436); dia.lineTo(TX + 111, 427); dia.closePath(); glowStroke(x, dia, T.line, 1.5);
+
+      // The fault: a red dot on the model and a small card floating beside it. No line joins them.
+      const dot = new Path2D(); dot.arc(TX - 190, 430, 4, 0, Math.PI * 2); x.fillStyle = T.alert; x.fill(dot);
+      const halo = new Path2D(); halo.arc(TX - 190, 430, 12, 0, Math.PI * 2); glowStroke(x, halo, T.alert, 1, 1.3);
+      windowPanel(x, TX - 330, 318, 210, 78, 'Fault · line 97', T.alert);
+      x.font = T.small; x.fillStyle = T.white; x.fillText('End edge excluded', TX - 316, 366); x.fillStyle = T.line; x.fillText('containsPosition', TX - 316, 384);
+
+      // The code card: about twelve lines, shown only while a function is picked or the agent points at code.
+      const CX = 1180, CY = 250, CW = 390, CH = 300;
+      windowPanel(x, CX, CY, CW, CH, 'range.ts · containsPosition');
+      const code = [
+        ['90', [['static ', T.line], ['containsPosition', T.white], ['(range, position) {', T.line]]],
+        ['91', [['  if ', T.line], ['(position.lineNumber < range.start', T.white]]],
+        ['93', [['    return ', T.line], ['false', T.ok], [';', T.white]]],
+        ['94', [['  }', T.white]]],
+        ['97', [['  if ', T.line], ['(position.column >= range.endColumn) {', T.white]]],
+        ['98', [['    return ', T.line], ['false', T.ok], [';', T.white]]],
+        ['99', [['  }', T.white]]],
+        ['100', [['  return ', T.line], ['true', T.ok], [';', T.white]]],
+      ];
+      x.font = T.mono;
+      x.save(); x.beginPath(); x.rect(CX + 1, CY + 34, CW - 2, CH - 86); x.clip(); // text never leaves its card
+      code.forEach(([n, runs], i) => {
+        const y = CY + 58 + i * 25;
+        if (n === '97') { x.save(); x.globalAlpha = 0.18; x.fillStyle = T.alert; x.fillRect(CX + 1, y - 17, CW - 2, 24); x.globalAlpha = 1; x.fillStyle = T.alert; x.fillRect(CX + 1, y - 17, 3, 24); x.restore(); }
+        x.fillStyle = T.lineDim; x.textAlign = 'right'; x.fillText(n, CX + 42, y); x.textAlign = 'left';
+        let cx = CX + 54; for (const [text, color] of runs) { x.fillStyle = color; x.fillText(text, cx, y); cx += x.measureText(text).width; }
+      });
+      x.restore();
+      // During a replay the same card carries three small controls. Otherwise only "More".
+      button(x, CX + 12, CY + CH - 44, 64, 32, 'Back'); button(x, CX + 84, CY + CH - 44, 64, 32, 'Step', 'hover'); button(x, CX + 156, CY + CH - 44, 64, 32, 'Play');
+      button(x, CX + CW - 84, CY + CH - 44, 72, 32, 'More');
+      x.save(); x.textAlign = 'right'; microLabel(x, '3 / 7', CX + CW - 98, CY + CH - 23, T.lineDim); x.restore();
+
+      // The chat: one narrow window in the shape of the desktop chat box.
+      const AX = 96, AY = 150, AW = 340, AH = 640;
+      windowPanel(x, AX, AY, AW, AH, 'Agent · Fix the range check');
+      const rule = new Path2D(); rule.moveTo(AX + 1, AY + 36); rule.lineTo(AX + AW - 1, AY + 36); x.strokeStyle = T.grid; x.lineWidth = 1; x.stroke(rule);
+      // A user message: a right-aligned outlined bubble.
+      const bub = new Path2D(); bub.roundRect(AX + 96, AY + 52, AW - 110, 58, [12, 12, 3, 12]); x.globalAlpha = 0.5; x.fillStyle = '#10243d'; x.fill(bub); x.globalAlpha = 1; x.strokeStyle = T.lineDim; x.stroke(bub);
+      x.font = T.body; x.fillStyle = T.white; x.fillText('Find why the end of a', AX + 108, AY + 76); x.fillText('selection is left out.', AX + 108, AY + 98);
+      // An action group, collapsed, with its summary and a chevron.
+      x.font = T.small; x.fillStyle = T.line; x.fillText('›  Read range.ts, searched 2 times', AX + 14, AY + 142);
+      // Agent text.
+      x.font = T.body; x.fillStyle = T.white;
+      ['The end edge is excluded by mistake.', 'Line 97 uses >= where the comment', 'says the edge counts as inside.'].forEach((l, i) => x.fillText(l, AX + 14, AY + 176 + i * 24));
+      // An action row for the proposed edit.
+      x.font = T.small; x.fillStyle = T.line; x.fillText('✎  Edited range.ts', AX + 14, AY + 262); x.fillStyle = T.ok; x.fillText('+1', AX + 150, AY + 262); x.fillStyle = T.alert; x.fillText('−1', AX + 176, AY + 262);
+      // An approval card, with ordinary buttons.
+      glassPanel(x, AX + 12, AY + 284, AW - 24, 132, 'Approve file changes');
+      x.font = T.mono; x.save(); x.beginPath(); x.rect(AX + 13, AY + 316, AW - 26, 52); x.clip();
+      x.globalAlpha = 0.16; x.fillStyle = T.alert; x.fillRect(AX + 13, AY + 318, AW - 26, 22); x.fillStyle = T.ok; x.fillRect(AX + 13, AY + 342, AW - 26, 22); x.globalAlpha = 1;
+      x.fillStyle = T.white; x.fillText('- position.column >= range.end', AX + 22, AY + 334); x.fillText('+ position.column > range.endC', AX + 22, AY + 358); x.restore();
+      button(x, AX + 24, AY + 376, 130, 30, 'Decline'); button(x, AX + 166, AY + 376, 150, 30, 'Approve once', 'hover', T.ok);
+      // The working line.
+      x.save(); x.translate(AX + 24, AY + 446); x.rotate(0.5); x.font = '20px sans-serif'; x.fillStyle = T.work; x.textAlign = 'center'; x.fillText('✳', 0, 7); x.restore();
+      x.font = T.small; x.fillStyle = T.line; x.fillText('Waiting for your response', AX + 44, AY + 451);
+      // The composer: suggestions, then one row with the microphone.
+      const chips = ['Explain the fix', 'Show me the function'];
+      let chipX = AX + 12; x.font = T.small;
+      chips.forEach(t => { const w = x.measureText(t).width + 22; const p = new Path2D(); p.roundRect(chipX, AY + AH - 104, w, 28, 14); x.strokeStyle = T.lineDim; x.stroke(p); x.fillStyle = T.line; x.fillText(t, chipX + 11, AY + AH - 85); chipX += w + 8; });
+      const comp = new Path2D(); comp.roundRect(AX + 12, AY + AH - 62, AW - 24, 48, 24); x.globalAlpha = 0.6; x.fillStyle = '#0b1a2e'; x.fill(comp); x.globalAlpha = 1; glowStroke(x, comp, T.lineDim, 1, 0.5);
+      x.font = T.body; x.fillStyle = T.lineDim; x.fillText('Hold the microphone and talk', AX + 30, AY + AH - 32);
+      const mic = new Path2D(); mic.arc(AX + AW - 38, AY + AH - 38, 18, 0, Math.PI * 2); x.globalAlpha = 0.4; x.fillStyle = T.glow; x.fill(mic); x.globalAlpha = 1; glowStroke(x, mic, T.line, 1.5, 1.4);
+      const micIcon = new Path2D(); micIcon.roundRect(AX + AW - 42, AY + AH - 50, 8, 15, 4); micIcon.moveTo(AX + AW - 46, AY + AH - 40); micIcon.arc(AX + AW - 38, AY + AH - 40, 8, Math.PI, 0, true); micIcon.moveTo(AX + AW - 38, AY + AH - 32); micIcon.lineTo(AX + AW - 38, AY + AH - 27);
+      x.strokeStyle = T.white; x.lineWidth = 1.6; x.stroke(micIcon);
+
+      // The tab strip on the chat window's left edge: Home, Chat, Replay, Settings.
+      tabStrip(x, AX - 56, AY + 40, [
+        c2 => { c2.beginPath(); c2.moveTo(-9, 0); c2.lineTo(0, -9); c2.lineTo(9, 0); c2.moveTo(-6, -1); c2.lineTo(-6, 8); c2.lineTo(6, 8); c2.lineTo(6, -1); c2.stroke(); },
+        c2 => { c2.beginPath(); c2.roundRect(-10, -8, 20, 14, 4); c2.moveTo(-4, 6); c2.lineTo(-7, 11); c2.lineTo(1, 6); c2.stroke(); },
+        c2 => { c2.beginPath(); c2.moveTo(-5, -8); c2.lineTo(8, 0); c2.lineTo(-5, 8); c2.closePath(); c2.stroke(); },
+        c2 => { c2.beginPath(); c2.arc(0, 0, 4, 0, 7); for (let i = 0; i < 8; i++) { const a = (i / 8) * 6.283; c2.moveTo(7 * Math.cos(a), 7 * Math.sin(a)); c2.lineTo(10 * Math.cos(a), 10 * Math.sin(a)); } c2.stroke(); },
+      ], 1);
+      window.__mock = true;
+    </script>
+  </body>
+</html>

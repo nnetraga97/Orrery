@@ -388,6 +388,24 @@ Where an earlier section and the two plans differ, the plans are newer.
 | Chat | A floating, movable panel with every desktop chat feature in a hands-and-voice form; the parity table is in the M3 + M4 plan | Owner's request |
 | Bug to fix | Scenario files in `public/scenarios/`. The first seeds an off-by-one in `Range.containsPosition` of the demo project and ships a failing and a fixed replay | Work is not blocked on choosing a real historical bug; another scenario is one more file |
 
+### 4.9 Changes after the owner's design review
+
+These replace the matching rows above and in §5. Details per task are in
+`docs/plans/changes-after-review.md`; the look and sizes are in `docs/visual-style.md`.
+
+| Topic | Decision |
+| --- | --- |
+| Code view | Not a standing window. A card of about 12 lines appears only while a function is picked, the agent points at code, or a replay runs |
+| Anchoring | No leader lines. A card floats beside the thing it belongs to and can be pulled away by its grab bar, as on spatial computers |
+| File info card | Removed. A selected file shows a label and a diamond |
+| Navigation | A tab strip on the chat window's left edge: Home, Chat, Replay, Settings. No dock, ring menu or palm menu |
+| Project picker | Removed. The app opens on the demo project; switching is in Settings |
+| Replay | Kept, without a timeline. Back, Step and Play sit on the code card |
+| Chat | The desktop chat box's shape, 0.40 m wide, in the new theme, with ordinary Approve and Decline buttons |
+| Charts | None anywhere |
+| Table | Removed. The model floats in the air at an invisible anchor, larger and more central; a dark floor with a faint grid gives the room a horizon |
+| Landed planet | A globe 0.64 m across that does not grow when zoomed (the owner's choice while building). Its buildings are millimetres across, so the model and the code are linked by function: a town on one side, its lines on the other |
+
 ## 5. Desktop UI to VR
 
 Every desktop control, and what replaces it. Source for each is under
