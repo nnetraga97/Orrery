@@ -4,10 +4,10 @@
 export const PER_ORBIT = 1;
 export const orbitGap = (S, u) => Math.max(0.36 * u, S * 0.3);
 /** The radius of orbit `ring` (0 = innermost) around a star of radius S; the first clears the star's glow. */
-export const orbitRadius = (S, u, ring) => S * 2.4 + (ring + 0.5) * orbitGap(S, u);
+export const orbitRadius = (S, u, ring) => S * 2.1 + (ring + 0.5) * orbitGap(S, u);
 /** A planet's radius, from its function's length, never more than half its star's. */
 export const planetSize = (S, u, loc) =>
-  Math.min(S * 0.45, 0.42 * u, Math.max(0.12 * u, (0.08 + Math.sqrt(loc) / 45) * u));
+  Math.min(S * 0.45, 0.5 * u, Math.max(0.18 * u, (0.08 + Math.sqrt(loc) / 38) * u));
 /** How far a star's planets reach from its centre: its outermost orbit plus a planet. */
 export const systemReach = (S, u, count) =>
-  count ? orbitRadius(S, u, Math.ceil(count / PER_ORBIT) - 1) + 0.45 * u : S;
+  count ? orbitRadius(S, u, Math.ceil(count / PER_ORBIT) - 1) + 0.55 * u : S;

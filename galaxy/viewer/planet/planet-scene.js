@@ -257,7 +257,7 @@ export async function buildPlanetSurface(ctx, sym, source, model, options) {
         previousTowns: previous?.towns,
         language: sym?.language,
         regions,
-        townScaleCap: shown >= 0 ? 0.13 : 0.051,
+        townScaleCap: shown >= 0 || regions.length === 1 ? 0.13 : 0.051,
         centerOf,
         siteOf,
         shapeOf,

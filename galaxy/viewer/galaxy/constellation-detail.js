@@ -2,7 +2,7 @@
 import * as THREE from 'three';
 import { PLANET_R, CODE_BODY_R, createPlanetDetail, makePlanetHost } from '../planet/planet.js';
 import { clock, ease, current, orientationOf } from './constellation-orbits.js';
-import { planetAtLine } from '../app/function-index.js';
+import { planetAtLine, starOf } from '../app/function-index.js';
 
 export function createDetail(ctx) {
   const { host, T, u, model, lod, frame: frameState } = ctx;
@@ -168,12 +168,27 @@ export function createDetail(ctx) {
   }
   T.land = (i, { line = null, arrival = null, townId = null } = {}) => {
     if (ctx.instances.starMode) {
+      const path = host.data.nodes()[i].path;
+      // Opening a star itself lands on its most important function: a star has no surface of its own.
+      const top =
+        townId == null && line == null ? [...(starOf(path)?.planets || [])].sort((a, b) => b.score - a.score)[0] : null;
+      if (top) {
+        townId = top.id;
+        line = top.start;
+      }
       // The function's planet: by id, else the planet holding the line, else (a hidden function) its star's belt.
-      const path = host.data.nodes()[i].path,
-        fnKey =
-          (townId && fnBody(townId) ? townId : planetAtLine(path, line ?? -1)?.id) ??
-          (townId || line != null ? 'belt:' + path : null);
-      if (lod.detail && lod.i === i && lod.fnKey === fnKey) {
+      const fnKey =
+        (townId && fnBody(townId) ? townId : planetAtLine(path, line ?? -1)?.id) ??
+        (townId || line != null ? 'belt:' + path : null);
+      // The same planet: move within its town. Hidden functions share their star's belt, so there it must also be
+      // the same town.
+      const shownTown = lod.detail?.towns?.find(t => t.shown),
+        sameTown =
+          !fnKey?.startsWith('belt:') ||
+          (townId
+            ? shownTown?.id === townId
+            : line == null || (!!shownTown && line >= shownTown.start && line <= shownTown.end));
+      if (lod.detail && lod.i === i && lod.fnKey === fnKey && sameTown) {
         lod.detail.focusLine(line, townId);
         return;
       }

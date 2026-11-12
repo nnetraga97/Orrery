@@ -75,11 +75,13 @@ const SURFACE_FRAG = `
 
     // How many granules fit across a pixel decides how much of the fine pattern survives (none, from far away).
     float fw = length(fwidth(n));
-    vec3 w = n * 22.0 + o;
-    w += 0.6 * vec3(vnoise(w * 0.35), vnoise(w * 0.35 + 9.1), vnoise(w * 0.35 + 4.7));
-    float g = cells(w, uTime * 0.3);
-    float fine = clamp(2.0 - fw * 88.0, 0.0, 1.0);
-    float gran = mix(0.7, smoothstep(0.0, 0.32, g) * (0.75 + 0.25 * vnoise(w * 2.3)), fine);
+    float fine = clamp(2.0 - fw * 88.0, 0.0, 1.0), gran = 0.7;
+    // The cell search is the costly part: stars too far away to show granules skip it.
+    if (fine > 0.0) {
+      vec3 w = n * 22.0 + o;
+      w += 0.6 * vec3(vnoise(w * 0.35), vnoise(w * 0.35 + 9.1), vnoise(w * 0.35 + 4.7));
+      gran = mix(0.7, smoothstep(0.0, 0.32, cells(w, uTime * 0.3)) * (0.75 + 0.25 * vnoise(w * 2.3)), fine);
+    }
     float mott = fbm(n * 3.0 + o + vec3(0.0, uTime * 0.01, 0.0));
     float spotField = fbm(n * 1.6 + o.yxz * 0.7);
     float umbra = smoothstep(0.76, 0.79, spotField), penumbra = smoothstep(0.71, 0.77, spotField);
