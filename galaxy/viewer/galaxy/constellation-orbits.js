@@ -150,14 +150,15 @@ export function createOrbits(ctx) {
     const ordered = [...remembered.map(p => here.get(p)), ...m.filter(n => !seen.has(n.path))];
     const bodies = ordered.map((n, j) => {
       const crossFrac =
-        host.data.out()[n.i].filter(t => host.graph.groupOf(host.data.nodes()[t]) !== host.graph.groupOf(n)).length / Math.max(1, host.data.out()[n.i].length);
+        host.data.out()[n.i].filter(t => host.graph.groupOf(host.data.nodes()[t]) !== host.graph.groupOf(n)).length /
+        Math.max(1, host.data.out()[n.i].length);
       const kind = kindOf(n, j, ordered.length, crossFrac);
       const size =
         u *
         (kind === 'planet'
           ? Math.min(1.8, 0.45 + Math.sqrt(n.rloc) / 30)
           : kind === 'asteroid'
-            ? 0.18 + Math.sqrt(n.rloc) / 55
+            ? Math.min(0.35, 0.18 + Math.sqrt(n.rloc) / 55)
             : 0.4);
       // A star takes the room its planets orbit in (planet-orbits.js), so neighbouring stars' planets never cross.
       const reach = kind === 'planet' && n.star ? systemReach(size, u, starOf(n.path)?.planets.length ?? 0) : size;
@@ -450,7 +451,9 @@ export function createOrbits(ctx) {
     fresh
       .filter(o => o.kind === 'planet')
       .forEach(o => {
-        const mates = model.orbit.filter(q => q && q !== o && q.gi === o.gi && q.ring === o.ring && q.kind === 'planet');
+        const mates = model.orbit.filter(
+          q => q && q !== o && q.gi === o.gi && q.ring === o.ring && q.kind === 'planet',
+        );
         const angles = mates.map(q => ((anomaly(q, t) % TAU) + TAU) % TAU).sort((x, y) => x - y);
         if (!angles.length) return;
         let best = 0,
@@ -470,7 +473,9 @@ export function createOrbits(ctx) {
     ctx.bodies.rebuild(now);
 
     // Remember the shape for the next revision and the next launch.
-    memory.systems = Object.fromEntries(model.systems.map((s, gi) => [s.key, { at: model.galaxy.centers[gi], order: s.order }]));
+    memory.systems = Object.fromEntries(
+      model.systems.map((s, gi) => [s.key, { at: model.galaxy.centers[gi], order: s.order }]),
+    );
     memory.kinds = Object.fromEntries(host.data.nodes().map(n => [n.path, model.orbit[n.i].kind]));
     host.memory.save();
     ctx.bodies.paintBodies();

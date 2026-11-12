@@ -9,6 +9,7 @@ import { planetById, planetCalls, starOf } from '../app/function-index.js';
 import { keyHash, orientationOf } from './constellation-orbits.js';
 import { PlanetBodies } from './planet-library.js';
 import { PER_ORBIT, orbitGap, orbitRadius, planetSize } from './planet-orbits.js';
+import { glowTex } from '../scene/textures.js';
 
 const MAX_BELT = 160;
 /** Segments per call lane, and the most lanes drawn for the selected star. */
@@ -22,7 +23,8 @@ export function createFunctionPlanets(ctx) {
   // The planet library's textured worlds, one batch per world asset, as the file planets used to be drawn.
   const bodies = new PlanetBodies(T.scene);
   /** The landed function's key (constellation-detail.js sets it): its instance is not drawn under the close-up. */
-  let landedKey = null;
+  let landedKey = null,
+    landedStar = null;
 
   // Orbit lines and the belt sit in one group that follows the selected star.
   const around = new THREE.Group();
@@ -36,6 +38,7 @@ export function createFunctionPlanets(ctx) {
   });
   const beltMaterial = new THREE.PointsMaterial({
     color: '#b9c6d6',
+    map: glowTex,
     size: 0.06 * u,
     transparent: true,
     opacity: 0.7,
@@ -67,6 +70,7 @@ export function createFunctionPlanets(ctx) {
     runGeo,
     new THREE.PointsMaterial({
       size: 0.16 * u,
+      map: glowTex,
       vertexColors: true,
       transparent: true,
       depthWrite: false,
@@ -109,6 +113,8 @@ export function createFunctionPlanets(ctx) {
   let all = [];
   /** Star file index -> its planets in `all`. */
   let byStar = new Map();
+  /** Function id -> its entry in `all`. */
+  let byId = new Map();
   let lanes = [];
   let focus = null,
     removeLabels = () => {};
@@ -120,11 +126,14 @@ export function createFunctionPlanets(ctx) {
     belts.clear();
     all = [];
     byStar = new Map();
+    byId = new Map();
     host.data.nodes().forEach(n => {
       if (!isStar(n.i)) return;
       const S = model.orbit[n.i].size,
         plane = new THREE.Quaternion().setFromAxisAngle(xAxis, (keyHash(n.seed + '#tilt') - 0.5) * 0.5),
-        spin = keyHash(n.seed + '#spin') * Math.PI * 2;
+        spin = keyHash(n.seed + '#spin') * Math.PI * 2,
+        // One angular speed for a whole system, and planets a golden angle apart: neighbours never line up.
+        w = 0.35 / Math.sqrt(orbitRadius(S, u, 0) / u);
       const ranked = [...starOf(n.path).planets].sort((a, b) => b.score - a.score);
       const list = ranked.map((p, k) => {
         const ring = Math.floor(k / PER_ORBIT),
@@ -135,8 +144,8 @@ export function createFunctionPlanets(ctx) {
           r,
           ring,
           size: planetSize(S, u, p.end - p.start + 1),
-          phase: spin + ring * 1.3 + (k % PER_ORBIT) * Math.PI,
-          w: 0.35 / Math.sqrt(r / u),
+          phase: spin + k * 2.39996,
+          w,
           tilt: plane,
           quat: orientationOf({ seed: p.id }),
           pos: new THREE.Vector3(),
@@ -144,6 +153,7 @@ export function createFunctionPlanets(ctx) {
       });
       byStar.set(n.i, list);
       all.push(...list);
+      for (const s of list) byId.set(s.planet.id, s);
     });
     // Each function keeps one world, chosen from its id the way a file's was from its path.
     bodies.rebuild(
@@ -204,9 +214,8 @@ export function createFunctionPlanets(ctx) {
     }
     // Call lanes touching this star's planets; the far end is the other planet when it is drawn, else its star.
     const mineById = new Map(mine.map(s => [s.planet.id, s]));
-    const slotById = new Map(all.map(s => [s.planet.id, s]));
     const endOf = id => {
-      if (slotById.has(id)) return slotById.get(id);
+      if (byId.has(id)) return byId.get(id);
       const p = planetById(id),
         j = p ? model.byPath.get(p.path) : null;
       return j == null ? null : { pos: model.pos[j] };
@@ -289,9 +298,9 @@ export function createFunctionPlanets(ctx) {
       const s = all[k],
         c = model.pos[s.star];
       let a = s.phase + t * s.w;
-      // The planet being landed on holds its place on the orbit (the camera follows its star), and moves on from there
-      // when the landing ends.
-      if (s.planet.id === landedKey) {
+      // The landed star's planets hold their places (the camera follows the star, and no sibling sweeps past the
+      // close-up), and move on from there when the landing ends.
+      if (s.star === landedStar) {
         if (s.hold == null) s.hold = a;
         s.phase += s.hold - a;
         a = s.hold;
@@ -335,10 +344,7 @@ export function createFunctionPlanets(ctx) {
         kind: `Function · ${n.name}`,
         title: p.name,
         color: host.graph.color(host.graph.groupOf(n)),
-        preview: [
-          `Lines ${p.start}–${p.end} · ${lines} line${lines === 1 ? '' : 's'}`,
-          ...(p.pinned ? ['Pinned for the demo'] : []),
-        ],
+        preview: [`Lines ${p.start}–${p.end} · ${lines} line${lines === 1 ? '' : 's'}`],
         anchor: host.windows.worldAnchor(() => s.pos),
         actions: [
           {
@@ -368,11 +374,14 @@ export function createFunctionPlanets(ctx) {
     /** A function planet's live position, radius and orientation, for landing on it; null when it has no planet. */
     bodyOf: id => {
       if (id?.startsWith('belt:')) return beltBody(id);
-      const s = all.find(x => x.planet.id === id);
-      return s ? { pos: s.pos, size: s.size, quat: s.quat, star: s.star } : null;
+      return byId.get(id) ?? null;
     },
-    /** Marks the landed function, whose instance gives way to its close-up. */
-    setLanded: key => (landedKey = key),
+    /** Marks the landed function, whose instance gives way to its close-up; its star's planets hold still. */
+    setLanded: key => {
+      landedKey = key;
+      landedStar =
+        key == null ? null : key.startsWith('belt:') ? (beltBody(key)?.star ?? null) : (byId.get(key)?.star ?? null);
+    },
     /** For checks: the planet library's draw counts for the function planets. */
     stats: () => bodies.stats(),
     /** For checks: how many planets are drawn in all. */

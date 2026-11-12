@@ -14,7 +14,11 @@ export function createBodies(ctx) {
     if (instances.meshes[kind] && instances.capacity[kind] >= needed) return;
     const old = instances.meshes[kind];
     instances.capacity[kind] = Math.max(16, Math.ceil(needed * 1.5));
-    instances.meshes[kind] = instanced(instances.capacity[kind], new THREE.OctahedronGeometry(1, 0), new THREE.MeshBasicMaterial());
+    instances.meshes[kind] = instanced(
+      instances.capacity[kind],
+      new THREE.OctahedronGeometry(1, 0),
+      new THREE.MeshBasicMaterial(),
+    );
     instances.meshes[kind].count = 0;
     T.scene.add(instances.meshes[kind]);
     if (old) {
@@ -85,7 +89,11 @@ export function createBodies(ctx) {
 
   function syncPickBodies() {
     instances.pickBodies.length = 0;
-    instances.pickBodies.push(...instances.planets.meshes.filter(m => m.userData.pickablePlanet), instances.meshes.comet, ...instances.asteroids.meshes);
+    instances.pickBodies.push(
+      ...instances.planets.meshes.filter(m => m.userData.pickablePlanet),
+      instances.meshes.comet,
+      ...instances.asteroids.meshes,
+    );
     if (instances.starMode && instances.stars?.mesh) instances.pickBodies.push(instances.stars.mesh);
   }
 
@@ -159,10 +167,10 @@ export function createBodies(ctx) {
       model.pos[n.i].copy(tmp);
       const grow = (o.born == null ? 1 : ease((now - o.born) / 0.8)) * (model.birthScale.get(n.path) ?? 1);
       // A star stays while one of its function planets is landed; a file planet gives way to its own close-up.
-      const hidden = lod.i === n.i && lod.host?.opacity >= 1 - 1e-6 && !instances.starMode;
+      const hidden = lod.i === n.i && lod.host?.opacity >= 1 - 1e-6 && !(instances.starMode && o.kind === 'planet');
       // Omit all library parts (including atmosphere/clouds), rather than leaving
       // a scaled instance in a shared batch while the landed body owns the depth.
-      if (hidden && o.kind === 'planet' && !instances.starMode) return;
+      if (hidden && o.kind === 'planet') return;
       if (o.kind === 'asteroid') {
         const p = instances.asteroids.profiles.get(n.i);
         dummy.position.copy(tmp);
@@ -237,8 +245,10 @@ export function createBodies(ctx) {
       planetStats: () => instances.planets.stats(),
       // A library asset's loaded parts, for a landed close-up drawn with the same materials (planet.js).
       libraryParts: entry => instances.planets.landing(entry, T.prepareTexture),
-      highDetail: entry => instances.planets.highSurface === instances.planets.resources.get(entry.id)?.find(p => p.pickable),
-      setHighDetail: (entry, enabled, signal) => instances.planets.setHighDetail(entry, enabled, signal, T.prepareTexture),
+      highDetail: entry =>
+        instances.planets.highSurface === instances.planets.resources.get(entry.id)?.find(p => p.pickable),
+      setHighDetail: (entry, enabled, signal) =>
+        instances.planets.setHighDetail(entry, enabled, signal, T.prepareTexture),
       bodyAppearance: i => host.memory.fileAppearance(host.data.nodes()[i].path, host.data.nodes()[i].callables),
       // For checks: each system's drawn centre and size, by group.
       layoutState: () => ({

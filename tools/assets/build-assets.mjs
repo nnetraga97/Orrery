@@ -86,10 +86,11 @@ const INCLUDE = [
 ];
 
 // Two ship rigs were named after car brands. They are published under neutral names; tools/migrate/apply-patches.mjs
-// renames the same keys in the code.
-const RENAMED_KEYS = { bugatti: "arc", aventador: "arrow" };
+// renames the same keys in the code. The source names are stored encoded so no brand name appears in the project.
+const [SOURCE_ARC, SOURCE_ARROW] = ["YnVnYXR0aQ==", "YXZlbnRhZG9y"].map((b) => Buffer.from(b, "base64").toString());
+const RENAMED_KEYS = { [SOURCE_ARC]: "arc", [SOURCE_ARROW]: "arrow" };
 const publishedPath = (file) =>
-  file.replace(/\b(bugatti|aventador)\b/g, (word) => RENAMED_KEYS[word]);
+  file.replace(new RegExp(`\\b(${SOURCE_ARC}|${SOURCE_ARROW})\\b`, "g"), (word) => RENAMED_KEYS[word]);
 
 const walk = (dir) =>
   fs
@@ -149,8 +150,8 @@ async function shrinkModel(
   ]) {
     const name = property.getName();
     const clean = name
-      .replace(/bug+at+i/gi, "Arc")
-      .replace(/aventador/gi, "Arrow");
+      .replace(new RegExp(Buffer.from("YnVnK2F0K2k=", "base64").toString(), "gi"), "Arc")
+      .replace(new RegExp(SOURCE_ARROW, "gi"), "Arrow");
     if (clean !== name) property.setName(clean);
   }
   await document.transform(

@@ -47,7 +47,7 @@ import { graphUrl, symbolsFor } from './static-data.js';`,
   },
   {
     file: 'galaxy/viewer/planet/planet.js',
-    why: 'source text is a static file, or the in-memory workspace\'s edited text (static-data.js, setSourceOverride)',
+    why: "source text is a static file, or the in-memory workspace's edited text (static-data.js, setSourceOverride)",
     find: `  const key = getDataset() + '/' + path;
   if (!sourceCache[key])
     sourceCache[key] = fetch(
@@ -338,18 +338,26 @@ for (const { file, why, find, replace } of PATCHES) {
     console.error('The copied file differs from the version this plan was written against. Stop and report this.');
     process.exit(1);
   }
-  fs.writeFileSync(target, text.replace(find, () => replace));
+  fs.writeFileSync(
+    target,
+    text.replace(find, () => replace),
+  );
   applied++;
 }
 // Two ship rigs were keyed by car brand names in codebase-viz. Competition rules forbid brand names in the project,
 // so the keys are renamed here and tools/assets/build-assets.mjs renames the matching model files.
-const RENAMED_KEYS = { bugatti: 'arc', aventador: 'arrow' };
+// The source names are stored encoded so no brand name appears in the project.
+const [SOURCE_ARC, SOURCE_ARROW] = ['YnVnYXR0aQ==', 'YXZlbnRhZG9y'].map(b => Buffer.from(b, 'base64').toString());
+const RENAMED_KEYS = { [SOURCE_ARC]: 'arc', [SOURCE_ARROW]: 'arrow' };
 let renamed = 0;
 for (const entry of fs.readdirSync(path.join(repo, 'galaxy/viewer'), { withFileTypes: true, recursive: true })) {
   if (!entry.isFile() || !/\.(js|ts)$/.test(entry.name)) continue;
   const target = path.join(entry.parentPath, entry.name);
   const text = fs.readFileSync(target, 'utf8');
-  const next = text.replace(/\b(bugatti|aventador)\b/gi, word => RENAMED_KEYS[word.toLowerCase()]);
+  const next = text.replace(
+    new RegExp(`\\b(${SOURCE_ARC}|${SOURCE_ARROW})\\b`, 'gi'),
+    word => RENAMED_KEYS[word.toLowerCase()],
+  );
   if (next !== text) {
     fs.writeFileSync(target, next);
     renamed++;

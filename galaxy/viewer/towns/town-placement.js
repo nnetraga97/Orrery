@@ -183,8 +183,7 @@ export async function placeTownModels(build, kit, portAsset) {
     });
     tw.out.forks.forEach(f => {
       signs.push({ tw, f });
-      if (edited(f.it))
-        construction.push({ tw, x: f.x + 0.3 * s, y: f.y, lift: s * 0.067 + tw.liftAt(f.x, f.y), fp });
+      if (edited(f.it)) construction.push({ tw, x: f.x + 0.3 * s, y: f.y, lift: s * 0.067 + tw.liftAt(f.x, f.y), fp });
     });
     tw.out.loops.forEach(f => {
       if (edited(f.it)) construction.push({ tw, x: f.x, y: f.y, lift: s * 0.067, fp });
@@ -224,7 +223,10 @@ export async function placeTownModels(build, kit, portAsset) {
     const padX = P.pub ? P.cx - 0.4 * u : P.cx - 0.6 * u,
       padY = P.cy - 0.2 * u;
     if (portAsset) {
-      const width = Math.min(Math.min(P.x1 - P.x0, P.y1 - P.y0) * 0.92, 1.5 * BUILD * s),
+      // Rigid like the buildings, so it takes the same shrink toward the chart's edge as the lots around it.
+      const pr = Math.hypot(P.cx, P.cy) + Math.SQRT2 * s,
+        fit = ctx.surface ? 1 : (R * R) / (R * R + pr * pr);
+      const width = Math.min(Math.min(P.x1 - P.x0, P.y1 - P.y0) * 0.92, 1.5 * BUILD * s) * fit,
         p = fr.world(P.cx, P.cy, s * 0.053 + width * 0.035);
       const matrix = new THREE.Matrix4().compose(
         p,
@@ -432,5 +434,17 @@ export async function placeTownModels(build, kit, portAsset) {
     disposables.push(scaff.geometry, scaff.material, mast.geometry, mast.material, jib.geometry, jib.material);
   }
 
-  return { orient, lotTime, lotDriver, riggedBatches, semanticInstances, loopMarker, SM, portOf, launchOf, lines, capitalK };
+  return {
+    orient,
+    lotTime,
+    lotDriver,
+    riggedBatches,
+    semanticInstances,
+    loopMarker,
+    SM,
+    portOf,
+    launchOf,
+    lines,
+    capitalK,
+  };
 }
