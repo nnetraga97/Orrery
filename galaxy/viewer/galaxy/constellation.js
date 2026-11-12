@@ -129,6 +129,7 @@ export function constellation(host) {
   ctx.detail = createDetail(ctx);
   ctx.functions = createFunctionPlanets(ctx);
   T.functionPlanets = () => ctx.functions.shown();
+  T.functionPlanetCount = () => ctx.functions.count();
   ctx.bodies.installAPI();
   ctx.executionShip = createExecutionShip(ctx);
 
