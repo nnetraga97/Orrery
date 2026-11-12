@@ -199,7 +199,9 @@ export async function placeTownModels(build, kit, portAsset) {
       // A settlement's deck covers only the packed blocks; trees stay on it.
       if (p.bounds && (Math.abs(x) > p.bounds.w / 2 || Math.abs(y) > p.bounds.h / 2)) continue;
       if (tw.out.roads.some(rd => rd.pts.some(pt => Math.hypot(pt[0] - x, pt[1] - y) < s))) continue;
-      placeAt(choose('tree', tw.k + 'tr' + t), fr, x, y, s * 0.02, fp * 0.55, t);
+      // A kit tree is about 3.5 times as tall as it is wide: at 0.2 of a lot it stands 0.5-0.7 of a lot tall,
+      // below most buildings.
+      placeAt(choose('tree', tw.k + 'tr' + t), fr, x, y, s * 0.02, fp * 0.2, t);
     }
   }
 
@@ -222,7 +224,7 @@ export async function placeTownModels(build, kit, portAsset) {
     const padX = P.pub ? P.cx - 0.4 * u : P.cx - 0.6 * u,
       padY = P.cy - 0.2 * u;
     if (portAsset) {
-      const width = Math.min(P.x1 - P.x0, P.y1 - P.y0) * 0.92,
+      const width = Math.min(Math.min(P.x1 - P.x0, P.y1 - P.y0) * 0.92, 1.5 * BUILD * s),
         p = fr.world(P.cx, P.cy, s * 0.053 + width * 0.035);
       const matrix = new THREE.Matrix4().compose(
         p,

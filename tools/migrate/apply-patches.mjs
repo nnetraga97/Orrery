@@ -214,6 +214,20 @@ export const RoadCars = { detailed: true };`,
     replace: `      if (i < ROAD_CARS.length && RoadCars.detailed) {
         try {`,
   },
+  {
+    file: 'galaxy/viewer/towns/town-placement.js',
+    why: 'scale: kit trees stand shorter than the lots (they were about two lot-widths tall)',
+    find: `      placeAt(choose('tree', tw.k + 'tr' + t), fr, x, y, s * 0.02, fp * 0.55, t);`,
+    replace: `      // A kit tree is about 3.5 times as tall as it is wide: at 0.2 of a lot it stands 0.5-0.7 of a lot tall,
+      // below most buildings.
+      placeAt(choose('tree', tw.k + 'tr' + t), fr, x, y, s * 0.02, fp * 0.2, t);`,
+  },
+  {
+    file: 'galaxy/viewer/towns/town-placement.js',
+    why: 'scale: the town port is at most one and a half lots wide, not the whole apron',
+    find: `      const width = Math.min(P.x1 - P.x0, P.y1 - P.y0) * 0.92,`,
+    replace: `      const width = Math.min(Math.min(P.x1 - P.x0, P.y1 - P.y0) * 0.92, 1.5 * BUILD * s),`,
+  },
 ];
 
 let applied = 0,
