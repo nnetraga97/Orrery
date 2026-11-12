@@ -13,7 +13,27 @@ import { planetLandMaterial, planetOceanMaterial } from './planet-appearance.js'
 import { planetGroundSample } from '../galaxy/planet-library.js';
 import { buildIncrementalTowns } from '../towns/incremental-towns.js';
 
-export async function buildPlanetSurface(ctx, sym, source, model, { previous, publish, bodyKind }) {
+// One function per globe: when enabled, a landed planet holds only one town (a function, or the group the semantic
+// layout made), so its buildings are drawn large. The host turns it off to see the whole file.
+export const OneTown = { enabled: true };
+// A town's first and last source line, from its members.
+export const townSpan = r => {
+  const ms = r.members || [];
+  return ms.length ? [Math.min(...ms.map(m => m.start)), Math.max(...ms.map(m => m.end))] : [r.start ?? 1, r.end ?? 1];
+};
+// Which town a landing shows: the one with this id, else the one holding this line, else the largest.
+export function pickTown(regions, townId, line) {
+  let k = townId ? regions.findIndex(r => r.id === townId) : -1;
+  if (k < 0 && line != null)
+    k = regions.findIndex(r => {
+      const [a, b] = townSpan(r);
+      return line >= a && line <= b;
+    });
+  if (k < 0) k = regions.reduce((best, r, i) => ((r.loc || 0) > (regions[best].loc || 0) ? i : best), 0);
+  return k;
+}
+export async function buildPlanetSurface(ctx, sym, source, model, options) {
+  const { previous, publish, bodyKind } = options;
   const {
     T,
     host,
@@ -40,7 +60,13 @@ export async function buildPlanetSurface(ctx, sym, source, model, { previous, pu
     (window.SYMBOLS ||= {})[host.data.dataset()] ||= {};
     window.SYMBOLS[host.data.dataset()][n.path] = sym;
   }
-  const regions = model.regionsFor(sym, n.path);
+  const allRegions = model.regionsFor(sym, n.path);
+  const shown = OneTown.enabled && allRegions.length > 1 ? pickTown(allRegions, options.townId, options.focusLine) : -1;
+  const regions = shown >= 0 ? [allRegions[shown]] : allRegions;
+  ctl.towns = allRegions.map((r, k) => {
+    const [start, end] = townSpan(r);
+    return { id: r.id ?? null, name: r.name, start, end, shown: shown < 0 || k === shown };
+  });
   // Anchors hash persistent town keys, so renaming a method, its class or this file leaves towns where they were.
   const identity = host.memory.townKeys(n.path, regions, source);
   if (model.layout) model.layout.layoutRegions(regions, identity.keyOf, identity.ageOf);
@@ -231,6 +257,7 @@ export async function buildPlanetSurface(ctx, sym, source, model, { previous, pu
         previousTowns: previous?.towns,
         language: sym?.language,
         regions,
+        townScaleCap: shown >= 0 ? 0.13 : 0.051,
         centerOf,
         siteOf,
         shapeOf,

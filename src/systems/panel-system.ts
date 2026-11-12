@@ -18,8 +18,8 @@ import { STATUS_CARD, drawStatusCard, statusTitle } from '../panels/draw-status-
 import type { StatusCard } from '../panels/draw-status-card.ts';
 import { loadFonts } from '../panels/fonts.ts';
 import { cardFromItem } from '../panels/info-card-content.ts';
-import { codeCardOpen, codeCardRows, codeScroll, codeView, error, inspectorExtras, layoutResets, loading, paused, pinned, replay } from '../state/app-state.ts';
-import { closeCard, replayBack, replayPlay, replayStep, retry } from '../state/commands.ts';
+import { codeCardOpen, codeCardRows, codeScroll, codeView, error, inspectorExtras, landedTown, layoutResets, loading, paused, pinned, replay } from '../state/app-state.ts';
+import { closeCard, replayBack, replayPlay, replayStep, retry, stepTown } from '../state/commands.ts';
 import { GalaxySystem, TABLE_ANCHOR } from './galaxy-system.ts';
 import { headPosition } from './head.ts';
 
@@ -106,6 +106,8 @@ export class PanelSystem extends createSystem({}) {
       if (id === 'replay:back') replayBack();
       else if (id === 'replay:step') replayStep();
       else if (id === 'replay:play') replayPlay();
+      else if (id === 'town:prev') stepTown(-1);
+      else if (id === 'town:next') stepTown(1);
       else if (id.startsWith('line:')) pressLine(Number(id.slice(5)));
       else if (id === 'more') this.setRows(codeCardRows.peek() === CODE_LAYOUT.rows ? CODE_LAYOUT.moreRows : CODE_LAYOUT.rows);
       else if (id === 'flow') {
@@ -143,6 +145,7 @@ export class PanelSystem extends createSystem({}) {
       codeScroll.subscribe(() => this.drawCode()),
       codeCardOpen.subscribe(() => this.drawCode()),
       replay.subscribe(() => this.drawCode()),
+      landedTown.subscribe(() => this.drawCode()),
       // The transport's status reports (a flight's phases) redraw the ships list.
       inspectorExtras.subscribe(() => {
         if (this.shipsOpen) this.drawCode();
@@ -273,6 +276,7 @@ export class PanelSystem extends createSystem({}) {
     const rows = visibleLines(view, { rows: codeCardRows.peek(), columns: CODE_LAYOUT.columns, scrollTop: codeScroll.peek() });
     const flow = this.flowMeta(view);
     const range = shownRange(view);
+    const town = landedTown.peek();
     this.code.redraw((ctx, w, h) =>
       drawCodeCard(ctx, w, h, this.code.u, rows, {
         shown: {
@@ -287,6 +291,8 @@ export class PanelSystem extends createSystem({}) {
         ships: ships.ships,
         hasFlow: flow.has,
         flow: flow.rows,
+        // A long name is cut so the note stays clear of Flow and Ships.
+        towns: town ? { position: `${town.name.length > 20 ? town.name.slice(0, 19) + '…' : town.name} · ${town.index + 1} of ${town.count}` } : null,
       }),
     );
   }

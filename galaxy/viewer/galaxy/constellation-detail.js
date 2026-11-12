@@ -148,7 +148,14 @@ export function createDetail(ctx) {
     }
   }
   T.land = (i, { line = null, arrival = null, townId = null } = {}) => {
-    if (lod.detail && lod.i === i) {
+    const towns = lod.detail && lod.i === i ? lod.detail.towns : null,
+      current = towns?.find(t => t.shown && towns.length > 1 && !towns.every(x => x.shown)),
+      elsewhere =
+        current &&
+        ((townId && townId !== current.id && towns.some(t => t.id === townId)) ||
+          (!townId && line != null && (line < current.start || line > current.end) &&
+            towns.some(t => line >= t.start && line <= t.end)));
+    if (lod.detail && lod.i === i && !elsewhere) {
       lod.detail.focusLine(line, townId);
       return;
     }
@@ -176,6 +183,7 @@ export function createDetail(ctx) {
     if (lod.i != null) T.flyTo(new THREE.Vector3(), 32 * u, { frame: T.bodyFrame(lod.i), duration: 1600, arc: true });
   };
   Object.defineProperty(T, 'landed', { get: () => !!lod.detail });
+  T.landedTowns = () => lod.detail?.towns ?? null;
 
   return { openDetail, closeDetail, refreshDetail, bodyScale };
 }

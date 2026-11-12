@@ -45,6 +45,8 @@ export interface CodeCardMeta {
   shipCount?: number;
   /** The open ships list: up to four routes, the flight's status, and whether a flight is under way. */
   ships?: { routes: { path: string; canFly: boolean }[]; status: string; busy: boolean } | null;
+  /** While landed on a file with several towns: which one the globe shows ("Function 3 of 11"), with ‹ and › to step. */
+  towns?: { position: string } | null;
   /** Whether the function has statements to list (shows the Flow button). */
   hasFlow?: boolean;
   /** While Flow is on: its rows in place of the code, one per statement (`flow:<index>`). */
@@ -209,6 +211,19 @@ export function drawCodeCard(
       x += sw + 10 * u;
     }
     microLabel(ctx, meta.replay.position, x + 8 * u, by + bh / 2 + 5 * u, 13 * u, THEME.white);
+  } else if (meta.towns) {
+    // One function per globe: ‹ and › show the file's previous and next function on the globe.
+    const sw = 44 * u;
+    let x = L.pad;
+    for (const [id, label] of [
+      ['town:prev', '‹'],
+      ['town:next', '›'],
+    ] as const) {
+      const r = button(ctx, id, label, x, by, sw, bh, u, { state: stateOf(meta.hovered, id) });
+      if (r) regions.push(r);
+      x += sw + 10 * u;
+    }
+    microLabel(ctx, meta.towns.position, x + 6 * u, by + bh / 2 + 5 * u, 12 * u, THEME.lineDim);
   } else
     microLabel(
       ctx,

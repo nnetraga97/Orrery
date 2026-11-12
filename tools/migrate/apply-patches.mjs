@@ -228,6 +228,196 @@ export const RoadCars = { detailed: true };`,
     find: `      const width = Math.min(P.x1 - P.x0, P.y1 - P.y0) * 0.92,`,
     replace: `      const width = Math.min(Math.min(P.x1 - P.x0, P.y1 - P.y0) * 0.92, 1.5 * BUILD * s),`,
   },
+  {
+    file: 'galaxy/viewer/app/state.ts',
+    why: 'folder suns: each top-level folder is one solar system (the files are its planets)',
+    find: `  grouping: 'cluster',`,
+    replace: `  grouping: 'folder',`,
+  },
+  {
+    file: 'galaxy/viewer/galaxy/constellation-orbits.js',
+    why: 'folder suns: a sun material for the centre of each system',
+    find: `// ---------- the view ----------`,
+    replace: `// A star's surface: a hot white core shading to the folder's colour at the limb, with slow boiling granulation.
+// uTime and uColor keep the names the black hole's disk used, so the per-frame and recolour code stays as it was.
+function sunMaterial(col) {
+  return new THREE.ShaderMaterial({
+    uniforms: { uTime: { value: 0 }, uColor: { value: new THREE.Color(col) } },
+    vertexShader:
+      'varying vec3 vN, vV, vP; void main(){ vP = position; vec4 mv = modelViewMatrix * vec4(position,1.0); vN = normalize(normalMatrix * normal); vV = normalize(-mv.xyz); gl_Position = projectionMatrix * mv; }',
+    fragmentShader: \`
+      uniform float uTime; uniform vec3 uColor; varying vec3 vN, vV, vP;
+      float h(vec3 p){ return fract(sin(dot(p, vec3(127.1, 311.7, 74.7))) * 43758.5453); }
+      float n(vec3 p){ vec3 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+        return mix(mix(mix(h(i), h(i + vec3(1,0,0)), f.x), mix(h(i + vec3(0,1,0)), h(i + vec3(1,1,0)), f.x), f.y),
+                   mix(mix(h(i + vec3(0,0,1)), h(i + vec3(1,0,1)), f.x), mix(h(i + vec3(0,1,1)), h(i + vec3(1,1,1)), f.x), f.y), f.z); }
+      void main(){
+        vec3 p = normalize(vP) * 4.0;
+        float g = 0.55 * n(p + uTime * 0.15) + 0.3 * n(p * 2.3 - uTime * 0.22) + 0.15 * n(p * 5.1 + uTime * 0.4);
+        float mu = clamp(dot(normalize(vN), normalize(vV)), 0.0, 1.0);
+        vec3 hot = vec3(1.0, 0.97, 0.9), tint = mix(uColor, hot, 0.35);
+        vec3 col = mix(tint, hot, pow(mu, 1.5)) * (0.75 + 0.5 * g) * (0.55 + 0.45 * mu);
+        gl_FragColor = vec4(col * 1.4, 1.0);
+        #include <tonemapping_fragment>
+        #include <colorspace_fragment>
+      }\`,
+    toneMapped: false, // The star's surface keeps its authored brightness.
+  });
+}
+
+// ---------- the view ----------`,
+  },
+  {
+    file: 'galaxy/viewer/galaxy/constellation-orbits.js',
+    why: 'folder suns: a glowing sun replaces the black hole, its disk and photon ring',
+    find: `    const coreMesh = new THREE.Mesh(
+      new THREE.SphereGeometry(rh, 24, 16),
+      new THREE.MeshBasicMaterial({ color: '#000000' }),
+    );
+    root.add(coreMesh);
+    const dm = diskMaterial(host.graph.color(key), sy.diskIn, sy.diskOut);
+    const disk = new THREE.Mesh(new THREE.RingGeometry(sy.diskIn, sy.diskOut, 128, 1), dm);
+    disk.rotation.x = -Math.PI / 2;
+    root.add(disk);
+    const ring = new THREE.Sprite(
+      new THREE.SpriteMaterial({
+        map: photonRingTex,
+        color: '#ffe6c8',
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+        transparent: true,
+      }),
+    );
+    ring.scale.setScalar(rh * 3.1);
+    root.add(ring);
+    const halo = new THREE.Sprite(
+      new THREE.SpriteMaterial({
+        map: glowTex,
+        color: host.graph.color(key),
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+        transparent: true,
+        opacity: 0.3,
+      }),
+    );
+    halo.scale.setScalar(sy.diskOut * 2.6);
+    root.add(halo);`,
+    replace: `    // The folder's sun fills most of the space the black hole's disk took; the nearest planets orbit just outside it.
+    const dm = sunMaterial(host.graph.color(key));
+    const coreMesh = new THREE.Mesh(new THREE.SphereGeometry(rh * 2.2, 40, 24), dm);
+    root.add(coreMesh);
+    const corona = new THREE.Sprite(
+      new THREE.SpriteMaterial({
+        map: glowTex,
+        color: '#fff1d6',
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+        transparent: true,
+        opacity: 0.55,
+      }),
+    );
+    corona.scale.setScalar(rh * 7);
+    root.add(corona);
+    const halo = new THREE.Sprite(
+      new THREE.SpriteMaterial({
+        map: glowTex,
+        color: host.graph.color(key),
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+        transparent: true,
+        opacity: 0.3,
+      }),
+    );
+    halo.scale.setScalar(sy.diskOut * 2.6);
+    root.add(halo);`,
+  },
+  {
+    file: 'galaxy/viewer/planet/planet-scene.js',
+    why: 'one function per globe: the surface build sees the landing request',
+    find: `export async function buildPlanetSurface(ctx, sym, source, model, { previous, publish, bodyKind }) {`,
+    replace: `// One function per globe: when enabled, a landed planet holds only one town (a function, or the group the semantic
+// layout made), so its buildings are drawn large. The host turns it off to see the whole file.
+export const OneTown = { enabled: true };
+// A town's first and last source line, from its members.
+export const townSpan = r => {
+  const ms = r.members || [];
+  return ms.length ? [Math.min(...ms.map(m => m.start)), Math.max(...ms.map(m => m.end))] : [r.start ?? 1, r.end ?? 1];
+};
+// Which town a landing shows: the one with this id, else the one holding this line, else the largest.
+export function pickTown(regions, townId, line) {
+  let k = townId ? regions.findIndex(r => r.id === townId) : -1;
+  if (k < 0 && line != null)
+    k = regions.findIndex(r => {
+      const [a, b] = townSpan(r);
+      return line >= a && line <= b;
+    });
+  if (k < 0) k = regions.reduce((best, r, i) => ((r.loc || 0) > (regions[best].loc || 0) ? i : best), 0);
+  return k;
+}
+export async function buildPlanetSurface(ctx, sym, source, model, options) {
+  const { previous, publish, bodyKind } = options;`,
+  },
+  {
+    file: 'galaxy/viewer/planet/planet-scene.js',
+    why: "one function per globe: keep only the chosen town, and list the file's other towns for stepping between them",
+    find: `  const regions = model.regionsFor(sym, n.path);
+  // Anchors hash persistent town keys`,
+    replace: `  const allRegions = model.regionsFor(sym, n.path);
+  const shown = OneTown.enabled && allRegions.length > 1 ? pickTown(allRegions, options.townId, options.focusLine) : -1;
+  const regions = shown >= 0 ? [allRegions[shown]] : allRegions;
+  ctl.towns = allRegions.map((r, k) => {
+    const [start, end] = townSpan(r);
+    return { id: r.id ?? null, name: r.name, start, end, shown: shown < 0 || k === shown };
+  });
+  // Anchors hash persistent town keys`,
+  },
+  {
+    file: 'galaxy/viewer/galaxy/constellation-detail.js',
+    why: 'one function per globe: a line or town on the landed planet but outside its town rebuilds the globe for it',
+    find: `    if (lod.detail && lod.i === i) {
+      lod.detail.focusLine(line, townId);
+      return;
+    }`,
+    replace: `    const towns = lod.detail && lod.i === i ? lod.detail.towns : null,
+      current = towns?.find(t => t.shown && towns.length > 1 && !towns.every(x => x.shown)),
+      elsewhere =
+        current &&
+        ((townId && townId !== current.id && towns.some(t => t.id === townId)) ||
+          (!townId && line != null && (line < current.start || line > current.end) &&
+            towns.some(t => line >= t.start && line <= t.end)));
+    if (lod.detail && lod.i === i && !elsewhere) {
+      lod.detail.focusLine(line, townId);
+      return;
+    }`,
+  },
+  {
+    file: 'galaxy/viewer/planet/planet-scene.js',
+    why: 'one function per globe: a lone town may draw its buildings larger (townScaleCap, a share of the radius)',
+    find: `        language: sym?.language,
+        regions,`,
+    replace: `        language: sym?.language,
+        regions,
+        townScaleCap: shown >= 0 ? 0.13 : 0.051,`,
+  },
+  {
+    file: 'galaxy/viewer/towns/incremental-towns.js',
+    why: 'one function per globe: the planet-wide building scale is capped by townScaleCap when the scene sets it',
+    find: `          ctx.R * 0.051,`,
+    replace: `          ctx.R * (ctx.townScaleCap ?? 0.051),`,
+  },
+  {
+    file: 'galaxy/viewer/towns/town-preparation.js',
+    why: 'one function per globe: the same cap when each town is packed',
+    find: `          R * 0.051,`,
+    replace: `          R * (ctx.townScaleCap ?? 0.051),`,
+  },
+  {
+    file: 'galaxy/viewer/galaxy/constellation-detail.js',
+    why: "one function per globe: the host reads the landed file's towns (one array per build) to step between them",
+    find: `  Object.defineProperty(T, 'landed', { get: () => !!lod.detail });`,
+    replace: `  Object.defineProperty(T, 'landed', { get: () => !!lod.detail });
+  T.landedTowns = () => lod.detail?.towns ?? null;`,
+  },
 ];
 
 let applied = 0,

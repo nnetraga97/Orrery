@@ -1,12 +1,21 @@
 import type { HostFileNode, HostImportLink, HostPort } from '../ports/host.ts';
 import type { XrHost } from './xr-host.ts';
 
+export interface LandedTown {
+  id: string | null;
+  name: string;
+  start: number;
+  end: number;
+  shown: boolean;
+}
 export interface GalaxyView {
   stop(): void;
   select(i: number | null, options?: { fly?: boolean }): void;
   land?(i: number, options: { line: number | null; arrival: unknown; townId?: string | null }): void;
   leave?(): void;
   readonly landed?: boolean;
+  /** The landed file's towns (one function, or a group, each), the shown one marked; one array per planet build. */
+  landedTowns?(): LandedTown[] | null;
   readonly pinned?: number | null;
   [member: string]: unknown;
 }

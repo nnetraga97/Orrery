@@ -90,7 +90,7 @@ export async function buildIncrementalTowns(ctx) {
       ? planetTownScale(
           ctx.terrain.shapes,
           prepared.map(p => p.blocks),
-          ctx.R * 0.051,
+          ctx.R * (ctx.townScaleCap ?? 0.051),
         )
       : undefined;
     const packings = await ctx.layoutTowns?.(

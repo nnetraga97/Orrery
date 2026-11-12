@@ -109,7 +109,7 @@ export async function prepareTowns(build, { sourceTree, sourceTokens, parsed, po
     const maxScale = ctx.surface
       ? (ctx.maxScale?.[k] ?? S0)
       : Math.min(
-          R * 0.051,
+          R * (ctx.townScaleCap ?? 0.051),
           ctx.townScale ?? (R * 0.34) / Math.sqrt(Math.max(1, r.areaMetric?.statements ?? r.statements ?? 1)),
         );
     const packing = countryPackings?.[k] || (await packRegion(shapeOf[k], blocks, maxScale, checkpoint)),

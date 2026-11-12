@@ -49,6 +49,33 @@ function diskMaterial(col, rIn, rOut) {
   });
 }
 
+// A star's surface: a hot white core shading to the folder's colour at the limb, with slow boiling granulation.
+// uTime and uColor keep the names the black hole's disk used, so the per-frame and recolour code stays as it was.
+function sunMaterial(col) {
+  return new THREE.ShaderMaterial({
+    uniforms: { uTime: { value: 0 }, uColor: { value: new THREE.Color(col) } },
+    vertexShader:
+      'varying vec3 vN, vV, vP; void main(){ vP = position; vec4 mv = modelViewMatrix * vec4(position,1.0); vN = normalize(normalMatrix * normal); vV = normalize(-mv.xyz); gl_Position = projectionMatrix * mv; }',
+    fragmentShader: `
+      uniform float uTime; uniform vec3 uColor; varying vec3 vN, vV, vP;
+      float h(vec3 p){ return fract(sin(dot(p, vec3(127.1, 311.7, 74.7))) * 43758.5453); }
+      float n(vec3 p){ vec3 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+        return mix(mix(mix(h(i), h(i + vec3(1,0,0)), f.x), mix(h(i + vec3(0,1,0)), h(i + vec3(1,1,0)), f.x), f.y),
+                   mix(mix(h(i + vec3(0,0,1)), h(i + vec3(1,0,1)), f.x), mix(h(i + vec3(0,1,1)), h(i + vec3(1,1,1)), f.x), f.y), f.z); }
+      void main(){
+        vec3 p = normalize(vP) * 4.0;
+        float g = 0.55 * n(p + uTime * 0.15) + 0.3 * n(p * 2.3 - uTime * 0.22) + 0.15 * n(p * 5.1 + uTime * 0.4);
+        float mu = clamp(dot(normalize(vN), normalize(vV)), 0.0, 1.0);
+        vec3 hot = vec3(1.0, 0.97, 0.9), tint = mix(uColor, hot, 0.35);
+        vec3 col = mix(tint, hot, pow(mu, 1.5)) * (0.75 + 0.5 * g) * (0.55 + 0.45 * mu);
+        gl_FragColor = vec4(col * 1.4, 1.0);
+        #include <tonemapping_fragment>
+        #include <colorspace_fragment>
+      }`,
+    toneMapped: false, // The star's surface keeps its authored brightness.
+  });
+}
+
 // ---------- the view ----------
 // A file's identity is its path; an index is its position in the current snapshot only. Everything the eye follows
 // from one revision to the next (system centres, the order of a system's bodies, each body's kind and current angle,
@@ -227,26 +254,22 @@ export function createOrbits(ctx) {
     const tilt = new THREE.Quaternion().setFromEuler(e3.set(0, keyHash(key) * TAU, 0)); // disks lie in the galactic plane
     const root = new THREE.Group();
     T.scene.add(root);
-    const coreMesh = new THREE.Mesh(
-      new THREE.SphereGeometry(rh, 24, 16),
-      new THREE.MeshBasicMaterial({ color: '#000000' }),
-    );
+    // The folder's sun fills most of the space the black hole's disk took; the nearest planets orbit just outside it.
+    const dm = sunMaterial(host.graph.color(key));
+    const coreMesh = new THREE.Mesh(new THREE.SphereGeometry(rh * 2.2, 40, 24), dm);
     root.add(coreMesh);
-    const dm = diskMaterial(host.graph.color(key), sy.diskIn, sy.diskOut);
-    const disk = new THREE.Mesh(new THREE.RingGeometry(sy.diskIn, sy.diskOut, 128, 1), dm);
-    disk.rotation.x = -Math.PI / 2;
-    root.add(disk);
-    const ring = new THREE.Sprite(
+    const corona = new THREE.Sprite(
       new THREE.SpriteMaterial({
-        map: photonRingTex,
-        color: '#ffe6c8',
+        map: glowTex,
+        color: '#fff1d6',
         blending: THREE.AdditiveBlending,
         depthWrite: false,
         transparent: true,
+        opacity: 0.55,
       }),
     );
-    ring.scale.setScalar(rh * 3.1);
-    root.add(ring);
+    corona.scale.setScalar(rh * 7);
+    root.add(corona);
     const halo = new THREE.Sprite(
       new THREE.SpriteMaterial({
         map: glowTex,
