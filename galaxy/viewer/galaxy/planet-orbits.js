@@ -1,7 +1,7 @@
 // Where a star's planets orbit (function-planets.js), shared with the system layout (constellation-orbits.js) so stars
-// are spaced by the reach of their planets, not by their own size. Two planets share an orbit, on opposite sides; the
-// most important functions take the inner orbits.
-export const PER_ORBIT = 2;
+// are spaced by the reach of their planets, not by their own size. Each planet has an orbit of its own; the most
+// important functions take the inner orbits.
+export const PER_ORBIT = 1;
 export const orbitGap = (S, u) => Math.max(0.36 * u, S * 0.3);
 /** The radius of orbit `ring` (0 = innermost) around a star of radius S; the first clears the star's glow. */
 export const orbitRadius = (S, u, ring) => S * 2.4 + (ring + 0.5) * orbitGap(S, u);

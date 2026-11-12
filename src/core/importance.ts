@@ -51,7 +51,7 @@ export interface FunctionIndex {
   calls: [string, string][];
 }
 
-export const PLANETS_PER_FILE = 8;
+export const PLANETS_PER_FILE = 10;
 export const MIN_SCORE = 6;
 /** A short function called from this many other files still becomes a planet. */
 export const HUB_CALLERS = 5;
