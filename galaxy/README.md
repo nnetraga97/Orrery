@@ -39,6 +39,10 @@ unchanged.
 3. `viewer/galaxy/constellation.js` uses `host.sceneKit(camPos, options)` when the host
    provides one, and `scene3D` otherwise. The XR app's host supplies the XR scene kit
    (`src/galaxy-bridge/scene-kit.js`); the flat view does not, so it is unchanged.
+4. `viewer/towns/town-placement.js` draws kit trees at 0.2 of a lot wide (below most
+   buildings) and the town port at most 1.5 lots wide (`docs/reviews/asset-review`).
+
+The patch list in `apply-patches.mjs` is the full record; each entry says why.
 
 ## Updating from codebase-viz
 
