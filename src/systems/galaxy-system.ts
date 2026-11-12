@@ -251,11 +251,14 @@ export class GalaxySystem extends createSystem({}) {
   private landedPose(kit: NonNullable<XrHost['kit']>) {
     const i = kit.pinned;
     if (i == null || !kit.bodyPos || !kit.bodySize) return tablePoseInto(kit.virtual(), this.anchor, this.pose);
-    const centre = kit.bodyPos(i);
+    // The landed body: a function's planet when the galaxy has them, else the file's body.
+    const body = (kit as { landedBody?: () => { pos: { x: number; y: number; z: number }; size: number } | null }).landedBody?.();
+    const centre = body?.pos ?? kit.bodyPos(i);
     this.focus[0] = centre.x;
     this.focus[1] = centre.y;
     this.focus[2] = centre.z;
-    return focusedPoseInto(kit.virtual(), this.anchor, this.focus, LANDED_GLOBE_DIAMETER / (2 * kit.bodySize(i)), this.pose);
+    const size = body?.size ?? kit.bodySize(i);
+    return focusedPoseInto(kit.virtual(), this.anchor, this.focus, LANDED_GLOBE_DIAMETER / (2 * size), this.pose);
   }
 
   /** Publishes the phase and the landed file when the view lands, leaves, or moves from one planet to another (a

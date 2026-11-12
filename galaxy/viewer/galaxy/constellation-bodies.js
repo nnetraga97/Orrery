@@ -158,7 +158,8 @@ export function createBodies(ctx) {
       orbitPoint(o, t, now, tmp);
       model.pos[n.i].copy(tmp);
       const grow = (o.born == null ? 1 : ease((now - o.born) / 0.8)) * (model.birthScale.get(n.path) ?? 1);
-      const hidden = lod.i === n.i && lod.host?.opacity >= 1 - 1e-6;
+      // A star stays while one of its function planets is landed; a file planet gives way to its own close-up.
+      const hidden = lod.i === n.i && lod.host?.opacity >= 1 - 1e-6 && !instances.starMode;
       // Omit all library parts (including atmosphere/clouds), rather than leaving
       // a scaled instance in a shared batch while the landed body owns the depth.
       if (hidden && o.kind === 'planet' && !instances.starMode) return;
