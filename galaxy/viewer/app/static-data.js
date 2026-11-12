@@ -4,6 +4,9 @@ const base = name => `data/${encodeURIComponent(name)}`;
 
 export const graphUrl = name => `${base(name)}/graph.js`;
 
+/** Each file's planets and the calls between them (tools/bake-functions.mjs). */
+export const functionIndexUrl = name => `${base(name)}/functions.json`;
+
 export const sourceUrl = (name, path) => `${base(name)}/source/${path.split('/').map(encodeURIComponent).join('/')}`;
 
 const indexes = new Map();

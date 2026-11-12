@@ -7,6 +7,7 @@ import { galaxyMemory, identitySeed, reconcileFileIdentities, saveGalaxyMemory }
 import { G, projects, state, update } from './state.ts';
 import type { DatasetGraph, DatasetSymbols, FileNode, ImportLink } from './types.ts';
 import { graphUrl, symbolsFor } from './static-data.js';
+import { loadFunctionIndex, starOf } from './function-index.js';
 
 // A project's dataset files from the project API: one immutable revision each (the latest when none is named).
 // The files are scripts that register themselves on window.DATASETS / window.SYMBOLS; they are fetched and parsed
@@ -49,7 +50,7 @@ export async function loadDataset(name: string, revision?: number | null): Promi
   // Built-in datasets (the welcome map) are registered in place and have no revisions.
   const builtIn = !projects.has(name) && window.DATASETS?.[name];
   if (builtIn) return { data: builtIn, revision: null, generation: null };
-  const loaded = await fetchDataFile<DatasetGraph>(name, 'graph', revision);
+  const [loaded] = await Promise.all([fetchDataFile<DatasetGraph>(name, 'graph', revision), loadFunctionIndex(name)]);
   (window.DATASETS ||= {})[name] = loaded.data;
   return loaded;
 }
@@ -80,6 +81,8 @@ export function prepare(data: DatasetGraph, { after }: { after?: readonly FileNo
       detail,
       regions,
       callables,
+      // Whether the file is a star (its important functions orbit it as planets) or a rock (function-index.js).
+      star: starOf(path)?.cls ?? null,
     };
   });
   const links: ImportLink[] = data.e.map(([s, t, ...use]) =>
