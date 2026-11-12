@@ -10,6 +10,7 @@ import { createNavigation, fitView } from './constellation-navigation.js';
 import { createDetail } from './constellation-detail.js';
 import { createExecutionShip } from './execution-ship.js';
 import { createSelection } from './constellation-selection.js';
+import { createFunctionPlanets } from './function-planets.js';
 
 export { loadShipGeometry } from './constellation-fleet.js';
 
@@ -118,6 +119,7 @@ export function constellation(host) {
     frameState.last = now;
     for (const h of [...model.holes, ...model.fadingHoles]) h.dm.uniforms.uTime.value = frameState.time;
     ctx.bodies.place(frameState.time);
+    ctx.functions?.update(frameState.time);
     ctx.navigation.updateCruise(now);
     ctx.fleet.flyShips(frameState.time);
     ctx.fleet.drawRouteLines();
@@ -125,6 +127,9 @@ export function constellation(host) {
   ctx.navigation = createNavigation(ctx);
   ctx.selection = createSelection(ctx);
   ctx.detail = createDetail(ctx);
+  ctx.functions = createFunctionPlanets(ctx);
+  T.functionPlanets = () => ctx.functions.shown();
+  T.functionPlanetCount = () => ctx.functions.count();
   ctx.bodies.installAPI();
   ctx.executionShip = createExecutionShip(ctx);
 
@@ -141,6 +146,7 @@ export function constellation(host) {
       ctx.fleet.ambient = ctx.fleet.currentAmbient();
       ctx.selection.describeTraffic();
       ctx.selection.labelGalaxy();
+      ctx.functions.refocus();
     } else {
       // prepare() supplies fresh node records even when their layout is unchanged.
       // Rebind inspector members and preserve their established body kinds.
@@ -170,6 +176,8 @@ export function constellation(host) {
     T.stopped = true;
     ctx.detail.closeDetail();
     instances.planets.dispose();
+    instances.stars?.dispose();
+    ctx.functions.dispose();
     instances.asteroids.dispose();
     ctx.fleet.dispose();
     ctx.executionShip.dispose();

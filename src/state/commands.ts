@@ -10,6 +10,8 @@ export interface CommandHandler {
   landOn(path: string, line?: number | null): void;
   leavePlanet(): void;
   goHome(): void;
+  /** While landed: shows the file's previous (-1) or next (+1) town on the globe. */
+  stepTown(delta: number): void;
 }
 
 let handler: CommandHandler | null = null;
@@ -114,6 +116,9 @@ export function selectFile(path: string | null): void {
 }
 export function landOn(path: string, line: number | null = null): void {
   handler?.landOn(path, line);
+}
+export function stepTown(delta: number): void {
+  handler?.stepTown(delta);
 }
 export function leavePlanet(): void {
   handler?.leavePlanet();

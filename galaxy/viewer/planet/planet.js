@@ -292,6 +292,8 @@ export function createPlanetDetail(
     publish = null,
     failed = null,
     selection = null,
+    // A function planet's id: the landed globe wears that planet's world rather than its file's.
+    look = null,
   } = {},
   host,
 ) {
@@ -342,8 +344,8 @@ export function createPlanetDetail(
   const baseCol = new THREE.Color(host.graph.color(host.graph.groupOf(n)));
 
   // Both follow the file's layout identity, so a rename keeps the planet's look (galaxy-memory.ts).
-  const appearanceSeed = planetSeed(n.seed ?? n.path);
-  const appearance = host.memory.fileAppearance(n.path, n.callables);
+  const appearanceSeed = planetSeed(look ?? n.seed ?? n.path);
+  const appearance = look ? host.memory.fileAppearance(look, 1) : host.memory.fileAppearance(n.path, n.callables);
   T.scene.userData.planetAsset = appearance.id;
 
   Object.assign(ctx, { appearance, appearanceSeed, baseCol });

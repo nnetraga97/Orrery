@@ -4,6 +4,7 @@
 //   symbols/<id>.json    one shard per analyzed file
 //   symbols-index.json   { "<path>": "<id>.json" } so the browser can find a file's shard
 //   source/<path>        the text of every analyzed file
+//   functions.json       each file's planets (its most important functions) and the calls between them
 //   manifest.json        { name, files, sizes, bakedAt, and the source repository's remote and commit when it has them }
 //   LICENSE.txt          the project's licence file, when it has one (open-source licences require it to travel with copies)
 // Usage: node tools/bake-dataset.mjs <name> <projectRoot> [scanDir]
@@ -93,6 +94,8 @@ try {
   };
   fs.writeFileSync(path.join(out, 'manifest.json'), JSON.stringify(manifest, null, 2) + '\n');
   console.log(`baked ${manifest.files} files into public/data/${name} (${(manifest.totalBytes / 1048576).toFixed(1)} MB)`);
+  // Which functions orbit each file's star (src/core/importance.ts).
+  execFileSync(process.execPath, ['--experimental-strip-types', path.join(repo, 'tools/bake-functions.mjs'), name], { stdio: 'inherit' });
 } finally {
   fs.rmSync(temporary, { recursive: true, force: true });
 }

@@ -2,6 +2,8 @@
 import * as THREE from 'three';
 import * as d3 from 'd3';
 import { layoutGalaxy } from './galaxy-layout.js';
+import { systemReach } from './planet-orbits.js';
+import { starOf } from '../app/function-index.js';
 import { canvasTexture, glowTex } from '../scene/textures.js';
 
 const photonRingTex = canvasTexture(x => {
@@ -126,6 +128,9 @@ export function createOrbits(ctx) {
     const outs = host.data.out()[n.i].length,
       ins = host.data.inc()[n.i].length,
       was = memory.kinds[n.path];
+    // With a function index, a file with planets is a star (drawn by star-bodies.js, kind 'planet' in the layout) and
+    // every other file is a rock in the belt.
+    if (n.star != null) return n.star === 'star' || n.star === 'test' ? 'planet' : 'asteroid';
     if (outs >= 3 && j > count * 0.25 && crossFrac > (was === 'comet' ? 0.5 : 0.6)) return 'comet';
     if (was === 'asteroid' ? n.rloc < 55 && ins <= 2 : n.rloc < (was ? 38 : 45) && ins <= 1) return 'asteroid';
     return 'planet';
@@ -154,7 +159,9 @@ export function createOrbits(ctx) {
           : kind === 'asteroid'
             ? 0.18 + Math.sqrt(n.rloc) / 55
             : 0.4);
-      return { n, j, kind, crossFrac, size, jitter: keyHash(n.seed) };
+      // A star takes the room its planets orbit in (planet-orbits.js), so neighbouring stars' planets never cross.
+      const reach = kind === 'planet' && n.star ? systemReach(size, u, starOf(n.path)?.planets.length ?? 0) : size;
+      return { n, j, kind, crossFrac, size, reach, jitter: keyHash(n.seed) };
     });
     // Planets fill concentric rings from the disk edge outward, at most five per ring, spaced by their size.
     const planets = bodies.filter(b => b.kind === 'planet');
@@ -168,9 +175,9 @@ export function createOrbits(ctx) {
       while (
         k < planets.length &&
         slot.length < 5 &&
-        (slot.length === 0 || used + planets[k].size * 2 + pad <= circumference * 0.6)
+        (slot.length === 0 || used + planets[k].reach * 2 + pad <= circumference * 0.6)
       ) {
-        used += planets[k].size * 2 + pad;
+        used += planets[k].reach * 2 + pad;
         slot.push(planets[k++]);
       }
       const off = ring * 0.9 + keyHash(key) * TAU;
@@ -183,7 +190,7 @@ export function createOrbits(ctx) {
           incl: (b.jitter - 0.5) * 0.06,
         }),
       );
-      const widest = Math.max(...slot.map(b => b.size));
+      const widest = Math.max(...slot.map(b => b.reach));
       r += widest * 2 + pad * 1.8;
       ring++;
     }

@@ -15,7 +15,7 @@ import type { OverlayLayer } from '../galaxy-bridge/overlay-layer.ts';
 import { bridgePointer } from '../galaxy-bridge/pointer-bridge.ts';
 import { createPointScaler } from '../galaxy-bridge/point-sizes.ts';
 import { attachCannon, fileIndex, galaxyState, installActions, openGalaxy } from '../galaxy-bridge/galaxy-session.js';
-import type { GalaxyView } from '../galaxy-bridge/galaxy-session.js';
+import type { GalaxyView, LandedTown } from '../galaxy-bridge/galaxy-session.js';
 import { applyHeadsetBudget } from '../galaxy-bridge/budget.js';
 import { outlinePinnedTown } from '../galaxy-bridge/town-outline.ts';
 import { preferWindowsForGaze } from '../galaxy-bridge/gaze-priority.ts';
@@ -29,6 +29,7 @@ import {
   error,
   hovered,
   landedPath,
+  landedTown,
   loading,
   paused,
   phase,
@@ -76,6 +77,7 @@ export class GalaxySystem extends createSystem({}) {
   private labels!: LabelLayer;
   private overlays!: OverlayLayer;
   private landed = false;
+  private towns: LandedTown[] | null = null;
   private unbridge: (() => void) | null = null;
   private head!: Vector3;
   private gaze!: Vector3;
@@ -136,6 +138,14 @@ export class GalaxySystem extends createSystem({}) {
           if (i >= 0) this.host.actions.enterPlanet(i, { line });
         },
         leavePlanet: () => this.host.actions.exitPlanet(),
+        stepTown: delta => {
+          const towns = galaxyState.view?.landedTowns?.();
+          const i = this.landedIndex();
+          if (!towns || towns.length < 2 || i == null) return;
+          const at = Math.max(0, towns.findIndex(t => t.shown));
+          const next = towns[(at + delta + towns.length) % towns.length];
+          this.host.actions.enterPlanet(i, { townId: next.id, line: next.id ? null : next.start });
+        },
         goHome: () => {
           if (galaxyState.view?.landed) this.host.actions.exitPlanet();
           this.host.actions.selectFile(null, { fly: false });
@@ -241,21 +251,41 @@ export class GalaxySystem extends createSystem({}) {
   private landedPose(kit: NonNullable<XrHost['kit']>) {
     const i = kit.pinned;
     if (i == null || !kit.bodyPos || !kit.bodySize) return tablePoseInto(kit.virtual(), this.anchor, this.pose);
-    const centre = kit.bodyPos(i);
+    // The landed body: a function's planet when the galaxy has them, else the file's body.
+    const body = (kit as { landedBody?: () => { pos: { x: number; y: number; z: number }; size: number } | null }).landedBody?.();
+    const centre = body?.pos ?? kit.bodyPos(i);
     this.focus[0] = centre.x;
     this.focus[1] = centre.y;
     this.focus[2] = centre.z;
-    return focusedPoseInto(kit.virtual(), this.anchor, this.focus, LANDED_GLOBE_DIAMETER / (2 * kit.bodySize(i)), this.pose);
+    const size = body?.size ?? kit.bodySize(i);
+    return focusedPoseInto(kit.virtual(), this.anchor, this.focus, LANDED_GLOBE_DIAMETER / (2 * size), this.pose);
   }
 
   /** Publishes the phase and the landed file when the view lands, leaves, or moves from one planet to another (a
    * ship's travel, or showCode for another file while landed). */
+  /** The landed body (the one the landed pose centres), not the selection, which can move to another file. */
+  private landedIndex(): number | null {
+    const pinnedBody = (this.host.kit as { pinned?: number | null } | null)?.pinned;
+    return pinnedBody ?? galaxyState.selected;
+  }
+
+  /** Publishes which of the landed file's towns the globe shows, when the planet's build hands over a new list. */
+  private publishTown() {
+    const towns = (galaxyState.view?.landed && galaxyState.view.landedTowns?.()) || null;
+    if (towns === this.towns) return;
+    this.towns = towns;
+    const index = towns ? towns.findIndex(t => t.shown) : -1;
+    landedTown.value =
+      towns && towns.length > 1 && index >= 0 && !towns.every(t => t.shown)
+        ? { index, count: towns.length, name: towns[index].name }
+        : null;
+  }
+
   private publishLanding() {
+    this.publishTown();
     const view = galaxyState.view;
     const landed = !!view?.landed;
-    // The landed body (the one the landed pose centres), not the selection, which can move to another file.
-    const pinnedBody = (this.host.kit as { pinned?: number | null } | null)?.pinned;
-    const i = pinnedBody ?? galaxyState.selected;
+    const i = this.landedIndex();
     const path = landed && i != null ? galaxyState.nodes[i]?.path ?? null : null;
     if (landed === this.landed && path === landedPath.peek()) return;
     this.landed = landed;

@@ -99,7 +99,7 @@ const store: State = {
   generation: null,
   revision: null,
   current: 'board',
-  grouping: 'cluster',
+  grouping: 'folder',
   view: null,
   selected: null,
   emptyWorkspace: false,

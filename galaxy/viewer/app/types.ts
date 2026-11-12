@@ -43,6 +43,9 @@ export interface FileNode {
   // Functions and methods in the file (0: none, e.g. only types or constants; null: not analyzed yet).
   callables?: number | null;
   cluster?: string;
+  // From the function index: 'star' or 'test' draw as stars; 'types-only', 'trivial' and 'library' as rocks; null
+  // when the dataset has no index.
+  star?: 'star' | 'test' | 'library' | 'types-only' | 'trivial' | null;
   // Set by the constellation.
   kind?: 'planet' | 'asteroid' | 'comet';
 }

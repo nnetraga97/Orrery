@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { dummy, instanced } from '../scene/scene3d.js';
 import { Asteroids } from './asteroids.js';
 import { PlanetBodies } from './planet-library.js';
+import { StarBodies } from './star-bodies.js';
 import { clock, ease, current, orbitPoint, orientationOf } from './constellation-orbits.js';
 
 export function createBodies(ctx) {
@@ -56,6 +57,17 @@ export function createBodies(ctx) {
     instances.asteroids = Asteroids.create(model.kinds.asteroid.map(i => host.data.nodes()[i]));
     instances.asteroids.meshes.forEach(mesh => T.scene.add(mesh));
     if (!instances.planets) instances.planets = new PlanetBodies(T.scene, syncPickBodies);
+    // With a function index, files with planets are stars (star-bodies.js). The planet library still loads each
+    // file's look, for the landed globe of one of its functions, but draws nothing in the galaxy.
+    instances.starMode = host.data.nodes().some(n => n.star != null);
+    if (instances.starMode) {
+      if (!instances.stars) instances.stars = new StarBodies(T.scene);
+      instances.stars.rebuild(model.kinds.planet);
+      instances.planets.rebuild([]);
+      syncPickBodies();
+      return;
+    }
+    instances.stars?.rebuild([]);
     const livePlanets = model.kinds.planet.map(i => ({
       path: host.data.nodes()[i].path,
       entry: host.memory.fileAppearance(host.data.nodes()[i].path, host.data.nodes()[i].callables),
@@ -74,6 +86,7 @@ export function createBodies(ctx) {
   function syncPickBodies() {
     instances.pickBodies.length = 0;
     instances.pickBodies.push(...instances.planets.meshes.filter(m => m.userData.pickablePlanet), instances.meshes.comet, ...instances.asteroids.meshes);
+    if (instances.starMode && instances.stars?.mesh) instances.pickBodies.push(instances.stars.mesh);
   }
 
   const baseColor = i => {
@@ -83,11 +96,18 @@ export function createBodies(ctx) {
     return c;
   };
   function paintBodies() {
-    const dark = new THREE.Color('#070b14');
+    const dark = new THREE.Color('#070b14'),
+      warm = new THREE.Color('#fff1dc'),
+      grey = new THREE.Color('#9aa3ad');
     host.data.nodes().forEach(n => {
       const o = model.orbit[n.i],
         c = baseColor(n.i).lerp(dark, 1 - model.tint[n.i]);
-      if (o.kind === 'planet') instances.planets.color(n.path, model.tint[n.i]);
+      if (o.kind === 'planet' && instances.starMode) {
+        // A star: its folder's colour warmed toward white; a test file's star is dimmer and greyer.
+        const s = baseColor(n.i).lerp(warm, 0.15);
+        if (n.star === 'test') s.lerp(grey, 0.5).multiplyScalar(0.6);
+        instances.stars.color(n.i, s.lerp(dark, 1 - model.tint[n.i]));
+      } else if (o.kind === 'planet') instances.planets.color(n.path, model.tint[n.i]);
       else if (o.kind === 'asteroid') instances.asteroids.color(n.i, c);
       else instances.meshes[o.kind].setColorAt(o.slot, c);
     });
@@ -106,7 +126,10 @@ export function createBodies(ctx) {
     dummy.scale.setScalar(scale);
     dummy.updateMatrix();
     const slot = slotOf;
-    if (o.kind === 'planet')
+    if (o.kind === 'planet' && instances.starMode) {
+      const i = model.byPath.get(o.path);
+      if (i != null) instances.stars.place(i, dummy.matrix);
+    } else if (o.kind === 'planet')
       instances.planets.place(
         o.path,
         dummy.matrix,
@@ -135,10 +158,11 @@ export function createBodies(ctx) {
       orbitPoint(o, t, now, tmp);
       model.pos[n.i].copy(tmp);
       const grow = (o.born == null ? 1 : ease((now - o.born) / 0.8)) * (model.birthScale.get(n.path) ?? 1);
-      const hidden = lod.i === n.i && lod.host?.opacity >= 1 - 1e-6;
+      // A star stays while one of its function planets is landed; a file planet gives way to its own close-up.
+      const hidden = lod.i === n.i && lod.host?.opacity >= 1 - 1e-6 && !instances.starMode;
       // Omit all library parts (including atmosphere/clouds), rather than leaving
       // a scaled instance in a shared batch while the landed body owns the depth.
-      if (hidden && o.kind === 'planet') return;
+      if (hidden && o.kind === 'planet' && !instances.starMode) return;
       if (o.kind === 'asteroid') {
         const p = instances.asteroids.profiles.get(n.i);
         dummy.position.copy(tmp);
@@ -155,7 +179,7 @@ export function createBodies(ctx) {
     model.ghosts = model.ghosts.filter(gh => gh.until > now);
     if (model.ghosts.length !== ghostCount) instances.planets.pruneGhosts(new Set(model.ghosts.map(gh => gh.o.path)));
     for (const gh of model.ghosts) {
-      if (gh.o.kind === 'asteroid') continue;
+      if (gh.o.kind === 'asteroid' || (gh.o.kind === 'planet' && instances.starMode)) continue;
       if (gh.o.kind === 'comet' && extra.comet >= instances.capacity.comet) continue;
       placeOne(
         gh.o,
@@ -166,6 +190,7 @@ export function createBodies(ctx) {
       );
     }
     instances.planets.end(t);
+    if (instances.starMode) instances.stars.end(t);
     instances.meshes.comet.count = instances.tails.count = extra.comet;
     Object.values(instances.meshes).forEach(m => {
       m.instanceMatrix.needsUpdate = true;

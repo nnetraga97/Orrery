@@ -1,0 +1,4 @@
+{
+  "//": "Functions always shown as planets, per dataset, as path:Owner.name. editor-core: the demo's seeded bug.",
+  "editor-core": ["core/range.ts:Range.containsPosition"]
+}

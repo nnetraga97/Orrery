@@ -214,6 +214,113 @@ export const RoadCars = { detailed: true };`,
     replace: `      if (i < ROAD_CARS.length && RoadCars.detailed) {
         try {`,
   },
+  {
+    file: 'galaxy/viewer/towns/town-placement.js',
+    why: 'scale: kit trees stand shorter than the lots (they were about two lot-widths tall)',
+    find: `      placeAt(choose('tree', tw.k + 'tr' + t), fr, x, y, s * 0.02, fp * 0.55, t);`,
+    replace: `      // A kit tree is about 3.5 times as tall as it is wide: at 0.2 of a lot it stands 0.5-0.7 of a lot tall,
+      // below most buildings.
+      placeAt(choose('tree', tw.k + 'tr' + t), fr, x, y, s * 0.02, fp * 0.2, t);`,
+  },
+  {
+    file: 'galaxy/viewer/towns/town-placement.js',
+    why: 'scale: the town port is at most one and a half lots wide, not the whole apron',
+    find: `      const width = Math.min(P.x1 - P.x0, P.y1 - P.y0) * 0.92,`,
+    replace: `      const width = Math.min(Math.min(P.x1 - P.x0, P.y1 - P.y0) * 0.92, 1.5 * BUILD * s),`,
+  },
+  {
+    file: 'galaxy/viewer/app/state.ts',
+    why: 'folder suns: each top-level folder is one solar system (the files are its planets)',
+    find: `  grouping: 'cluster',`,
+    replace: `  grouping: 'folder',`,
+  },
+  {
+    file: 'galaxy/viewer/planet/planet-scene.js',
+    why: 'one function per globe: the surface build sees the landing request',
+    find: `export async function buildPlanetSurface(ctx, sym, source, model, { previous, publish, bodyKind }) {`,
+    replace: `// One function per globe: when enabled, a landed planet holds only one town (a function, or the group the semantic
+// layout made), so its buildings are drawn large. The host turns it off to see the whole file.
+export const OneTown = { enabled: true };
+// A town's first and last source line, from its members.
+export const townSpan = r => {
+  const ms = r.members || [];
+  return ms.length ? [Math.min(...ms.map(m => m.start)), Math.max(...ms.map(m => m.end))] : [r.start ?? 1, r.end ?? 1];
+};
+// Which town a landing shows: the one with this id, else the one holding this line, else the largest.
+export function pickTown(regions, townId, line) {
+  let k = townId ? regions.findIndex(r => r.id === townId) : -1;
+  if (k < 0 && line != null)
+    k = regions.findIndex(r => {
+      const [a, b] = townSpan(r);
+      return line >= a && line <= b;
+    });
+  if (k < 0) k = regions.reduce((best, r, i) => ((r.loc || 0) > (regions[best].loc || 0) ? i : best), 0);
+  return k;
+}
+export async function buildPlanetSurface(ctx, sym, source, model, options) {
+  const { previous, publish, bodyKind } = options;`,
+  },
+  {
+    file: 'galaxy/viewer/planet/planet-scene.js',
+    why: "one function per globe: keep only the chosen town, and list the file's other towns for stepping between them",
+    find: `  const regions = model.regionsFor(sym, n.path);
+  // Anchors hash persistent town keys`,
+    replace: `  const allRegions = model.regionsFor(sym, n.path);
+  const shown = OneTown.enabled && allRegions.length > 1 ? pickTown(allRegions, options.townId, options.focusLine) : -1;
+  const regions = shown >= 0 ? [allRegions[shown]] : allRegions;
+  ctl.towns = allRegions.map((r, k) => {
+    const [start, end] = townSpan(r);
+    return { id: r.id ?? null, name: r.name, start, end, shown: shown < 0 || k === shown };
+  });
+  // Anchors hash persistent town keys`,
+  },
+  {
+    file: 'galaxy/viewer/galaxy/constellation-detail.js',
+    why: 'one function per globe: a line or town on the landed planet but outside its town rebuilds the globe for it',
+    find: `    if (lod.detail && lod.i === i) {
+      lod.detail.focusLine(line, townId);
+      return;
+    }`,
+    replace: `    const towns = lod.detail && lod.i === i ? lod.detail.towns : null,
+      current = towns?.find(t => t.shown && towns.length > 1 && !towns.every(x => x.shown)),
+      elsewhere =
+        current &&
+        ((townId && townId !== current.id && towns.some(t => t.id === townId)) ||
+          (!townId && line != null && (line < current.start || line > current.end) &&
+            towns.some(t => line >= t.start && line <= t.end)));
+    if (lod.detail && lod.i === i && !elsewhere) {
+      lod.detail.focusLine(line, townId);
+      return;
+    }`,
+  },
+  {
+    file: 'galaxy/viewer/planet/planet-scene.js',
+    why: 'one function per globe: a lone town may draw its buildings larger (townScaleCap, a share of the radius)',
+    find: `        language: sym?.language,
+        regions,`,
+    replace: `        language: sym?.language,
+        regions,
+        townScaleCap: shown >= 0 ? 0.13 : 0.051,`,
+  },
+  {
+    file: 'galaxy/viewer/towns/incremental-towns.js',
+    why: 'one function per globe: the planet-wide building scale is capped by townScaleCap when the scene sets it',
+    find: `          ctx.R * 0.051,`,
+    replace: `          ctx.R * (ctx.townScaleCap ?? 0.051),`,
+  },
+  {
+    file: 'galaxy/viewer/towns/town-preparation.js',
+    why: 'one function per globe: the same cap when each town is packed',
+    find: `          R * 0.051,`,
+    replace: `          R * (ctx.townScaleCap ?? 0.051),`,
+  },
+  {
+    file: 'galaxy/viewer/galaxy/constellation-detail.js',
+    why: "one function per globe: the host reads the landed file's towns (one array per build) to step between them",
+    find: `  Object.defineProperty(T, 'landed', { get: () => !!lod.detail });`,
+    replace: `  Object.defineProperty(T, 'landed', { get: () => !!lod.detail });
+  T.landedTowns = () => lod.detail?.towns ?? null;`,
+  },
 ];
 
 let applied = 0,

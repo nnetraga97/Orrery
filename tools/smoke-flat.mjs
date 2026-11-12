@@ -2,6 +2,9 @@
 // Loads the built flat reference view in headless Chromium and fails on page errors or missing files.
 // Usage: npm run build && node tools/smoke-flat.mjs [--dataset=sample] [--land=<path>] [--line=<n>] [--settle=<ms>]
 //        [--size=1440x900] [--query=cannon=off] [--out=screenshots/flat.png] [--base=https://host/path/]
+//        [--function=<name>]
+// --function, with --land: selects the file's star, lands on its planet with that name (functions.json) and checks
+// that the globe shows exactly that function.
 // Without --base it serves dist/ itself, on a free local port. With --base it tests an already deployed site.
 // --settle is how long to let the overview load; with --land it is the longest to wait for the planet to finish.
 // Prints the asset files the page requested, which is the list the app needs under public/assets/.
@@ -21,7 +24,8 @@ const dataset = option('dataset', 'sample'),
   [width, height] = option('size', '1440x900').split('x').map(Number),
   out = path.resolve(repo, option('out', 'screenshots/flat.png')),
   settle = Number(option('settle', '6000')),
-  base = option('base', '');
+  base = option('base', ''),
+  fn = option('function', '');
 
 const require = createRequire(import.meta.url);
 let chromium;
@@ -129,6 +133,34 @@ try {
       if (quietSince && Date.now() - quietSince >= 8000) break;
     }
   } else await page.waitForTimeout(settle);
+  if (land && fn) {
+    // Select the star, find the named planet, land on it, and wait for the globe to show that function.
+    await page.evaluate(path => {
+      const f = window.__flat;
+      f.actions.exitPlanet();
+      f.actions.selectFile(f.state.nodes.findIndex(n => n.path === path));
+    }, land);
+    await page.waitForTimeout(8000);
+    const want = await page.evaluate(name => {
+      const f = window.__flat,
+        p = f.view.functionPlanets?.().find(x => x.name === name || x.name.endsWith('.' + name));
+      if (!p) return null;
+      f.actions.enterPlanet(p.file, { line: p.start, townId: p.id });
+      return p.id;
+    }, fn);
+    if (!want) errors.push(`no planet named ${fn} around ${land}`);
+    else {
+      const deadline = Date.now() + settle;
+      let got = null;
+      while (Date.now() < deadline && got !== want) {
+        await page.waitForTimeout(2000);
+        got = await page.evaluate(() => (window.__flat.view.landedTowns?.() || []).find(t => t.shown)?.id ?? null);
+      }
+      if (got !== want) errors.push(`landed on ${got}, not the function ${want}`);
+      else console.log(`landed on the function ${want}`);
+      await page.waitForTimeout(6000);
+    }
+  }
   const summary = await page.evaluate(() => ({
     files: window.__flat?.state.nodes.length ?? 0,
     canvases: document.querySelectorAll('#stage canvas').length,

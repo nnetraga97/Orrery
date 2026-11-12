@@ -24,6 +24,8 @@ export const dataset = signal<string | null>(null);
 export const phase = signal<Phase>('idle');
 export const selectedPath = signal<string | null>(null);
 export const landedPath = signal<string | null>(null);
+/** While landed: which of the file's towns the globe shows (one function per globe) and how many there are. */
+export const landedTown = signal<{ index: number; count: number; name: string } | null>(null);
 export const pinned = signal<ContextItem | null>(null);
 export const hovered = signal<ContextItem | null>(null);
 export const loading = signal<Loading | null>(null);
