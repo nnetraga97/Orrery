@@ -83,5 +83,5 @@ test('paths and caps', () => {
   assert.equal(classifyPath('lib/x.d.ts'), 'library');
   assert.equal(classifyPath('src/foo.ts'), null);
   assert.equal(planetCap(4), 4);
-  assert.equal(planetCap(200), 8);
+  assert.equal(planetCap(200), 10);
 });

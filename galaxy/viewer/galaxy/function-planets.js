@@ -1,6 +1,6 @@
 // Every star's important functions as planets (function-index.js), always drawn with the planet library's worlds
 // (planet-library.js PlanetBodies: the same textured bodies, near and far tiers and size culling the file planets
-// had), two to an orbit (planet-orbits.js), and pickable; a pick opens a card whose Land action lands on that one
+// had), each on its own orbit (planet-orbits.js), and pickable; a pick opens a card whose Land action lands on that one
 // function, at the planet itself (constellation-detail.js). The star is only a centre. The selected star also shows
 // its orbit lines, its planets' names, a belt of grains for its hidden functions with their count, and call lanes to
 // the planets its planets call (cyan) and that call them (amber). The landed planet's own instance is hidden.
@@ -115,7 +115,7 @@ export function createFunctionPlanets(ctx) {
 
   const isStar = i => i != null && model.orbit[i]?.kind === 'planet' && !!starOf(host.data.nodes()[i]?.path);
 
-  /** Lays out every star's planets: most important on the inner orbits, two to an orbit on opposite sides. */
+  /** Lays out every star's planets: most important on the inner orbits, one to an orbit. */
   function rebuild() {
     belts.clear();
     all = [];
