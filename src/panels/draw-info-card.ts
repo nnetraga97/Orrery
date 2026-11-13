@@ -15,7 +15,8 @@ export interface InfoCard {
   actions: { label: string; primary?: boolean }[];
 }
 
-export const INFO_CARD = { widthPx: 952, heightPx: 544, widthM: 0.28, heightM: 0.16 };
+// Tall enough for three body lines above the buttons (a function's card states three facts).
+export const INFO_CARD = { widthPx: 952, heightPx: 612, widthM: 0.28, heightM: 0.18 };
 const MAX_BODY_LINES = 3;
 
 /** The card's window title. */

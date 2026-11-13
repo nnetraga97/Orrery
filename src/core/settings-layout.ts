@@ -1,8 +1,9 @@
 // The Settings tab of the chat window: each setting is a labelled row of large pinchable choices (`set:<key>:<value>`),
 // the open project is chosen from the baked projects (`project:<name>`), and two actions restart the tutorial and put
-// the windows back (`action:restartTutorial`, `action:resetLayout`).
+// the windows back (`action:restartTutorial`, `action:resetLayout`). Under them is the key to the galaxy (key.ts).
 import { Builder } from './chat/layout.ts';
 import type { ChatLayout, ChatMetrics, Measure } from './chat/layout.ts';
+import { KEY } from './key.ts';
 import { EFFORTS, SEAT_HEIGHTS, TEXT_SCALES, VOLUMES } from './settings.ts';
 import type { Settings } from './settings.ts';
 
@@ -47,6 +48,15 @@ export function layoutSettings(view: SettingsView, metrics: ChatMetrics, measure
     { id: 'action:restartTutorial', label: 'Restart tutorial' },
     { id: 'action:resetLayout', label: 'Reset layout' },
   ]);
+  b.gap(metrics.pad);
+  // The key: what the galaxy's sizes, looks and colours mean (src/core/key.ts).
+  b.line('cardTitle', [{ text: 'WHAT THE GALAXY SHOWS', x: b.left, font: 'label', tone: 'line' }], 'label');
+  b.gap(6);
+  for (const group of KEY) {
+    b.text('heading', [{ text: group.title, font: 'bold', tone: 'line' }], b.left);
+    for (const line of group.lines) b.text('text', [{ text: line, font: 'body', tone: 'text' }], b.left);
+    b.gap(b.m.gap);
+  }
   b.gap(metrics.pad);
   return { lines: b.lines, boxes: b.boxes, regions: b.regions, height: b.y };
 }

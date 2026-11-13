@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { chooseLabels, DEFAULT_LABEL_LIMITS } from './labels.ts';
+import { chooseLabels, DEFAULT_LABEL_LIMITS, labelHeight } from './labels.ts';
 import type { LabelCandidate } from './labels.ts';
 import type { Vec3 } from './table-frame.ts';
 
@@ -71,6 +71,15 @@ test('size is constant in angle', () => {
   assert.ok(Math.abs(far.height / near.height - 4) < 1e-9);
 });
 
+test('a larger label is drawn larger and keeps others further away', () => {
+  // 4.1 degrees clears a usual label; beside a label at 1.5 times the size it needs 6.
+  assert.deepEqual(shown([label(0, { scale: 1.5 }), label(4.1), label(6.1)]), [0, 2]);
+  assert.deepEqual(shown([label(0), label(4.1, { scale: 1.5 }), label(8.2)]), [0, 2]);
+  const [big, usual] = chooseLabels([label(0, { scale: 1.5 }), label(10)], gaze, DEFAULT_LABEL_LIMITS);
+  assert.ok(Math.abs(big.height / usual.height - 1.5) < 1e-9);
+  assert.ok(Math.abs(labelHeight(1, DEFAULT_LABEL_LIMITS, 1.5) - big.height) < 1e-12);
+});
+
 // ---- the allocation-free variant used every frame ----
 import { chooseLabelsInto, createLabelWork } from './labels.ts';
 
@@ -88,6 +97,7 @@ test('chooseLabelsInto chooses what chooseLabels chooses, reusing its arrays', (
         distance: 0.5 + r() * 3,
         priority: Math.floor(r() * 4),
         avoidOverlap: r() > 0.15,
+        ...(r() > 0.8 ? { scale: r() > 0.5 ? 1.5 : 1.2 } : {}),
         ...(r() > 0.6 ? { group: r() > 0.5 ? 'g1' : 'g2', maxVisible: 1 + Math.floor(r() * 3) } : {}),
       };
     });

@@ -61,10 +61,37 @@ functions) -> planets (those functions) -> the landed surface (one function's st
 | Loads the index; marks each file node `star` | `viewer/app/function-index.js`, `viewer/app/graph.ts` |
 | Files with planets lay out as stars, the rest as rocks | `kindOf` in `viewer/galaxy/constellation-orbits.js` |
 | Star drawing (two instanced batches) | `viewer/galaxy/star-bodies.js`, used by `constellation-bodies.js` |
-| The selected star's planets, orbit lines, belt of hidden functions, labels, call lanes, and the picker card whose Land action lands on one function | `viewer/galaxy/function-planets.js` |
+| The selected star's planets, orbit lines, belt of hidden functions, labels, call lanes, and the picker card whose Land action lands on one function | `viewer/galaxy/function-planets.js`, `function-facts.js` |
 | A landed globe holds one town (one function) | `OneTown`, `pickTown` in `viewer/planet/planet-scene.js` |
 
 A dataset without `functions.json` draws as it did before the fork (files as planets).
+
+### What each drawn property measures
+
+Nothing a viewer can compare is decoration: each property below is tied to a measure from the baked symbols
+(`src/core/importance.ts` writes them into `functions.json`). The Settings tab shows the same key (`src/core/key.ts`).
+
+| Seen | Measure | Where |
+| --- | --- | --- |
+| A star's size | The file's lines (square root; half as fast past about 1,000 lines, no cap) | `starRadius` in `constellation-orbits.js` |
+| A star's glow | Files that import its values (type-only imports left out), against the most-imported file; from far away the glow keeps a minimum angle | `shine` in `star-bodies.js`, `import-counts.js` |
+| A planet's size | The function's lines | `planetSize` in `planet-orbits.js` |
+| A planet's world | Its grade: nesting depth, raised by a very high branch count (ocean world, pale, cratered, red) | `gradeWorld` in `planet-profiles.js`; the landed globe wears the same one |
+| Warm and cool lines | Warm leaves the selection (imports, calls); cool arrives at it. The same at all three levels | `constellation-fleet.js`, `function-planets.js`, `traffic/call-routes.js` |
+| Tinted ground on a globe | Code nested three deep or more (amber, then orange) | `NEST_TINT` in `towns/town-ground.js` |
+| The file's marker and a planet's card | The same measures in words | `fileFacts` in `src/galaxy-bridge/galaxy-session.js`, `function-facts.js` |
+
+The measures are baked: after the agent edits a file, its landed town is rebuilt from the new text, but a planet's
+grade, size and card stay as baked until the dataset is baked again.
+
+### One function fills its globe
+
+A globe with one town (`OneTown`) places the town on the sunlit equator (`ONE_TOWN_CENTRE`), gives it land out to about
+46 degrees from its middle (`ONE_TOWN_REACH`, `planet-terrain.js`) and takes the largest lot size at which the town
+fits that land (`incremental-towns.js`), so the whole function is in sight at once and little of the facing side is
+bare. In the room the town is shown square on (`faceLanding`, `planet/town-landing.js`), and a function of a few
+statements, which cannot fill a full globe at a sensible building size, is shown on a smaller globe
+(`src/core/globe-size.ts`). `fit()` on the landed planet reports the town's reach for checks.
 
 ## Updating from codebase-viz (no longer done)
 

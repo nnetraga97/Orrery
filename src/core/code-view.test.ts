@@ -118,6 +118,28 @@ test('a selected line too long for the card wraps onto continuation rows; other 
   assert.equal(maxScrollTop(view({ lines, regions: [], selectedRegion: null }), 4), 10 - 4);
 });
 
+test('scrolling counts rows: at the end the card is full and shows the last line, wrapped lines above included', () => {
+  const long = '\t\tif (position.lineNumber === range.endLineNumber && position.column >= range.endColumn) {';
+  const lines = file(20);
+  for (const n of [2, 3, 4]) lines[n - 1] = [{ text: long }];
+  const v = view({ lines, regions: [], selectedRegion: null, selectedRange: { start: 2, end: 4 } });
+  // 20 lines and three continuation rows.
+  const max = maxScrollTop(v, 6);
+  assert.equal(max, 20 + 3 - 6);
+  const end = visibleLines(v, { rows: 6, columns: 56, scrollTop: max });
+  assert.deepEqual(end.map(r => r.number), [15, 16, 17, 18, 19, 20]);
+  // One row down from the top: line 1 is gone, the selection starts the card.
+  const one = visibleLines(v, { rows: 6, columns: 56, scrollTop: 1 });
+  assert.deepEqual(one.map(r => [r.number, !!r.continuation]), [[2, false], [2, true], [3, false], [3, true], [4, false], [4, true]]);
+  // Two rows down: the card starts on line 2's continuation row.
+  const two = visibleLines(v, { rows: 6, columns: 56, scrollTop: 2 });
+  assert.deepEqual(two.map(r => [r.number, !!r.continuation]), [[2, true], [3, false], [3, true], [4, false], [4, true], [5, false]]);
+  // Every scroll position shows a full card, each one row further on.
+  for (let top = 0; top <= max; top++) assert.equal(visibleLines(v, { rows: 6, columns: 56, scrollTop: top }).length, 6);
+  // A range below the wrapped lines is placed by rows.
+  assert.equal(scrollToRange(v, { start: 12, end: 12 }, 6), 11 + 3 - 2);
+});
+
 test('wrapLine breaks at a space near the end of a row, or mid-word when there is none', () => {
   const rows = wrapLine([{ text: 'aaaa bbbb cccc dddd eeee ffff' }], 20);
   assert.deepEqual(rows.map(r => r.map(s => s.text).join('')), ['aaaa bbbb cccc dddd ', '    eeee ffff']);

@@ -10,7 +10,8 @@
       #stage { position: fixed; inset: 0; overflow: hidden; }
       #stage canvas { display: block; }
       #labels { position: absolute; inset: 0; pointer-events: none; }
-      #labels > div { position: absolute; white-space: nowrap; text-shadow: 0 1px 3px #000; }
+      #labels > div { position: absolute; white-space: nowrap; text-shadow: 0 1px 3px #000; transform: translate(-50%, -100%); }
+      #labels > div.label-centered { transform: translate(-50%, -50%); }
       #hud { position: fixed; left: 12px; top: 12px; max-width: 360px; background: #0c1220cc; padding: 8px 10px; border-radius: 6px; }
       #legendExtra, #trackpadHelp, #mouseHelp { display: none; }
       #hud [hidden] { display: none; }

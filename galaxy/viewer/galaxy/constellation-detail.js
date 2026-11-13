@@ -2,7 +2,7 @@
 import * as THREE from 'three';
 import { PLANET_R, CODE_BODY_R, createPlanetDetail, makePlanetHost } from '../planet/planet.js';
 import { clock, ease, current, orientationOf } from './constellation-orbits.js';
-import { planetAtLine, starOf } from '../app/function-index.js';
+import { gradeOfKey, planetAtLine, starOf } from '../app/function-index.js';
 
 export function createDetail(ctx) {
   const { host, T, u, model, lod, frame: frameState } = ctx;
@@ -42,6 +42,9 @@ export function createDetail(ctx) {
     lod.path = host.data.nodes()[i].path;
     lod.seed = host.data.nodes()[i].seed;
     lod.fnKey = land?.fnKey ?? null;
+    // How tangled the landed function is: its globe wears the same world its planet did, and keeps it when rebuilt.
+    // A globe opened again in place (constellation.js) brings the grade it had: it has no line to look it up by.
+    lod.grade = land?.grade ?? gradeOfKey(lod.fnKey, land?.line ?? land?.gradeLine ?? null);
     ctx.functions?.setLanded(lod.fnKey);
     lod.host = makePlanetHost(T, frameOf(i, lod.fnKey));
     document.body.classList.add('planet-mode');
@@ -60,6 +63,7 @@ export function createDetail(ctx) {
         arrival: land?.arrival,
         bodyKind: model.orbit[i].kind,
         look: lod.fnKey,
+        grade: lod.grade,
       },
       host,
     );
@@ -73,7 +77,7 @@ export function createDetail(ctx) {
     if (!lod.detail) return;
     lod.detail.stop();
     lod.panel?.remove();
-    lod.detail = lod.host = lod.i = lod.panel = lod.fnKey = null;
+    lod.detail = lod.host = lod.i = lod.panel = lod.fnKey = lod.grade = null;
     ctx.functions?.setLanded(null);
     if (host.windows.context.pinned?.key?.startsWith('planet:')) host.windows.context.close({ silent: true });
     document.body.classList.remove('planet-mode');
@@ -112,6 +116,7 @@ export function createDetail(ctx) {
         panel,
         bodyKind: model.orbit[i].kind,
         look: lod.fnKey,
+        grade: lod.grade,
         townId: shownTown?.id ?? null,
         previous: old.inspection,
         selection: old.selection,
@@ -196,8 +201,11 @@ export function createDetail(ctx) {
         lod.detail.focusLine(line, townId);
         return;
       }
+      // A hidden function reached by its town alone (stepping from the one shown) has no line to find its grade by:
+      // the globe being left knows where that town starts.
+      const gradeLine = line ?? (lod.i === i ? lod.detail?.towns?.find(t => t.id === townId)?.start : null) ?? null;
       if (lod.detail) closeDetail();
-      lod.land = { i, line, arrival, townId, fnKey };
+      lod.land = { i, line, arrival, townId, fnKey, gradeLine };
       if (T.pinned !== i) T.select(i, { fly: false });
       const b = targetOf(i, fnKey);
       T.flyTo(new THREE.Vector3(), b.size * 3, { frame: () => ({ origin: b.pos, scale: 1 }), duration: 1800 });
@@ -244,6 +252,8 @@ export function createDetail(ctx) {
   };
   Object.defineProperty(T, 'landed', { get: () => !!lod.detail });
   T.landedTowns = () => lod.detail?.towns ?? null;
+  /** The landed town's lot size as a share of its globe's radius, or null while it is being built (planet.js). */
+  T.landedLot = () => lod.detail?.lotShare?.() ?? null;
   /** For checks: how much of its globe the landed town covers (planet.js `fit`). */
   T.landedFit = () => lod.detail?.fit?.() ?? null;
 

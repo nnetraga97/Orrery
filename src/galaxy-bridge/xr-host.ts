@@ -67,6 +67,9 @@ function createContextWindows(): ContextWindows {
 export interface XrHostServices {
   renderer: WebGLRenderer;
   anchor: TableAnchor;
+  /** How far above a landed town's middle the virtual camera stands so the town faces the seated eye (radians), read
+   * at each landing. */
+  faceTilt?: number | (() => number);
   labels?: LabelSink;
   overlays?: OverlaySink;
 }
@@ -168,6 +171,7 @@ export function createXrHost(services: XrHostServices): XrHost {
         host,
         renderer: services.renderer,
         anchor: services.anchor,
+        faceTilt: services.faceTilt ?? 0,
         labels: services.labels,
         overlays: services.overlays,
       });

@@ -85,13 +85,17 @@ export async function buildIncrementalTowns(ctx) {
         : [];
     const freshByRegion = new Map(changed.map((k, i) => [k, fresh[i]]));
     const prepared = ctx.regions.map((r, k) => candidates[k]?.prepared ?? freshByRegion.get(k));
-    // Planets share one building scale across their towns (flat country maps size their own lots).
+    // Planets share one building scale across their towns (flat country maps size their own lots). A globe with one
+    // town has nothing to share it with: it asks for the cap, and the packer then finds the largest scale at which
+    // the town fits its land, so the town fills the face of the globe instead of stopping at a rounded-down step.
     const townScale = ctx.terrain?.shapes
-      ? planetTownScale(
-          ctx.terrain.shapes,
-          prepared.map(p => p.blocks),
-          ctx.R * (ctx.townScaleCap ?? 0.051),
-        )
+      ? ctx.regions.length === 1
+        ? ctx.R * (ctx.townScaleCap ?? 0.051)
+        : planetTownScale(
+            ctx.terrain.shapes,
+            prepared.map(p => p.blocks),
+            ctx.R * (ctx.townScaleCap ?? 0.051),
+          )
       : undefined;
     const packings = await ctx.layoutTowns?.(
       prepared.map(p => p.blocks),

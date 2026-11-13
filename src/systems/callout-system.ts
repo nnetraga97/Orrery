@@ -16,7 +16,7 @@ import type { Callout } from '../panels/draw-problem-card.ts';
 import { loadFonts } from '../panels/fonts.ts';
 import { agentPointer, codeCardOpen, codeView, composer, landedPath, layoutResets, paused, phase, replay, scenario, scenarioState } from '../state/app-state.ts';
 import { dismissReplayNotice, followReplay, showChatPage, showCode } from '../state/commands.ts';
-import { GalaxySystem, LANDED_CENTER, LANDED_GLOBE_DIAMETER } from './galaxy-system.ts';
+import { GalaxySystem, LANDED_CENTER, landedGlobe } from './galaxy-system.ts';
 import { headPosition } from './head.ts';
 import { SEAT } from './panel-system.ts';
 
@@ -195,7 +195,7 @@ export class CalloutSystem extends createSystem({}) {
       panel.mesh.position.copy(code.mesh.position).addScaledVector(this.dockUp, (code.glassHeightM * code.mesh.scale.y) / 2 + DOCK_GAP + this.docked + h / 2);
       panel.mesh.quaternion.copy(code.mesh.quaternion);
     } else {
-      panel.mesh.position.set(LANDED_CENTER[0], LANDED_CENTER[1] + LANDED_GLOBE_DIAMETER / 2 + GLOBE_CLEARANCE + this.docked + h / 2, LANDED_CENTER[2]);
+      panel.mesh.position.set(LANDED_CENTER[0], LANDED_CENTER[1] + landedGlobe.diameter / 2 + GLOBE_CLEARANCE + this.docked + h / 2, LANDED_CENTER[2]);
       panel.face(this.head);
     }
     this.docked += h + DOCK_GAP;

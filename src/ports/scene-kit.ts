@@ -42,6 +42,10 @@ export interface LabelDefinition {
   group?: string;
   maxVisible?: number;
   centered?: boolean;
+  /** The radius (model units) of the body this label names: the label sits just above it instead of on it. */
+  clear?: number;
+  /** A multiple of the usual label height: a label that matters more is written larger. */
+  scale?: number;
   onClick?: () => void;
   action?: { label: () => string; title?: string; onClick: () => void };
 }

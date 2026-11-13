@@ -6,6 +6,8 @@ import { createAgentCannon } from '../../galaxy/viewer/agents/agent-cannon.js';
 import { loadGalaxyMemory } from '../../galaxy/viewer/app/galaxy-memory.ts';
 import { loadDataset, prepare, regroup } from '../../galaxy/viewer/app/graph.ts';
 import { actions, projects, state, update } from '../../galaxy/viewer/app/state.ts';
+import { starOf } from '../../galaxy/viewer/app/function-index.js';
+import { importCounts } from '../../galaxy/viewer/galaxy/import-counts.js';
 
 // The pieces of the copied app layer the XR host uses, re-exported here so TypeScript sees them through
 // galaxy-session.d.ts instead of type-checking the copied files.
@@ -54,7 +56,23 @@ export function installActions(host, publish) {
   });
 }
 
-// The card a selected file shows: what it is, how connected it is, and a way in.
+// What a selected file says about itself: how big it is, how tangled its functions are, and who depends on it. In the
+// room a file has no card, only its marker, so `lines` are two short lines for under its name there; `text` is the
+// fuller wording for a card, with imports that carry only types counted apart.
+const count = (n, one, many = one + 's') => `${n.toLocaleString()} ${n === 1 ? one : many}`;
+export function fileFacts(host, i) {
+  const n = state.nodes[i],
+    star = starOf(n.path),
+    use = importCounts(host, i);
+  const functions = star ? star.planets.length + star.hidden : (n.callables ?? 0),
+    tangled = star?.grades ? star.grades[2] + star.grades[3] : null;
+  const size = `${count(n.rloc, 'line')} · ${count(functions, 'function')}${tangled == null ? '' : `, ${tangled} tangled`}`;
+  const types = k => (k ? `, and ${k} more for types only` : '');
+  return {
+    lines: [size, `Imported by ${count(use.inRun, 'file')} · imports ${use.outRun}`],
+    text: [size, `Imported by ${count(use.inRun, 'file')}${types(use.inType)}`, `Imports ${count(use.outRun, 'file')}${types(use.outType)}`].join('\n'),
+  };
+}
 function fileCard(host, i) {
   const n = state.nodes[i];
   const group = host.graph.groupOf(n);
@@ -64,7 +82,7 @@ function fileCard(host, i) {
     title: n.name,
     sub: n.path,
     color: host.graph.color(group),
-    text: `${n.rloc.toLocaleString()} lines · imports ${state.out[i].length} · imported by ${state.inc[i].length}\nGroup: ${group}`,
+    text: fileFacts(host, i).text,
     actions: [
       { label: 'Open', primary: true, onClick: () => actions.enterPlanet(i) },
       { label: 'Deselect', onClick: () => actions.selectFile(null) },

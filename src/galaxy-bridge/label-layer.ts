@@ -14,7 +14,7 @@ import {
   Vector3,
 } from '@iwsdk/core';
 import type { Entity, Intersection, Raycaster, World } from '@iwsdk/core';
-import { chooseLabelsInto, createLabelWork, DEFAULT_LABEL_LIMITS } from '../core/labels.ts';
+import { chooseLabelsInto, createLabelWork, DEFAULT_LABEL_LIMITS, labelHeight } from '../core/labels.ts';
 import { THEME } from '../core/theme.ts';
 import { loadFonts } from '../panels/fonts.ts';
 import { microLabel, microLabelWidth } from '../panels/paint.ts';
@@ -164,6 +164,9 @@ export function createLabelLayer(world: World) {
     const d = label.definition;
     if ((label.gate && !label.gate()) || (d.visible && !d.visible())) return n;
     positionOf(label, pose, v);
+    // A label that names a body sits just above it: lifted by the body's radius in the room, plus a little air. The
+    // lift is part of where the label is, so the choice below keeps labels apart as they are drawn.
+    if (d.clear) v.y += d.clear * pose.scale + labelHeight(v.distanceTo(head), DEFAULT_LABEL_LIMITS, d.scale ?? 1) * 0.2;
     const wp = (worldPos[n] ||= [0, 0, 0]);
     wp[0] = v.x;
     wp[1] = v.y;
@@ -177,6 +180,7 @@ export function createLabelLayer(world: World) {
     c.direction[2] = v.z;
     c.distance = distance;
     c.priority = d.priority || 0;
+    c.scale = d.scale ?? 1;
     c.avoidOverlap = !!d.avoidOverlap;
     c.group = d.group;
     c.maxVisible = d.maxVisible;
@@ -227,9 +231,10 @@ export function createLabelLayer(world: World) {
         slot.label = label;
         const text = d.action ? `${d.text} ${d.action.label()}` : d.text;
         if (text !== slot.text || (d.col || '') !== slot.color) draw(slot, text, d.col || '');
-        const wp = worldPos[pick.index];
+        const wp = worldPos[pick.index],
+          height = pick.height;
         slot.sprite.position.set(wp[0], wp[1], wp[2]);
-        slot.sprite.scale.set((pick.height * CANVAS_W) / CANVAS_H, pick.height, 1);
+        slot.sprite.scale.set((height * CANVAS_W) / CANVAS_H, height, 1);
         // Centred on its point horizontally; above it unless the definition asks to be centred vertically.
         slot.sprite.center.set(slot.textWidth / 2 / CANVAS_W, d.centered ? 0.5 : 0);
         slot.sprite.visible = true;

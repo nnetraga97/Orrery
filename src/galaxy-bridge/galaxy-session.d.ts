@@ -82,3 +82,5 @@ export function sourceUrl(dataset: string, path: string): string;
 export function functionIndexUrl(dataset: string): string;
 /** Adds the agent's cannon and its island to a view, once (after the first frame). */
 export function attachCannon(view: GalaxyView, host: XrHost): void;
+/** What a selected file says about itself: two short lines for its marker, and the fuller card text. */
+export function fileFacts(host: HostPort, i: number): { lines: string[]; text: string };

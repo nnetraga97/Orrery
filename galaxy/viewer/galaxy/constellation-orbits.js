@@ -120,6 +120,14 @@ export function orbitPoint(o, t, now, out) {
 }
 const currentPosition = (o, t, now) => (o.frozenAt ? o.frozenAt.clone() : orbitPoint(o, t, now, new THREE.Vector3()));
 
+/** A file's body radius from its lines: the square root, and past 1.5 (about 1,000 lines) half as fast, so the largest
+ * files still come out in order of length (it used to stop at 1.8, where a 2,200-line file and a 4,800-line one drew
+ * the same) without one giant crowding its system. */
+export function starRadius(lines) {
+  const r = 0.45 + Math.sqrt(lines) / 30;
+  return r <= 1.5 ? r : Math.min(3, 1.5 + (r - 1.5) * 0.5);
+}
+
 export function createOrbits(ctx) {
   const { host, T, u, memory, model, frame: frameState } = ctx;
   const { e3 } = ctx.scratch;
@@ -156,7 +164,7 @@ export function createOrbits(ctx) {
       const size =
         u *
         (kind === 'planet'
-          ? Math.min(1.8, 0.45 + Math.sqrt(n.rloc) / 30)
+          ? starRadius(n.rloc)
           : kind === 'asteroid'
             ? Math.min(0.35, 0.18 + Math.sqrt(n.rloc) / 55)
             : 0.4);

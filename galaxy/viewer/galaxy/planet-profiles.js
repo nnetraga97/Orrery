@@ -1,4 +1,5 @@
-// File identities choose visual assets only; planet types do not imply code behavior.
+// A file's body takes its world from its identity alone: that choice implies nothing about the code. A function's
+// planet takes its world from how tangled the function is (gradeWorld), so there the look is a measure.
 import library from '../assets/planets/library.json' with { type: 'json' };
 
 export const planetCatalog = Object.freeze(library.planets);
@@ -25,3 +26,10 @@ export function planetProfile(path, { kind = 'terrestrial' } = {}) {
   }
   return selected;
 }
+
+// The world a function's planet wears, by its grade (src/core/importance.ts GRADES: straightforward, some branching,
+// tangled, very tangled): a living ocean world, pale highlands, dark cratered scarps, a red desert. The orbiting planet
+// (function-planets.js) and the landed globe (planet.js) both ask here, so a planet keeps its look when landed on.
+const GRADE_WORLDS = ['earth', 'moon', 'mercury', 'mars'];
+export const gradeWorld = grade =>
+  grade == null ? null : (planetCatalog.find(entry => entry.id === GRADE_WORLDS[grade]) ?? null);

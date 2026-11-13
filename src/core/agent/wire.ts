@@ -26,6 +26,8 @@ export type StreamEvent =
   | { type: 'text'; delta: string }
   | { type: 'thinking'; delta: string }
   | { type: 'tool_use_start'; id: string; name: string }
+  /** The provider is still sending something the app does not show (a tool's input): the call is alive. */
+  | { type: 'progress' }
   | { type: 'message'; message: Message; stopReason: StopReason }
   | { type: 'usage'; usage: Usage }
   | { type: 'error'; code: ErrorCode; message: string };
@@ -94,6 +96,8 @@ export function isStreamEvent(v: unknown): v is StreamEvent {
       return isString(v.delta);
     case 'tool_use_start':
       return isString(v.id) && isString(v.name);
+    case 'progress':
+      return true;
     case 'message':
       return isMessage(v.message) && (v.message as Message).role === 'assistant' && STOP_REASONS.includes(v.stopReason as StopReason);
     case 'usage':

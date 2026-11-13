@@ -47,13 +47,19 @@ export function shownRange(view: CodeView): LineRange {
   return { start: Math.max(1, region.start - CONTEXT_LINES), end: Math.min(total, region.end + CONTEXT_LINES) };
 }
 
-/** The largest scrollTop for `rows` visible rows; the selected lines' continuation rows count. */
+/** The rows the shown lines above `line` take: one each, plus the selected lines' continuation rows. */
+function rowsAbove(view: CodeView, line: number, columns: number): number {
+  const range = shownRange(view),
+    sel = view.selectedRange;
+  let rows = line - range.start;
+  if (sel) for (let n = Math.max(sel.start, range.start); n <= Math.min(sel.end, line - 1); n++) rows += wrapLine(view.lines[n - 1] ?? [], columns).length - 1;
+  return rows;
+}
+
+/** The largest scrollTop for `rows` visible rows. scrollTop counts rows, so the selected lines' continuation rows
+ * count: the last row of the last line can always be brought to the foot of the card, and no further. */
 export function maxScrollTop(view: CodeView, rows: number, columns = CODE_COLUMNS): number {
-  const range = shownRange(view);
-  let extra = 0;
-  const sel = view.selectedRange;
-  if (sel) for (let n = Math.max(sel.start, range.start); n <= Math.min(sel.end, range.end); n++) extra += wrapLine(view.lines[n - 1] ?? [], columns).length - 1;
-  return Math.max(0, range.end - range.start + 1 + extra - rows);
+  return Math.max(0, rowsAbove(view, shownRange(view).end + 1, columns) - rows);
 }
 
 /** Whether the card has something to show: a selected function or a selected range. */
@@ -127,13 +133,22 @@ export function visibleLines(
   const range = shownRange(view);
   const top = Math.max(0, Math.min(Math.floor(options.scrollTop), maxScrollTop(view, options.rows, options.columns)));
   const rows: CodeRow[] = [];
-  for (let n = range.start + top; n <= range.end && rows.length < options.rows; n++) {
+  // scrollTop counts rows. The lines above the selection take one row each, so they are skipped by count; from the
+  // selection on, a wrapped line's rows are skipped one at a time (the card may start partway through one).
+  const sel = view.selectedRange;
+  let skip = sel ? top - Math.min(top, Math.max(0, sel.start - range.start)) : 0;
+  for (let n = range.start + top - skip; n <= range.end && rows.length < options.rows; n++) {
     const highlight = inRange(n, view.selectedRange) ? 'selected' : inRange(n, view.hoveredRange) ? 'hovered' : 'none';
     if (highlight === 'selected') {
       // Selected lines are shown whole, on as many rows as they need.
       const wrapped = wrapLine(view.lines[n - 1] ?? [], options.columns);
-      for (let k = 0; k < wrapped.length && rows.length < options.rows; k++)
+      for (let k = skip; k < wrapped.length && rows.length < options.rows; k++)
         rows.push({ number: n, segments: wrapped[k], highlight, truncated: false, ...(k ? { continuation: true } : {}) });
+      skip = Math.max(0, skip - wrapped.length);
+      continue;
+    }
+    if (skip) {
+      skip--;
       continue;
     }
     const { segments, truncated } = cut(view.lines[n - 1] ?? [], options.columns);
@@ -144,7 +159,6 @@ export function visibleLines(
 
 /** The scrollTop that puts the range's first line a third of the way down the card, clamped. */
 export function scrollToRange(view: CodeView, range: LineRange, rows: number): number {
-  const shown = shownRange(view);
-  const wanted = range.start - shown.start - Math.floor(rows / 3);
+  const wanted = rowsAbove(view, range.start, CODE_COLUMNS) - Math.floor(rows / 3);
   return Math.max(0, Math.min(wanted, maxScrollTop(view, rows)));
 }

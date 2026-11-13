@@ -58,7 +58,8 @@ type Pending = { id: string; name: string; input: Record<string, unknown> };
 
 /** After the problem closes, the fixed run replays by itself once the rebuilt town has had this long to show. */
 const REPLAY_AFTER_FIX_MS = 1500;
-/** A model call with no event for this long is given up (the relay or the network went quiet). */
+/** A model call with no event for this long is given up (the relay or the network went quiet). While a tool's input
+ * streams the relay sends progress events, so a long write_file is not mistaken for silence. */
 const IDLE_MS = 90_000;
 export const RECORDED_NOTICE = 'Recorded agent: it replays one prepared fix, whatever is asked.';
 export const NEW_CHAT_NOTICE = 'New chat: the files are back as they started. Your changes stay with the earlier chat.';
@@ -375,6 +376,8 @@ export class AgentSystem extends createSystem({}) {
         if (ended || abort.signal.aborted || call !== this.live.call) return;
         if (event.type === 'message' || event.type === 'error') ended = true;
         watch();
+        // Progress only keeps the call alive (a long tool input streams with nothing to show).
+        if (event.type === 'progress') return;
         this.onStream(event);
       }, abort.signal);
       if (!ended && !abort.signal.aborted && call === this.live.call)

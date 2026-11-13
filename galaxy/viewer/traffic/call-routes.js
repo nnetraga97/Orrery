@@ -398,7 +398,8 @@ export async function createCallRoutes(T, towns, regions, groundAt, file, signal
           );
           const curve = clearTerrain(flight(gate.end, towns.portOf(k), k)),
             geometry = new LineGeometry().setPositions(curve.getPoints(128).flatMap(p => [p.x, p.y, p.z])),
-            material = new LineMaterial({ color: '#c9b3f0', linewidth: 2 });
+            // Cool arrives at this function, as importers and callers do in the galaxy.
+            material = new LineMaterial({ color: '#5cc4ff', linewidth: 2 });
           gate.line = cased(geometry, material).both;
           gate.line.visible = false;
           group.add(gate.line);
@@ -421,7 +422,7 @@ export async function createCallRoutes(T, towns, regions, groundAt, file, signal
           .map(name => name + '()')
           .join(', ')}` + (gate.callers.length > 2 ? ` +${gate.callers.length - 2}` : ''),
       pos: gate.end.clone().addScaledVector(towns.frameOf(gate.k).normalAt(gate.end), 1.5 * unit),
-      col: '#c9b3f0',
+      col: '#5cc4ff',
       cls: 'code-label call-route-label',
       avoidOverlap: true,
       group: 'call-endpoints',
@@ -461,7 +462,9 @@ export async function createCallRoutes(T, towns, regions, groundAt, file, signal
       if (!r.line) {
         const geometry = new LineGeometry().setPositions(r.curve.getPoints(256).flatMap(p => [p.x, p.y, p.z])),
           material = new LineMaterial({
-            color: r.kind === 'unresolved' ? '#e4ac6f' : '#8fd0dc',
+            // Warm leaves this function (the colour of "this imports" and "this calls" in the galaxy); a call whose
+            // target the analyzer could not resolve is grey, since it leads nowhere known.
+            color: r.kind === 'unresolved' ? '#9aa3ad' : '#ffc56b',
             // More calls between a pair of towns draw a heavier connection.
             linewidth: r.aggregate ? Math.min(3.5, 1.75 + 0.5 * Math.log2(r.calls.length)) : 2,
           });

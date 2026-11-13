@@ -12,6 +12,8 @@ export interface LabelCandidate {
   avoidOverlap: boolean;
   group?: string;
   maxVisible?: number;
+  /** A multiple of the usual height (default 1): a larger label is drawn larger and keeps others further away. */
+  scale?: number;
 }
 export interface LabelLimits {
   max: number;
@@ -21,7 +23,7 @@ export interface LabelLimits {
 }
 export interface ChosenLabel {
   index: number;
-  /** World height in metres. */
+  /** World height in metres (the candidate's scale included). */
   height: number;
 }
 
@@ -34,6 +36,15 @@ export const DEFAULT_LABEL_LIMITS: LabelLimits = {
 
 const RAD = Math.PI / 180;
 const cosine = (a: Vec3, b: Vec3) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+
+/** A label's world height in metres at a distance from the head. */
+export const labelHeight = (distance: number, limits: LabelLimits, scale = 1) =>
+  2 * distance * Math.tan((limits.angularHeightDegrees * RAD) / 2) * scale;
+/** The cosine of the least angle between two labels: the usual separation, widened by the larger label's scale. */
+const separationOf = (a: LabelCandidate, b: LabelCandidate, limits: LabelLimits, usual: number) => {
+  const scale = Math.max(a.scale ?? 1, b.scale ?? 1);
+  return scale === 1 ? usual : Math.cos(limits.minSeparationDegrees * scale * RAD);
+};
 
 /** The labels to show, fixed ones first, then by priority (stable), within the limits. */
 export function chooseLabels(candidates: readonly LabelCandidate[], gaze: Vec3, limits: LabelLimits): ChosenLabel[] {
@@ -55,10 +66,10 @@ export function chooseLabels(candidates: readonly LabelCandidate[], gaze: Vec3, 
     if (c.avoidOverlap) {
       if (cosine(c.direction, gaze) < cone) continue;
       if (c.group && (groups.get(c.group) ?? 0) >= (c.maxVisible ?? Infinity)) continue;
-      if (chosen.some(s => cosine(candidates[s.index].direction, c.direction) > separation)) continue;
+      if (chosen.some(s => cosine(candidates[s.index].direction, c.direction) > separationOf(candidates[s.index], c, limits, separation))) continue;
     }
     if (c.group) groups.set(c.group, (groups.get(c.group) ?? 0) + 1);
-    chosen.push({ index: i, height: 2 * c.distance * tanHalf });
+    chosen.push({ index: i, height: 2 * c.distance * tanHalf * (c.scale ?? 1) });
   }
   return chosen;
 }
@@ -105,13 +116,16 @@ export function chooseLabelsInto(
       if (cosine(c.direction, gaze) < cone) continue;
       if (c.group && (groups.get(c.group) ?? 0) >= (c.maxVisible ?? Infinity)) continue;
       let crowded = false;
-      for (let s = 0; s < n && !crowded; s++) crowded = cosine(candidates[chosen[s].index].direction, c.direction) > separation;
+      for (let s = 0; s < n && !crowded; s++) {
+        const other = candidates[chosen[s].index];
+        crowded = cosine(other.direction, c.direction) > separationOf(other, c, limits, separation);
+      }
       if (crowded) continue;
     }
     if (c.group) groups.set(c.group, (groups.get(c.group) ?? 0) + 1);
     const slot = (chosen[n] ||= { index: 0, height: 0 });
     slot.index = i;
-    slot.height = 2 * c.distance * tanHalf;
+    slot.height = 2 * c.distance * tanHalf * (c.scale ?? 1);
     n++;
   }
   return n;

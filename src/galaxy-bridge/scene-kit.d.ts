@@ -47,6 +47,7 @@ export function createSceneKit(options: {
   host: HostPort;
   renderer: WebGLRenderer;
   anchor?: TableAnchor | null;
+  faceTilt?: number | (() => number);
   labels?: LabelSink;
   overlays?: OverlaySink;
 }): XrSceneKit;

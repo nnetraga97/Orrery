@@ -4,6 +4,7 @@ import { dummy, instanced } from '../scene/scene3d.js';
 import { Asteroids } from './asteroids.js';
 import { PlanetBodies } from './planet-library.js';
 import { StarBodies } from './star-bodies.js';
+import { importCounts } from './import-counts.js';
 import { clock, ease, current, orbitPoint, orientationOf } from './constellation-orbits.js';
 
 export function createBodies(ctx) {
@@ -67,6 +68,11 @@ export function createBodies(ctx) {
     if (instances.starMode) {
       if (!instances.stars) instances.stars = new StarBodies(T.scene);
       instances.stars.rebuild(model.kinds.planet);
+      // A star shines by how many files use its file's values, against the most-used file in the project (square
+      // root, so a file with a quarter of the top count still glows half as wide).
+      const used = model.kinds.planet.map(i => importCounts(host, i).inRun),
+        most = Math.max(1, ...used);
+      model.kinds.planet.forEach((i, k) => instances.stars.shine(i, Math.sqrt(used[k] / most)));
       instances.planets.rebuild([]);
       syncPickBodies();
       return;

@@ -16,6 +16,10 @@ import { buildIncrementalTowns } from '../towns/incremental-towns.js';
 // One function per globe: when enabled, a landed planet holds only one town (a function, or the group the semantic
 // layout made), so its buildings are drawn large. The host turns it off to see the whole file.
 export const OneTown = { enabled: true };
+// The largest a statement's lot may be on a one-function globe, as a share of the globe's radius. A long function's
+// town shrinks below this until it fits its land (planet-terrain.js ONE_TOWN_REACH); a function of a few statements
+// stops here and leaves land spare, which the room answers by showing a smaller globe (the XR app reads `fit().scale`).
+export const ONE_TOWN_SCALE_CAP = 0.28;
 // A town's first and last source line, from its members.
 export const townSpan = r => {
   const ms = r.members || [];
@@ -257,7 +261,7 @@ export async function buildPlanetSurface(ctx, sym, source, model, options) {
         previousTowns: previous?.towns,
         language: sym?.language,
         regions,
-        townScaleCap: shown >= 0 || regions.length === 1 ? 0.13 : 0.051,
+        townScaleCap: shown >= 0 || regions.length === 1 ? ONE_TOWN_SCALE_CAP : 0.051,
         centerOf,
         siteOf,
         shapeOf,

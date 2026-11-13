@@ -86,6 +86,7 @@ test('a turn with two tool calls and thinking', async () => {
       [
         { type: 'content_block_delta', index: 0, delta: { type: 'thinking_delta', thinking: 'Look first.' } },
         { type: 'content_block_start', index: 1, content_block: { type: 'tool_use', id: 't1', name: 'search', input: {} } },
+        { type: 'content_block_delta', index: 1, delta: { type: 'input_json_delta', partial_json: '{"pattern":"x"}' } },
         { type: 'content_block_start', index: 2, content_block: { type: 'tool_use', id: 't2', name: 'read_file', input: {} } },
       ],
       {
@@ -95,12 +96,14 @@ test('a turn with two tool calls and thinking', async () => {
       },
     ),
   );
-  assert.deepEqual(out.slice(0, 3), [
+  // A tool's input has nothing to show, but says the call is alive.
+  assert.deepEqual(out.slice(0, 4), [
     { type: 'thinking', delta: 'Look first.' },
     { type: 'tool_use_start', id: 't1', name: 'search' },
+    { type: 'progress' },
     { type: 'tool_use_start', id: 't2', name: 'read_file' },
   ]);
-  const message = out[3];
+  const message = out[4];
   assert.ok(message.type === 'message' && message.stopReason === 'tool_use');
   assert.deepEqual(message.message.blocks.map(b => b.type), ['thinking', 'tool_use', 'tool_use']);
 });

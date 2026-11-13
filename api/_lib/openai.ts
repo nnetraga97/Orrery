@@ -100,6 +100,7 @@ export async function streamOpenAI(client: OpenAIClient, request: AgentRequest, 
       if (event.type === 'response.output_text.delta') emit({ type: 'text', delta: event.delta });
       else if (event.type === 'response.reasoning_summary_text.delta') emit({ type: 'thinking', delta: event.delta });
       else if (event.type === 'response.output_item.added' && event.item?.type === 'function_call') emit({ type: 'tool_use_start', id: event.item.call_id, name: event.item.name });
+      else if (event.type === 'response.function_call_arguments.delta') emit({ type: 'progress' });
       else if (event.type === 'response.completed' || event.type === 'response.incomplete') final = event.response;
       else if (event.type === 'response.failed' || event.type === 'error') throw Object.assign(new Error(event.response?.error?.message ?? event.message ?? 'failed'), { status: 500 });
     }
