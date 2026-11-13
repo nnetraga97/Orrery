@@ -137,6 +137,8 @@ export async function streamClaude(client: ClaudeClient, request: AgentRequest, 
       else if (event.type === 'content_block_delta') {
         if (event.delta?.type === 'text_delta') emit({ type: 'text', delta: event.delta.text });
         else if (event.delta?.type === 'thinking_delta') emit({ type: 'thinking', delta: event.delta.thinking });
+        // A tool's input streams with nothing to show: the app is told the call is alive (the relay thins these out).
+        else if (event.delta?.type === 'input_json_delta') emit({ type: 'progress' });
       }
     }
     const final = await stream.finalMessage();

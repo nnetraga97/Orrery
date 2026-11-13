@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import * as d3 from 'd3';
 import { canvasTexture } from '../scene/textures.js';
 import { UIIcons } from '../shared/ui-icons.js';
+import { importCounts } from './import-counts.js';
 
 const targetTex = canvasTexture(x => {
   x.strokeStyle = '#fff';
@@ -62,6 +63,7 @@ export function createSelection(ctx) {
               text: arm.name,
               col: host.graph.color(host.data.groups()[arm.members[0]]),
               cls: 'arm',
+              priority: 100,
               pos: new THREE.Vector3(arm.at[0], 0, arm.at[1]),
             }))
         : [];
@@ -73,23 +75,30 @@ export function createSelection(ctx) {
         pos: () => at.copy(h.center).setY(h.center.y + h.base * h.scale * 2.2 + 1.5 * u),
       };
     });
-    // Only substantial or frequently imported files need names in the overview.
+    // Only substantial or much-used files need names in the overview. The files most others depend on come first
+    // and are written larger (the first three, then the next five), so the overview itself ranks them. A selected
+    // star's name is on its marker, so its overview name steps aside.
+    const used = new Map(host.data.nodes().map(n => [n.i, importCounts(host, n.i).inRun]));
     const planetLabels = [...host.data.nodes()]
-      .filter(n => model.orbit[n.i].kind === 'planet' && (n.rloc >= 250 || host.data.inc()[n.i].length >= 3))
-      .sort((a, b) => host.data.inc()[b.i].length - host.data.inc()[a.i].length || b.rloc - a.rloc)
+      .filter(n => model.orbit[n.i].kind === 'planet' && (n.rloc >= 250 || used.get(n.i) >= 3))
+      .sort((a, b) => used.get(b.i) - used.get(a.i) || b.rloc - a.rloc)
       .slice(0, Math.min(16, Math.max(1, Math.ceil(host.data.nodes().length * 0.2))))
-      .map(n => ({
+      .map((n, rank) => ({
         text: n.name,
         col: '#dce6f2',
         cls: 'planet-label',
-        centered: true,
+        // Above the star, clear of its disc.
+        clear: model.orbit[n.i].size,
+        scale: rank < 3 ? 1.5 : rank < 8 ? 1.2 : 1,
+        priority: 16 - rank,
         pos: () => model.pos[n.i],
+        shown: () => T.pinned !== n.i,
       }));
     removeLabels = T.addLabels(
       [...armLabels, ...planetLabels, ...systemLabels].map(l => ({
         ...l,
         avoidOverlap: true,
-        visible: () => (lod.host?.opacity || 0) < 0.5,
+        visible: () => (lod.host?.opacity || 0) < 0.5 && (!l.shown || l.shown()),
       })),
     );
   }

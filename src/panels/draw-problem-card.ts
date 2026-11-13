@@ -1,11 +1,15 @@
 // The small attached cards (docs/visual-style.md, "Sizes in the room": 0.24 × 0.09 m). The problem card is red, titled
 // with the scenario's short title, and names the function; pinching it opens the chat with the first prompt ready. Once
-// fixed it turns `ok` and reads "Fixed". The agent's "Show me" card is titled "Agent · file:line", with the agent's
-// message and the buttons Show me and Dismiss. The window frame (title, hue) is drawn by CanvasPanel.
+// fixed it turns `ok` and reads "Fixed". The agent's "Show me" card is titled "Agent · file:line" and is taller
+// (0.24 × 0.14 m): the agent's message across its width, up to four lines, with Show me and Dismiss in a row under it.
+// The window frame (title, hue) is drawn by CanvasPanel.
 import type { HitRegion } from '../core/panel-hit.ts';
 import { THEME, button, fit, font, microLabel, stateOf, wrap } from './paint.ts';
 
 export const CALLOUT = { widthPx: 720, heightPx: 270, widthM: 0.24, heightM: 0.09 };
+/** The agent's pointer card: room for its message. */
+export const POINTER_CARD = { widthPx: 720, heightPx: 420, widthM: 0.24, heightM: 0.14 };
+const POINTER_LINES = 4;
 
 export type ProblemCard = { kind: 'problem'; title: string; fn: string; fixed: boolean };
 export type PointerCard = { kind: 'pointer'; file: string; line: number | null; message: string };
@@ -55,15 +59,17 @@ export function drawCallout(ctx: CanvasRenderingContext2D, w: number, h: number,
   ctx.save();
   ctx.font = font('body', 11.5 * u);
   ctx.fillStyle = THEME.white;
-  const lines = wrap(ctx, c.message, w - pad * 2 - 140 * u).slice(0, 3);
-  lines.forEach((line, k) => ctx.fillText(k === 2 && lines.length === 3 ? fit(ctx, line + '…', w - pad * 2 - 140 * u) : line, pad, (46 + k * 15) * u));
+  // The message across the card; the buttons in a row along its bottom edge.
+  const all = wrap(ctx, c.message, w - pad * 2),
+    lines = all.slice(0, POINTER_LINES);
+  lines.forEach((line, k) => ctx.fillText(k === POINTER_LINES - 1 && all.length > POINTER_LINES ? fit(ctx, line + '…', w - pad * 2) : line, pad, (46 + k * 14) * u));
   ctx.restore();
   const bw = 62 * u,
-    bh = 24 * u,
-    x = w - pad - bw,
+    bh = 20 * u,
+    by = h - bh - 6 * u,
     regions: HitRegion[] = [];
-  for (const [k, [id, label]] of [['show', 'Show me'], ['dismiss', 'Dismiss']].entries()) {
-    const r = button(ctx, id, label, x, (34 + k * 28) * u, bw, bh, u, { state: stateOf(hovered, id), px: 10 });
+  for (const [k, [id, label]] of [['dismiss', 'Dismiss'], ['show', 'Show me']].entries()) {
+    const r = button(ctx, id, label, w - pad - bw - k * (bw + 8 * u), by, bw, bh, u, { state: stateOf(hovered, id), px: 10 });
     if (r) regions.push(r);
   }
   return regions;

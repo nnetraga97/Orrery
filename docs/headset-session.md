@@ -6,11 +6,12 @@ seated user.
 
 ## Before you start
 
-- On the computer: `npm run dev` (the dev server) and, for the live agent only, `npm run dev:api` in a second terminal
-  with the provider key in that terminal's environment (never in a file).
+- On the computer: `npm run dev` (the dev server) and, for the live agent, `npm run dev:api` in a second terminal
+  with the provider key in that terminal's environment (never in a file). Restart `dev:api` after changing the system
+  prompt or the tools: it loads both once.
 - On the headset, open the dev server's network URL (`npx @iwsdk/cli dev status` lists it) in the browser on the same
-  Wi-Fi, and accept the local certificate warning. Add `?dataset=editor-core` (the default) and, for the live agent,
-  `&agent=live`.
+  Wi-Fi, and accept the local certificate warning. The live agent answers whenever the relay holds a key;
+  `?agent=recorded` forces the recorded one.
 - The headset tier (`public/assets-quest/`) is chosen automatically in a headset's browser; `?tier=full` forces the
   full one for comparison.
 - Have the browser's performance overlay ready (Quest browser: the developer settings' performance HUD, or OVR Metrics

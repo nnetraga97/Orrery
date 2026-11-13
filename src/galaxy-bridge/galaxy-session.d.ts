@@ -78,5 +78,9 @@ export function readSource(dataset: string, path: string): Promise<string | null
 export function setSourceOverride(fn: ((dataset: string, path: string) => string | null) | null): void;
 /** Where a baked file's text lives. */
 export function sourceUrl(dataset: string, path: string): string;
+/** The URL of a dataset's function index (its planets and the calls between them). */
+export function functionIndexUrl(dataset: string): string;
 /** Adds the agent's cannon and its island to a view, once (after the first frame). */
 export function attachCannon(view: GalaxyView, host: XrHost): void;
+/** What a selected file says about itself: two short lines for its marker, and the fuller card text. */
+export function fileFacts(host: HostPort, i: number): { lines: string[]; text: string };

@@ -1,11 +1,12 @@
-// The agent behind the chat, switchable: the recorded agent by default; with ?agent=live, the relay to the chosen
-// provider when the server holds its key. When the relay answers rate_limited or budget_spent, the recorded agent takes
-// over for the rest of the visit and the chat says so.
+// The agent behind the chat, switchable: the relay to the chosen provider when the server holds its key, else the
+// recorded agent. When the day's budget is spent, the recorded agent takes over, but only for a chat that has not
+// started: its script fits no other conversation. A chat under way keeps its provider and the turn fails with the
+// relay's message, as it does when the visitor's rate limit is reached; the chat and its edits stay.
 import type { AgentRequest, StreamEvent } from '../core/agent/wire.ts';
 import type { AgentPort } from '../ports/agent.ts';
 import { createHttpAgent } from './http-agent.ts';
 
-export const FELL_BACK = 'The live agent is unavailable right now, so the recorded agent takes over.';
+export const FELL_BACK = "Today's budget for the live agent is spent, so the recorded agent answers. It replays one prepared fix.";
 
 export function createAgentSwitch(recorded: AgentPort, onFallback: (message: string) => void) {
   let live: { id: string; port: AgentPort } | null = null;
@@ -17,8 +18,9 @@ export function createAgentSwitch(recorded: AgentPort, onFallback: (message: str
     async send(request: AgentRequest, onEvent: (e: StreamEvent) => void, signal: AbortSignal) {
       if (current === recorded || !live) return recorded.send({ ...request, provider: 'recorded' }, onEvent, signal);
       let fellBack = false;
+      const fresh = !request.messages.some(m => m.role === 'assistant');
       await live.port.send({ ...request, provider: live.id }, e => {
-        if (e.type === 'error' && (e.code === 'rate_limited' || e.code === 'budget_spent')) fellBack = true;
+        if (e.type === 'error' && e.code === 'budget_spent' && fresh) fellBack = true;
         else onEvent(e);
       }, signal);
       if (fellBack) {

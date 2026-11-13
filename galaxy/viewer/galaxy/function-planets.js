@@ -3,11 +3,15 @@
 // had), each on its own orbit (planet-orbits.js), and pickable; a pick opens a card whose Land action lands on that one
 // function, at the planet itself (constellation-detail.js). The star is only a centre. The selected star also shows
 // its orbit lines, its planets' names, a belt of grains for its hidden functions with their count, and call lanes to
-// the planets its planets call (cyan) and that call them (amber). The landed planet's own instance is hidden.
+// the planets its planets call (warm) and that call them (cool): the colours the import lanes use for "this file
+// imports" and "imports this file" (constellation-fleet.js), so warm always leaves the selection and cool always
+// arrives at it. The landed planet's own instance is hidden.
 import * as THREE from 'three';
-import { planetById, planetCalls, starOf } from '../app/function-index.js';
+import { gradeName, planetById, planetCalls, starOf } from '../app/function-index.js';
 import { keyHash, orientationOf } from './constellation-orbits.js';
+import { planetFacts } from './function-facts.js';
 import { PlanetBodies } from './planet-library.js';
+import { gradeWorld } from './planet-profiles.js';
 import { PER_ORBIT, orbitGap, orbitRadius, planetSize } from './planet-orbits.js';
 import { glowTex } from '../scene/textures.js';
 
@@ -15,8 +19,8 @@ const MAX_BELT = 160;
 /** Segments per call lane, and the most lanes drawn for the selected star. */
 const SEG = 16,
   MAX_LANES = 48;
-const OUT = new THREE.Color('#6fd3ff'),
-  IN = new THREE.Color('#ffb35c');
+const OUT = new THREE.Color('#ffc56b'),
+  IN = new THREE.Color('#5cc4ff');
 
 export function createFunctionPlanets(ctx) {
   const { host, T, u, model, lod } = ctx;
@@ -155,11 +159,12 @@ export function createFunctionPlanets(ctx) {
       all.push(...list);
       for (const s of list) byId.set(s.planet.id, s);
     });
-    // Each function keeps one world, chosen from its id the way a file's was from its path.
+    // A function's world says how tangled it is (planet-profiles.js gradeWorld); a dataset without grades falls back
+    // to a world chosen from the function's id.
     bodies.rebuild(
       all.map((s, k) => ({
         path: s.planet.id,
-        entry: host.memory.fileAppearance(s.planet.id, 1),
+        entry: gradeWorld(s.planet.grade) ?? host.memory.fileAppearance(s.planet.id, 1),
         fileId: k,
         ghost: false,
       })),
@@ -248,7 +253,8 @@ export function createFunctionPlanets(ctx) {
         text: s.planet.name.split('.').pop(),
         col: s.planet.pinned ? '#ffb39e' : '#e6eef7',
         cls: 'planet-label',
-        centered: true,
+        // Above the planet, clear of it: centred on its point, the planet sat on the middle of its own name.
+        clear: s.size,
         avoidOverlap: true,
         pos: () => s.pos,
         visible: () => !landed(),
@@ -337,14 +343,15 @@ export function createFunctionPlanets(ctx) {
       const s = all[hit.object.userData.fileIds[hit.instanceId]];
       if (!s) return null;
       const n = host.data.nodes()[s.star],
-        p = s.planet,
-        lines = p.end - p.start + 1;
+        p = s.planet;
       return {
         key: 'fn:' + p.id,
-        kind: `Function · ${n.name}`,
+        // The card's title is the function's own name; its file is the selected star, named on its marker.
+        kind: '',
         title: p.name,
+        sub: null,
         color: host.graph.color(host.graph.groupOf(n)),
-        preview: [`Lines ${p.start}–${p.end} · ${lines} line${lines === 1 ? '' : 's'}`],
+        preview: planetFacts(p, gradeName(p.grade)),
         anchor: host.windows.worldAnchor(() => s.pos),
         actions: [
           {

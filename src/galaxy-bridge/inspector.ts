@@ -47,7 +47,28 @@ const keep = (name: string) => (...args: unknown[]) => {
   inspectorExtras.value = { ...inspectorExtras.peek(), [name]: args };
 };
 
+/** A file whose planet is being built again from edited text (the agent's edit), until its new inspector is made. */
+let rebuilding: { file: string; at: number } | null = null;
+/** A rebuild that has not produced its inspector after this long is forgotten. */
+const REBUILD_EXPIRES_MS = 30_000;
+/** What the code card showed when the rebuilt file's old inspector was disposed. */
+let lastShown: { file: string; line: number } | null = null;
+
+/** Says a file's planet is about to be rebuilt from edited text: the code card keeps its place through it. */
+export function expectRebuild(file: string) {
+  rebuilding = { file, at: performance.now() };
+}
+
 export function createInspector(options: InspectorOptions): InspectorPort {
+  // The same file built again (the agent's edit rebuilt its planet) while the card showed a place in it: the card
+  // stays open on that place, as if showCode had asked for it. The old planet's inspector is disposed just before the
+  // new one is made, so the place is the one noted at that moment.
+  const kept = lastShown;
+  lastShown = null;
+  if (rebuilding?.file === options.file.path) {
+    rebuilding = null;
+    if (kept && kept.file === options.file.path && !codeRequest.peek()) codeRequest.value = { path: kept.file, line: kept.line };
+  }
   current = options;
   const source = String(options.source ?? '');
   const colored = Array.isArray(options.colored) ? (options.colored as Segment[][]) : null;
@@ -122,6 +143,10 @@ export function createInspector(options: InspectorOptions): InspectorPort {
     evidenceChanged: keep('evidenceChanged'),
     dispose() {
       if (current === options) {
+        const view = codeView.peek(),
+          line = view?.selectedRange?.start ?? (view && view.selectedRegion != null ? view.regions[view.selectedRegion]?.start : null);
+        if (rebuilding && performance.now() - rebuilding.at > REBUILD_EXPIRES_MS) rebuilding = null;
+        lastShown = view && line != null && codeCardOpen.peek() && rebuilding?.file === view.file ? { file: view.file, line } : null;
         current = null;
         codeView.value = null;
       }

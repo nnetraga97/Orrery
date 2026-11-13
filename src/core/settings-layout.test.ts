@@ -32,3 +32,14 @@ test('provider and model rows show only when there is a choice', () => {
   const many = layoutSettings({ ...view, providers: [{ id: 'recorded', label: 'Recorded' }, { id: 'claude', label: 'Claude' }], models: ['a', 'b'] }, chatMetrics(1200), measure).regions.map(r => r.id);
   assert.ok(many.includes('set:provider:claude') && many.includes('set:model:b'));
 });
+
+test('the key to the galaxy follows the settings, one line per thing the user sees', () => {
+  const layout = layoutSettings(view, chatMetrics(1200), measure);
+  const text = layout.lines.map(l => l.spans.map(sp => sp.text).join('')).join('\n');
+  for (const phrase of ['WHAT THE GALAXY SHOWS', 'Stars are files', 'Glow: how many files import it.', 'Planets are functions', 'Warm: what the selection imports or calls.', 'A fork is an if'])
+    assert.ok(text.includes(phrase), phrase);
+  // The key sits below the last action button.
+  const button = layout.regions.find(r => r.id === 'action:resetLayout')!;
+  const title = layout.lines.find(l => l.spans.some(sp => sp.text === 'WHAT THE GALAXY SHOWS'))!;
+  assert.ok(title.y > button.y);
+});

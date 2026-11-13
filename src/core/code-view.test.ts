@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { hasSelection, maxScrollTop, scrollToRange, shownRange, visibleLines } from './code-view.ts';
+import { hasSelection, maxScrollTop, scrollToRange, shownRange, visibleLines, wrapLine } from './code-view.ts';
 import type { CodeView } from './code-view.ts';
 
 const file = (n: number) => Array.from({ length: n }, (_, i) => [{ text: `line ${i + 1}` }]);
@@ -92,4 +92,58 @@ test('a tab counts as two columns, as the card draws it', () => {
   const [row] = visibleLines(view({ lines, regions: [], selectedRegion: null }), { ...options, columns: 8 });
   assert.equal(row.segments.map(s => s.text).join(''), '    retu');
   assert.equal(row.truncated, true);
+});
+
+test('a selected line too long for the card wraps onto continuation rows; other long lines are cut', () => {
+  const long = '\t\tif (position.lineNumber === range.endLineNumber && position.column >= range.endColumn) {';
+  const lines = file(10);
+  lines[4] = [{ text: long, cls: 'tok-keyword' }];
+  lines[5] = [{ text: long }];
+  const v = view({ lines, regions: [], selectedRegion: null, selectedRange: { start: 5, end: 5 } });
+  const rows = visibleLines(v, { rows: 12, columns: 56, scrollTop: 0 });
+  const five = rows.filter(r => r.number === 5);
+  assert.equal(five.length, 2);
+  assert.deepEqual(five.map(r => [!!r.continuation, r.truncated, r.highlight]), [[false, false, 'selected'], [true, false, 'selected']]);
+  for (const r of five) assert.ok(r.segments.map(s => s.text).join('').length <= 56);
+  // Nothing is lost: the rows hold the whole line (tabs as two spaces), the second one indented.
+  const joined = five.map(r => r.segments.map(s => s.text).join('')).join('|');
+  assert.ok(joined.includes('position.column >= range.endColumn) {'));
+  assert.ok(five[1].segments[0].text.startsWith('        '));
+  assert.equal(five[1].segments[1].cls, 'tok-keyword');
+  // The unselected long line stays one cut row.
+  const six = rows.filter(r => r.number === 6);
+  assert.deepEqual(six.map(r => r.truncated), [true]);
+  // The continuation row counts toward the scroll range.
+  assert.equal(maxScrollTop(v, 4), 10 + 1 - 4);
+  assert.equal(maxScrollTop(view({ lines, regions: [], selectedRegion: null }), 4), 10 - 4);
+});
+
+test('scrolling counts rows: at the end the card is full and shows the last line, wrapped lines above included', () => {
+  const long = '\t\tif (position.lineNumber === range.endLineNumber && position.column >= range.endColumn) {';
+  const lines = file(20);
+  for (const n of [2, 3, 4]) lines[n - 1] = [{ text: long }];
+  const v = view({ lines, regions: [], selectedRegion: null, selectedRange: { start: 2, end: 4 } });
+  // 20 lines and three continuation rows.
+  const max = maxScrollTop(v, 6);
+  assert.equal(max, 20 + 3 - 6);
+  const end = visibleLines(v, { rows: 6, columns: 56, scrollTop: max });
+  assert.deepEqual(end.map(r => r.number), [15, 16, 17, 18, 19, 20]);
+  // One row down from the top: line 1 is gone, the selection starts the card.
+  const one = visibleLines(v, { rows: 6, columns: 56, scrollTop: 1 });
+  assert.deepEqual(one.map(r => [r.number, !!r.continuation]), [[2, false], [2, true], [3, false], [3, true], [4, false], [4, true]]);
+  // Two rows down: the card starts on line 2's continuation row.
+  const two = visibleLines(v, { rows: 6, columns: 56, scrollTop: 2 });
+  assert.deepEqual(two.map(r => [r.number, !!r.continuation]), [[2, true], [3, false], [3, true], [4, false], [4, true], [5, false]]);
+  // Every scroll position shows a full card, each one row further on.
+  for (let top = 0; top <= max; top++) assert.equal(visibleLines(v, { rows: 6, columns: 56, scrollTop: top }).length, 6);
+  // A range below the wrapped lines is placed by rows.
+  assert.equal(scrollToRange(v, { start: 12, end: 12 }, 6), 11 + 3 - 2);
+});
+
+test('wrapLine breaks at a space near the end of a row, or mid-word when there is none', () => {
+  const rows = wrapLine([{ text: 'aaaa bbbb cccc dddd eeee ffff' }], 20);
+  assert.deepEqual(rows.map(r => r.map(s => s.text).join('')), ['aaaa bbbb cccc dddd ', '    eeee ffff']);
+  const solid = wrapLine([{ text: 'x'.repeat(50) }], 20);
+  assert.deepEqual(solid.map(r => r.map(s => s.text).join('').length), [20, 20, 18]);
+  assert.deepEqual(wrapLine([{ text: 'short' }], 20), [[{ text: 'short' }]]);
 });

@@ -462,6 +462,9 @@ export function createFleet(ctx) {
         ...host.data.out()[sel].slice(0, 60).map(t => lane(sel, t, 'out')),
         ...host.data.inc()[sel].slice(0, 60).map(s => lane(s, sel, 'in')),
       ];
+      // A hub's lanes would bury it: past two dozen they thin out together. A type-only import carries nothing at
+      // run time, so its dashed lane is the faintest; a lane that carries values is the plainest.
+      const crowd = Math.min(1, Math.sqrt(24 / Math.max(1, focusLanes.length)));
       focusLanes.forEach(r => {
         focusRoutes.push(...convoy(r.a, r.b, r.ships, r.kind, 0.22));
         const typeOnly = r.use === 'type',
@@ -469,14 +472,14 @@ export function createFleet(ctx) {
             ? new THREE.LineDashedMaterial({
                 color: ROUTE_COL[r.kind],
                 transparent: true,
-                opacity: 0.45,
+                opacity: 0.2 * crowd,
                 dashSize: 0.5 * u,
                 gapSize: 0.5 * u,
               })
             : new THREE.LineBasicMaterial({
                 color: ROUTE_COL[r.kind],
                 transparent: true,
-                opacity: r.ships ? 0.35 : 0.15,
+                opacity: (r.ships ? 0.5 : 0.2) * crowd,
               });
         r.curve = new THREE.QuadraticBezierCurve3();
         r.previous = [new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3()];

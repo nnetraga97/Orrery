@@ -37,7 +37,7 @@ export const DEFAULT_SETTINGS: Settings = {
   effort: 'medium',
   permission: 'workspace',
   mode: 'work',
-  followAgent: false,
+  followAgent: true,
 };
 
 const nearest = (list: number[], v: unknown, fallback: number) =>

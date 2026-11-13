@@ -114,7 +114,10 @@ export async function streamNemotron(fetchFn: Fetch, key: string, request: Agent
           if (calls[i].name) emit({ type: 'tool_use_start', id: calls[i].id, name: calls[i].name });
         }
         if (tc.function?.name && !calls[i].name) calls[i].name = tc.function.name;
-        if (tc.function?.arguments) calls[i].args += tc.function.arguments;
+        if (tc.function?.arguments) {
+          calls[i].args += tc.function.arguments;
+          emit({ type: 'progress' });
+        }
       }
       if (choice.finish_reason) finish = choice.finish_reason;
     }

@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { applyBreak, isFixed, validateScenario } from './scenario.ts';
+import { applyBreak, isBroken, isFixed, validateScenario } from './scenario.ts';
 
 const json = JSON.parse(fs.readFileSync(new URL('../../public/scenarios/range-edge.json', import.meta.url), 'utf8'));
 const source = fs.readFileSync(new URL('../../public/data/editor-core/source/core/range.ts', import.meta.url), 'utf8');
@@ -19,7 +19,13 @@ test('its patch and its broken text each match exactly once, inside containsPosi
   assert.equal(source.split(s.scenario.breakPatch.new).length - 1, 0);
   const broken = applyBreak(s.scenario, source);
   assert.ok(!isFixed(s.scenario, broken));
+  assert.ok(isBroken(s.scenario, broken));
   assert.ok(isFixed(s.scenario, source));
+  // A change that only removes the broken text is not a fix: the original must be back.
+  const wrong = broken.replace('position.column >= range.endColumn) {\n\t\t\treturn false;\n\t\t}\n\t\treturn true;', 'position.column < range.endColumn) {\n\t\t\treturn false;\n\t\t}\n\t\treturn true;');
+  assert.notEqual(wrong, broken);
+  assert.ok(!isBroken(s.scenario, wrong));
+  assert.ok(!isFixed(s.scenario, wrong));
   // The changed line is the scenario's line, inside the static containsPosition.
   const lines = broken.split('\n');
   assert.ok(lines[s.scenario.line - 1].includes('position.column >= range.endColumn'));

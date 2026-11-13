@@ -4,6 +4,7 @@ import { Quaternion, Vector3, createSystem } from '@iwsdk/core';
 import type { Entity, Object3D } from '@iwsdk/core';
 import { GalaxyRoot } from '../components/galaxy-root.ts';
 import { DEFAULT_SEAT } from '../core/layout.ts';
+import { GLOBE_DIAMETER, globeDiameter } from '../core/globe-size.ts';
 import { coreOf, fitOverview } from '../core/overview-fit.ts';
 import type { ViewBox } from '../core/overview-fit.ts';
 import { emptyPose, focusedPoseInto, tablePoseInto } from '../core/table-frame.ts';
@@ -35,6 +36,7 @@ import {
   phase,
   pinned,
   selectedPath,
+  settings,
   startupMs,
 } from '../state/app-state.ts';
 import { connectCommands, openDataset } from '../state/commands.ts';
@@ -53,10 +55,21 @@ export const TABLE_ANCHOR: TableAnchor = {
   maxScale: 5,
 };
 
-// A landed planet stays a globe this wide (the owner's choice), however close the copied code flies.
-export const LANDED_GLOBE_DIAMETER = 0.64;
+// A landed planet stays a globe this wide (the owner's choice), however close the copied code flies. A function too
+// short to fill that globe is shown on a smaller one (src/core/globe-size.ts); `landedGlobe.diameter` is the width in
+// use, eased, for whatever sits around the globe.
+export const LANDED_GLOBE_DIAMETER = GLOBE_DIAMETER;
+export const landedGlobe = { diameter: GLOBE_DIAMETER };
+/** Seconds for a globe to settle at a new width. */
+const GLOBE_EASE_SECONDS = 0.5;
 // Where a landed globe's centre floats: a little below a seated eye.
 export const LANDED_CENTER: Vec3 = [0, 1.1, -0.95];
+// The model is shown as if seen from PITCH above level, but the seated eye is only a little above a landed globe's
+// centre. A landed town is turned down by the difference, so its middle faces the eye instead of the ceiling. The seat
+// height setting raises the room's content past the eye (settings-system.ts lowers the player by it), so the eye sits
+// that much lower against the globe.
+export const landedFaceTilt = (seatHeight: number) =>
+  -PITCH - Math.atan2(DEFAULT_SEAT.eye[1] - seatHeight - LANDED_CENTER[1], DEFAULT_SEAT.eye[2] - LANDED_CENTER[2]);
 const ANCHOR_EASE_SECONDS = 0.6;
 /** How often, while landed with Reduce motion on, to look for newly built road cars to hide. */
 const CAR_SWEEP_SECONDS = 0.5;
@@ -115,6 +128,7 @@ export class GalaxySystem extends createSystem({}) {
     this.host = createXrHost({
       renderer: this.renderer,
       anchor: TABLE_ANCHOR,
+      faceTilt: () => landedFaceTilt(settings.peek().seatHeight),
       labels: this.labels,
       overlays: this.overlays,
     });
@@ -247,6 +261,16 @@ export class GalaxySystem extends createSystem({}) {
       this.anchor.position[i] = this.base.position[i] + (LANDED_CENTER[i] - this.base.position[i]) * e;
   }
 
+  /** The landed globe's width follows its town's lot size once the town is built, and returns to full on leaving. */
+  private easeGlobe(kit: NonNullable<XrHost['kit']>, delta: number) {
+    const lot = this.landed ? (kit as { landedLot?: () => number | null }).landedLot?.() : null;
+    // While a town is still being built (no lot size yet) the globe keeps the width it has.
+    const target = this.landed ? (lot ? globeDiameter(lot) : landedGlobe.diameter) : GLOBE_DIAMETER;
+    const k = Math.min(1, (delta / GLOBE_EASE_SECONDS) * 3);
+    landedGlobe.diameter += (target - landedGlobe.diameter) * k;
+    if (Math.abs(target - landedGlobe.diameter) < 1e-4) landedGlobe.diameter = target;
+  }
+
   /** While landed: the whole globe, its centre on the anchor, turned as the virtual camera sees it. */
   private landedPose(kit: NonNullable<XrHost['kit']>) {
     const i = kit.pinned;
@@ -258,7 +282,7 @@ export class GalaxySystem extends createSystem({}) {
     this.focus[1] = centre.y;
     this.focus[2] = centre.z;
     const size = body?.size ?? kit.bodySize(i);
-    return focusedPoseInto(kit.virtual(), this.anchor, this.focus, LANDED_GLOBE_DIAMETER / (2 * size), this.pose);
+    return focusedPoseInto(kit.virtual(), this.anchor, this.focus, landedGlobe.diameter / (2 * size), this.pose);
   }
 
   /** Publishes the phase and the landed file when the view lands, leaves, or moves from one planet to another (a
@@ -339,6 +363,7 @@ export class GalaxySystem extends createSystem({}) {
     }
     this.publishLanding();
     this.easeAnchor(delta);
+    this.easeGlobe(kit, delta);
     const pose = this.landed ? this.landedPose(kit) : tablePoseInto(kit.virtual(), this.anchor, this.pose);
     const group = kit.scene;
     group.position.set(pose.position[0], pose.position[1], pose.position[2]);

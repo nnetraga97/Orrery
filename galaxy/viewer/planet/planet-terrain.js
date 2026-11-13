@@ -149,6 +149,13 @@ export function sampleGround(ground, dir, out) {
 // lifting all the way bleached a navy moon to pale grey. The roads' light curbs keep them readable on dark land.
 const LAND_FLOOR = 0.16,
   LAND_LIFT = 1.5;
+// A globe that holds one function (planet-scene.js OneTown). Its town may spread this far from its middle, in radians
+// of arc: about 46 degrees, which fills most of the face the viewer sees (the limb is near 70) and keeps the whole
+// function in sight at once. It used to spread to 65 and wrap out of view.
+export const ONE_TOWN_REACH = 0.8;
+// Where that town sits: on the equator, so turning the globe by hand goes around it and over it evenly (a town near a
+// pole can only be spun), and on the side the sun lights.
+const ONE_TOWN_CENTRE = [0.8, 0, 0.6];
 export function generatePlanetTerrain({ regions, R, color, seed = 0, palette = null, naturalSurface = false }) {
   // Land is proportional to each callable's statement and junction demand, so buildings come out at one scale
   // across the planet and a large method is not squeezed into a strip of tiny buildings. The small floor keeps a
@@ -444,6 +451,8 @@ export function generatePlanetTerrain({ regions, R, color, seed = 0, palette = n
   const facesOf = regions.map(() => []);
   for (let f = 0; f < faceCount; f++) facesOf[owner[f]].push(f);
   const centerOf = facesOf.map((fs, k) => {
+    // A lone region owns the whole sphere, whose centroid is rounding noise: place it deliberately.
+    if (regions.length === 1) return new THREE.Vector3().fromArray(ONE_TOWN_CENTRE);
     const a = new THREE.Vector3();
     fs.forEach(f => a.add(centroid[f]));
     if (a.lengthSq() < 1e-12) return seeds[k].clone();
@@ -474,7 +483,9 @@ export function generatePlanetTerrain({ regions, R, color, seed = 0, palette = n
     if (e.lengthSq() < 1e-6) e.set(1, 0, 0);
     const north = c.clone().cross(e).normalize(),
       count = naturalSurface ? 32 : 128,
-      limit = Math.PI / 2 - 0.15;
+      limit = Math.PI / 2 - 0.15,
+      // The share of the way to its border a town may build on.
+      usable = regions.length === 1 ? ONE_TOWN_REACH / limit : 0.8;
     const radii = Array.from({ length: count }, (_, j) => {
       const angle = (j * Math.PI * 2) / count,
         tangent = e.clone().multiplyScalar(Math.cos(angle)).addScaledVector(north, Math.sin(angle));
@@ -504,7 +515,7 @@ export function generatePlanetTerrain({ regions, R, color, seed = 0, palette = n
       return radii[j % count] * (1 - f) + radii[(j + 1) % count] * f;
     };
     const edge = radii.map((a, j) => {
-      const r = R * Math.tan(a * 0.8),
+      const r = R * Math.tan(a * usable),
         t = (j * Math.PI * 2) / count;
       return [r * Math.cos(t), r * Math.sin(t)];
     });
@@ -515,7 +526,8 @@ export function generatePlanetTerrain({ regions, R, color, seed = 0, palette = n
       edge,
       radii,
       limit,
-      contains: (x, y) => Math.atan(Math.hypot(x, y) / R) <= borderAt(Math.atan2(y, x)) * 0.8,
+      usable,
+      contains: (x, y) => Math.atan(Math.hypot(x, y) / R) <= borderAt(Math.atan2(y, x)) * usable,
     };
   });
   const siteOf = shapeOf.map(s => Math.min(...s.edge.map(([x, y]) => Math.atan(Math.hypot(x, y) / R))));
@@ -657,6 +669,7 @@ export function generatePlanetTerrain({ regions, R, color, seed = 0, palette = n
       radii: s.radii,
       edge: s.edge,
       limit: s.limit,
+      usable: s.usable,
     })),
     siteOf,
     regionColors: regionColor.map(c => c.toArray()),
@@ -686,7 +699,7 @@ export function hydratePlanetTerrain(data) {
       e: new THREE.Vector3().fromArray(s.e),
       north: new THREE.Vector3().fromArray(s.north),
       borderAt,
-      contains: (x, y) => Math.atan(Math.hypot(x, y) / R) <= borderAt(Math.atan2(y, x)) * 0.8,
+      contains: (x, y) => Math.atan(Math.hypot(x, y) / R) <= borderAt(Math.atan2(y, x)) * (s.usable ?? 0.8),
     };
   });
   const partition = data.topology ? planetPartition(data.topology) : null;

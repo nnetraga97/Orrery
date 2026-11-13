@@ -3,7 +3,8 @@
 // called again. It never runs the tools of a message cut off (max_tokens) or refused; their calls are answered with an
 // error so the history stays valid. Stopping answers any open calls the same way. A steer is delivered after the
 // current results; a message sent while the turn runs is queued until it ends. The reducer returns effects for the
-// agent system to carry out: call the model, run a tool, ask for approval, ask the user.
+// agent system to carry out: call the model, run a tool, ask for approval, ask the user. A failed turn can be tried
+// again: the model is called once more with the same conversation.
 import type { Mode, Permission } from '../chat/composer.ts';
 import { needsApproval } from './permissions.ts';
 import { validateInput } from './tools.ts';
@@ -34,6 +35,7 @@ export type LoopEvent =
   | { type: 'declined'; id: string }
   | { type: 'answered'; id: string; response: unknown }
   | { type: 'stop' }
+  | { type: 'retry' }
   | { type: 'steer'; text: string }
   | { type: 'settings'; permission: Permission; mode: Mode };
 export type LoopEffect =
@@ -45,7 +47,7 @@ export type LoopEffect =
   | { kind: 'turnEnded'; outcome: TurnOutcome; reason?: string };
 export type LoopStep = { state: LoopState; effects: LoopEffect[] };
 
-export const DECLINED = 'The user declined this change.';
+export const DECLINED = 'The user declined this change. Do not send it again as it is. If you do not know what they want instead, ask with ask_user.';
 export const STOPPED = 'Stopped by the user before this ran.';
 /** A tool already running when the user stopped: it may have finished its work. */
 export const STOPPED_RUNNING = 'Stopped by the user while this was running; it may have completed.';
@@ -159,7 +161,9 @@ export function loopStep(state: LoopState, event: LoopEvent): LoopStep {
       return same;
     }
     case 'toolFinished':
-      if (!open(event.id, 'running')) return same;
+      // A call waiting for approval finishes too when its preview fails (the edit cannot apply): the model gets the
+      // error instead of a card nobody could approve.
+      if (!open(event.id, 'running') && !(event.isError && open(event.id, 'approval'))) return same;
       return continueIfDone(finish(state, event.id, result(event.id, event.content, !!event.isError)), []);
     case 'approved':
       if (!open(event.id, 'approval')) return same;
@@ -176,6 +180,12 @@ export function loopStep(state: LoopState, event: LoopEvent): LoopStep {
     case 'answered':
       if (!open(event.id, 'question')) return same;
       return continueIfDone(finish(state, event.id, result(event.id, JSON.stringify(event.response))), []);
+    case 'retry': {
+      // The failed call never got its reply, so the conversation still ends with the user's turn.
+      const last = state.messages[state.messages.length - 1];
+      if (state.status !== 'failed' || last?.role !== 'user') return same;
+      return { state: { ...state, status: 'calling', pending: [], error: null }, effects: [{ kind: 'callModel', messages: state.messages }] };
+    }
     case 'stop': {
       if (state.status === 'calling') return endTurn({ ...state, steer: [] }, 'stopped', [{ kind: 'cancelModel' }]);
       if (state.status !== 'tools') return same;

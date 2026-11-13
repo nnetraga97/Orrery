@@ -4,6 +4,8 @@ import { languageOf } from '../../source-model/languages.js';
 import { readSource, sourceOverride } from '../app/static-data.js';
 import { loadTypeScript } from '../towns/towns.js';
 import { planetSeed } from './planet-appearance.js';
+import { gradeWorld } from '../galaxy/planet-profiles.js';
+import { townBounds } from './town-landing.js';
 import { buildPlanetDetail } from './planet-detail.js';
 
 // Canonical radius for the code-shaped surface.
@@ -62,6 +64,11 @@ export function makePlanetHost(main, frame) {
     camera,
     prepareDraw: (object, checkpoint) => main.prepareDraw(object, camera, scene, checkpoint),
     interactive: true,
+    // The room shows a landed globe whole, so its town faces the viewer (town-landing.js: an angle, or null on a
+    // screen, where the camera flies low over the town).
+    get faceLanding() {
+      return main.faceLanding ?? null;
+    },
     // Blend the short handoff as an image; settled detail shares the main depth buffer.
     get sharedDepth() {
       return H.opacity >= 1 || H.opacity <= 0;
@@ -292,8 +299,10 @@ export function createPlanetDetail(
     publish = null,
     failed = null,
     selection = null,
-    // A function planet's id: the landed globe wears that planet's world rather than its file's.
+    // A function planet's id: the landed globe wears that planet's world rather than its file's. `grade` is how
+    // tangled that function is (function-index.js gradeOfKey), which picks the world as it did in orbit.
     look = null,
+    grade = null,
   } = {},
   host,
 ) {
@@ -345,7 +354,9 @@ export function createPlanetDetail(
 
   // Both follow the file's layout identity, so a rename keeps the planet's look (galaxy-memory.ts).
   const appearanceSeed = planetSeed(look ?? n.seed ?? n.path);
-  const appearance = look ? host.memory.fileAppearance(look, 1) : host.memory.fileAppearance(n.path, n.callables);
+  const appearance = look
+    ? (gradeWorld(grade) ?? host.memory.fileAppearance(look, 1))
+    : host.memory.fileAppearance(n.path, n.callables);
   T.scene.userData.planetAsset = appearance.id;
 
   Object.assign(ctx, { appearance, appearanceSeed, baseCol });
@@ -373,6 +384,30 @@ export function createPlanetDetail(
       return { key: detail.selectedKey, element: detail.selectedElement?.it.id ?? null };
     },
     cancelTransport: () => ctx.transport?.cancel(),
+    /** The shown town's lot size as a share of the globe's radius (null until the town is built). The room sizes the
+     * globe from it every frame, so it is one lookup. */
+    lotShare: () => (ctx.towns ? ctx.towns.scaleOf(Math.max(0, detail.pinnedRegion ?? 0)) / R : null),
+    /** For checks: the shown town's footprint on the globe. `reach` is how far (degrees of arc) its lots and roads
+     * extend from the middle of the town, `width` and `height` its span across and along the main road, and `offset`
+     * how far the middle sits from the centre of the town's own frame. */
+    fit: () => {
+      const town = ctx.towns?.townOf(Math.max(0, detail.pinnedRegion ?? 0));
+      if (!town) return null;
+      const { box, cx, cy, pts } = townBounds(town);
+      if (!pts.length) return null;
+      const dir = (x, y) => town.fr.world(x, y).normalize(),
+        mid = dir(cx, cy),
+        deg = (a, b) => (Math.acos(Math.min(1, Math.max(-1, a.dot(b)))) * 180) / Math.PI;
+      return {
+        radius: R,
+        scale: town.s / R,
+        lots: town.out.lots.length,
+        reach: Math.max(...pts.map(p => deg(mid, dir(p[0], p[1])))),
+        width: deg(dir(box[0], cy), dir(box[1], cy)),
+        height: deg(dir(cx, box[2]), dir(cx, box[3])),
+        offset: deg(mid, dir(0, 0)),
+      };
+    },
     stop: () => {
       detail.stopped = true;
       buildAbort.abort();

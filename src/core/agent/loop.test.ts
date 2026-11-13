@@ -165,3 +165,34 @@ test('stop while a question waits says it never ran', () => {
   const b = r.state.messages.at(-1)!.blocks[0];
   assert.ok(b.type === 'tool_result' && b.content === STOPPED);
 });
+
+test('an edit whose preview fails while it waits for approval goes back to the model as an error', () => {
+  let r = run([{ type: 'userSaid', text: 'Fix it' }, reply([use('e', 'replace_in_file', { path: 'a.ts', old_text: 'x', new_text: 'y' })])]);
+  assert.equal(r.state.pending[0].state, 'approval');
+  r = run([{ type: 'toolFinished', id: 'e', content: 'old_text was not found in a.ts', isError: true }], r.state);
+  assert.equal(r.state.status, 'calling');
+  assert.deepEqual(r.effects.map(e => e.kind), ['callModel']);
+  const last = r.state.messages[r.state.messages.length - 1];
+  assert.deepEqual(last.blocks, [{ type: 'tool_result', toolUseId: 'e', content: 'old_text was not found in a.ts', isError: true }]);
+  valid(r.state);
+  // A success cannot be reported for a call nobody approved.
+  let waiting = run([{ type: 'userSaid', text: 'Fix it' }, reply([use('e', 'replace_in_file', { path: 'a.ts', old_text: 'x', new_text: 'y' })])]);
+  waiting = run([{ type: 'toolFinished', id: 'e', content: 'Replaced.' }], waiting.state);
+  assert.equal(waiting.state.pending[0].state, 'approval');
+  assert.deepEqual(waiting.effects, []);
+});
+
+test('a failed turn can be retried with the same conversation; nothing else can', () => {
+  let r = run([{ type: 'userSaid', text: 'Hi' }, { type: 'stream', event: { type: 'error', code: 'overloaded', message: 'busy' } }]);
+  assert.equal(r.state.status, 'failed');
+  const before = r.state.messages;
+  r = run([{ type: 'retry' }], r.state);
+  assert.equal(r.state.status, 'calling');
+  assert.equal(r.state.error, null);
+  assert.deepEqual(r.effects, [{ kind: 'callModel', messages: before }]);
+  valid(r.state);
+  const idle = run([{ type: 'retry' }]);
+  assert.deepEqual(idle.effects, []);
+  const done = run([{ type: 'userSaid', text: 'Hi' }, reply([{ type: 'text', text: 'Hello' }], 'end'), { type: 'retry' }]);
+  assert.equal(done.state.status, 'idle');
+});

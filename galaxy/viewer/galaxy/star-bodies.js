@@ -5,11 +5,18 @@
 // A star's surface is a camera-facing square that ray-traces its sphere, so its edge stays round at any distance for
 // two triangles. The surface is a photosphere: granulation cells, a slow mottling, a few dark spots and limb darkening,
 // coloured from a deep shade of the folder's colour up to a warm white that stays below full brightness. The glow is a
-// back-facing shell, so the star's own surface hides it across the disc and it shows only around the edge.
+// back-facing shell, so the star's own surface hides it across the disc and it shows only around the edge; it is wider
+// and brighter the more files depend on the star's file (shine).
 import * as THREE from 'three';
 
-/** The glow shell's radius, as a multiple of the star's. */
-const GLOW = 1.8;
+/** The glow shell's radius, as a multiple of the star's: GLOW for a file nothing depends on, up to GLOW + GLOW_MORE
+ * for the file most others depend on (shine()), whose glow is also brighter. A star's size is its file's length; its
+ * glow is how much of the project leans on it, and shows from across the galaxy where the star itself is a dot. */
+const GLOW = 1.8,
+  GLOW_MORE = 1.5,
+  GLOW_GAIN = 1.2,
+  // The least angle (its tangent) the most-used file's glow spans from its centre, however far away: about 1.4°.
+  FAR_GLOW = 0.024;
 
 // Vertex: places the square at the star's centre, facing the camera, just large enough to hold its silhouette, and
 // hands the fragment the star's centre and radius in view space and its axes (to keep the pattern fixed to the star).
@@ -105,27 +112,46 @@ const SURFACE_FRAG = `
   }`;
 
 const GLOW_VERT = `
+  attribute float aShine;
   varying vec3 vN, vV, vC;
+  varying float vEdge, vGain, vFar;
   void main(){
+    // The star's edge as a share of this shell's radius, and how bright this star's glow is.
+    vEdge = 1.0 / (${GLOW.toFixed(2)} + ${GLOW_MORE.toFixed(2)} * aShine);
+    vGain = 1.0 + ${GLOW_GAIN.toFixed(2)} * aShine;
     vC = vec3(1.0);
     #ifdef USE_INSTANCING_COLOR
       vC = instanceColor;
     #endif
     mat4 m = modelViewMatrix * instanceMatrix;
-    vec4 mv = m * vec4(position, 1.0);
+    // From across the galaxy a star is a dot and its glow with it. A star others depend on keeps a glow of at least
+    // this angle (in proportion to its shine), so the files that matter most stand out in the overview; up close the
+    // shell's own size is larger and nothing changes.
+    vec4 c = m * vec4(0.0, 0.0, 0.0, 1.0);
+    float rad = length(mat3(m)[0]);
+    float want = max(rad, length(c.xyz) * ${FAR_GLOW.toFixed(4)} * aShine);
+    vEdge *= rad / want;
+    // How far the shell was stretched: 0 up close, 1 once it is three times its own size.
+    vFar = clamp((want / rad - 1.0) * 0.5, 0.0, 1.0);
+    // A wide glow reaches past the star's inner planets, and from inside the shell (landed on one of them) it would
+    // veil the whole view: the glow fades as the eye nears the shell and is gone inside it.
+    vGain *= smoothstep(1.0, 2.0, length(c.xyz) / want);
+    vec4 mv = c + vec4(mat3(m) * position * (want / rad), 0.0);
     vN = normalize(mat3(m) * normal);
     vV = normalize(-mv.xyz);
     gl_Position = projectionMatrix * mv;
   }`;
 const GLOW_FRAG = `
   varying vec3 vN, vV, vC;
+  varying float vEdge, vGain, vFar;
   void main(){
     // Distance from the star's centre across the shell, as a share of the shell's radius: the star's edge sits at
-    // 1/GLOW, and the glow fades from there to nothing at the shell's rim.
+    // vEdge, and the glow fades from there to nothing at the shell's rim. A far star's stretched glow fades more
+    // slowly and is brighter, so it reads as a bright star and not as a faint smudge.
     float mu = abs(dot(normalize(vN), normalize(vV)));
-    float x = sqrt(1.0 - mu * mu), edge = ${(1 / GLOW).toFixed(4)};
-    float g = pow(1.0 - clamp((x - edge) / (1.0 - edge), 0.0, 1.0), 3.0);
-    gl_FragColor = vec4(mix(vC, vec3(1.0, 0.92, 0.8), 0.25) * g * 0.32, 1.0);
+    float x = sqrt(1.0 - mu * mu), edge = vEdge;
+    float g = pow(1.0 - clamp((x - edge) / (1.0 - edge), 0.0, 1.0), mix(3.0, 1.6, vFar));
+    gl_FragColor = vec4(mix(vC, vec3(1.0, 0.92, 0.8), 0.25) * g * 0.32 * vGain * mix(1.0, 1.7, vFar), 1.0);
     #include <colorspace_fragment>
   }`;
 
@@ -161,7 +187,8 @@ export class StarBodies {
     this.glow = null;
     this.matrix = new THREE.Matrix4();
     this.scale = new THREE.Matrix4();
-    this.scale.makeScale(GLOW, GLOW, GLOW);
+    /** Each slot's shine, 0 to 1 (shine()). */
+    this.shines = new Float32Array(0);
   }
 
   /** Assigns a slot to each star file (indices into host.data.nodes()). */
@@ -182,7 +209,12 @@ export class StarBodies {
       }
       this.glow.raycast = () => {};
       this.mesh.raycast = (raycaster, hits) => this.raycast(raycaster, hits);
+      // The shell geometry is this batch's alone, so it can carry each star's shine.
+      this.shines = new Float32Array(this.capacity);
+      this.shell.setAttribute('aShine', new THREE.InstancedBufferAttribute(this.shines, 1));
     }
+    this.shines.fill(0);
+    if (this.shell.attributes.aShine) this.shell.attributes.aShine.needsUpdate = true;
     this.slotOf = new Map(fileIds.map((i, slot) => [i, slot]));
     this.mesh.userData.fileIds = fileIds.slice();
     this.mesh.userData.pickablePlanet = true;
@@ -208,7 +240,16 @@ export class StarBodies {
     const slot = this.slotOf.get(fileId);
     if (slot == null) return;
     this.mesh.setMatrixAt(slot, matrix);
-    this.glow.setMatrixAt(slot, this.matrix.multiplyMatrices(matrix, this.scale));
+    const glow = GLOW + GLOW_MORE * this.shines[slot];
+    this.glow.setMatrixAt(slot, this.matrix.multiplyMatrices(matrix, this.scale.makeScale(glow, glow, glow)));
+  }
+
+  /** How much of the project depends on a star's file, 0 (nothing imports it) to 1 (the most imported file). */
+  shine(fileId, amount) {
+    const slot = this.slotOf.get(fileId);
+    if (slot == null) return;
+    this.shines[slot] = Math.min(1, Math.max(0, amount));
+    this.shell.attributes.aShine.needsUpdate = true;
   }
 
   color(fileId, color) {

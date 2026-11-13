@@ -5,12 +5,14 @@
 import { addActivity } from '../core/activity.ts';
 import { activity } from '../state/app-state.ts';
 import { galaxyState } from './galaxy-session.js';
+import { expectRebuild } from './inspector.ts';
 
 type Action = 'read' | 'search' | 'edit' | 'create' | 'question' | 'debug' | 'task' | 'ui' | 'other';
 const ACTIONS: Record<string, Action> = {
   read_file: 'read',
   list_files: 'search',
   search: 'search',
+  find_function: 'search',
   replace_in_file: 'edit',
   write_file: 'edit',
   ask_user: 'question',
@@ -84,6 +86,8 @@ export function createAgentEvents(provider: string) {
     /** Rebuilds a file's planet from its edited text. */
     refresh(path: string) {
       const view = galaxyState.view as { update?(o: { refresh: Set<string> }): void } | null;
+      // The code card keeps its place while the landed planet is rebuilt.
+      expectRebuild(path);
       try {
         view?.update?.({ refresh: new Set([path]) });
       } catch (e) {

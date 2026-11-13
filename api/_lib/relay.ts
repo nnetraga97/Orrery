@@ -20,9 +20,20 @@ export type RelayDeps = {
   limits: Limits;
   /** The adapter for a provider, given its key. */
   adapter(provider: string, key: string): Adapter | null;
+  /** For tests: PROGRESS_EVERY_MS and MAX_QUIET_MS. */
+  progressEveryMs?: number;
+  maxQuietMs?: number;
 };
 
 const sseHeaders = { 'Content-Type': 'text/event-stream; charset=utf-8', 'Cache-Control': 'no-store', 'X-Accel-Buffering': 'no' };
+/** The least time between two progress events sent to the browser, and how often the relay sends one of its own while
+ * a call runs with nothing to show. A provider may hold a tool's whole input (a long write_file) and send nothing
+ * until it is complete, so the relay cannot count on the provider's events to say the call is alive. */
+export const PROGRESS_EVERY_MS = 5000;
+/** After this long with no event at all from the provider, the relay stops vouching for the call: the browser's own
+ * idle limit (src/systems/agent-system.ts IDLE_MS) then ends it. Ten minutes covers a held input of a few thousand
+ * lines; a reply at its full token limit could take longer and would be cut. */
+export const MAX_QUIET_MS = 10 * 60 * 1000;
 const encode = (e: StreamEvent) => new TextEncoder().encode(`data: ${JSON.stringify(e)}\n\n`);
 
 /** One error event as the whole stream. */
@@ -58,13 +69,31 @@ export function createRelay(deps: RelayDeps) {
     request.signal?.addEventListener('abort', () => abort.abort(), { once: true });
     const stream = new ReadableStream<Uint8Array>({
       async start(controller) {
-        const emit = (e: StreamEvent) => {
+        const every = deps.progressEveryMs ?? PROGRESS_EVERY_MS,
+          maxQuiet = deps.maxQuietMs ?? MAX_QUIET_MS;
+        // When anything was last sent to the browser, and when the provider last sent anything at all.
+        let sentAt = Date.now(),
+          heardAt = sentAt;
+        const send = (e: StreamEvent) => {
+          sentAt = Date.now();
           try {
             controller.enqueue(encode(e));
           } catch {
             abort.abort();
           }
         };
+        const emit = (e: StreamEvent) => {
+          heardAt = Date.now();
+          // Progress events only say the call is alive: one every few seconds is enough.
+          if (e.type === 'progress' && heardAt - sentAt < every) return;
+          send(e);
+        };
+        // While the call runs with nothing to show, the relay says so itself, until the provider has been silent for
+        // too long to vouch for.
+        const beat = setInterval(() => {
+          const t = Date.now();
+          if (t - heardAt <= maxQuiet && t - sentAt >= every) send({ type: 'progress' });
+        }, every);
         try {
           const done = await adapter(req, emit, abort.signal);
           if (done) deps.limits.spend(costCents(done.model, done.usage));
@@ -72,6 +101,8 @@ export function createRelay(deps: RelayDeps) {
           else if (abort.signal.aborted) deps.limits.spend(costCents('unknown', { input: raw.length / 4, output: ABORTED_OUTPUT_TOKENS }));
         } catch {
           emit({ type: 'error', code: 'internal', message: 'The relay failed.' });
+        } finally {
+          clearInterval(beat);
         }
         try {
           controller.close();

@@ -60,13 +60,16 @@ export function createWorkspace(readOriginal: (path: string) => Promise<string |
     read,
     /** Every file, sorted: the baked ones and any the agent wrote. */
     list: () => [...new Set([...baked, ...edits.keys()])].sort(),
-    /** Lines containing the text, under a folder if given. Plain text only: a regular expression from the model could
-     * backtrack for minutes on the main thread, and substring search cannot. */
+    /** Lines containing the text, under a folder or in one file if given. Plain text only: a regular expression from
+     * the model could backtrack for minutes on the main thread, and substring search cannot. */
     async search(pattern: string, under?: string): Promise<SearchHit[]> {
-      const prefix = under ? checkPath(under).replace(/\/?$/, '/') : '';
+      // A folder may be written with its trailing slash.
+      const where = under ? checkPath(under.replace(/\/$/, '')) : '';
+      const oneFile = !!where && (baked.has(where) || edits.has(where));
+      const prefix = where ? where + '/' : '';
       const hits: SearchHit[] = [];
       for (const path of [...new Set([...baked, ...edits.keys()])].sort()) {
-        if (prefix && !path.startsWith(prefix)) continue;
+        if (oneFile ? path !== where : prefix && !path.startsWith(prefix)) continue;
         const text = edits.get(path) ?? (await original(path));
         if (text == null) continue;
         const lines = text.split('\n');
@@ -116,6 +119,20 @@ export function createWorkspace(readOriginal: (path: string) => Promise<string |
         parts.push(unifiedDiff(path, before, after));
       }
       return parts.join('');
+    },
+    /** Whether the current turn (since markTurn) changed anything. */
+    turnChanged() {
+      if (edits.size !== turnStart.size) return true;
+      for (const [path, text] of edits) if (turnStart.get(path) !== text) return true;
+      return false;
+    },
+    /** Puts every file back as it was at markTurn. */
+    undoTurn() {
+      const paths = new Set([...edits.keys(), ...turnStart.keys()]);
+      const before = new Map(edits);
+      edits.clear();
+      for (const [path, text] of turnStart) edits.set(path, text);
+      for (const path of paths) if (before.get(path) !== edits.get(path)) changedNow(path);
     },
     reset() {
       const paths = [...edits.keys()];

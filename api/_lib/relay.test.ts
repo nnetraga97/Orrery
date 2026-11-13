@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createLimits } from './limits.ts';
+import { RATE_LIMIT, createLimits } from './limits.ts';
 import { providerList } from './providers.ts';
 import { MAX_BODY_BYTES, createRelay } from './relay.ts';
 import type { Adapter } from './relay.ts';
@@ -44,14 +44,14 @@ test('a provider without a key answers with the unavailable error', async () => 
   assert.deepEqual((await events(await handler(post(good))))[0].code, 'unavailable');
 });
 
-test('over the rate limit or the budget, an error event (the browser falls back to the recorded agent)', async () => {
+test('over the rate limit or the budget, an error event (the turn fails with its message; a new chat on a spent budget gets the recorded agent)', async () => {
   const limits = createLimits({ budgetCents: 1 });
   limits.spend(5);
   const { handler } = relay({ ANTHROPIC_API_KEY: 'k' }, limits);
   assert.equal((await events(await handler(post(good))))[0].code, 'budget_spent');
   const { handler: h2 } = relay();
   let last: any = null;
-  for (let i = 0; i < 31; i++) last = await events(await h2(post(good, { 'x-forwarded-for': '9.9.9.9' })));
+  for (let i = 0; i < RATE_LIMIT.requests + 1; i++) last = await events(await h2(post(good, { 'x-forwarded-for': '9.9.9.9' })));
   assert.equal(last[0].code, 'rate_limited');
 });
 
@@ -96,4 +96,49 @@ test('a call the browser cut off is still counted against the budget', async () 
   await reader.cancel();
   await new Promise(r => setTimeout(r, 10));
   assert.ok(limits.spentToday > 0);
+});
+
+test("a burst of progress right after another event is not sent: progress only fills silence", async () => {
+  const handler = createRelay({
+    env: { ANTHROPIC_API_KEY: 'k' },
+    limits: createLimits(),
+    adapter: () => async (_req, emit) => {
+      emit({ type: 'tool_use_start', id: 't', name: 'write_file' });
+      for (let k = 0; k < 50; k++) emit({ type: 'progress' });
+      emit({ type: 'message', message: { role: 'assistant', blocks: [{ type: 'text', text: 'ok' }] }, stopReason: 'end' });
+      return { model: 'claude-opus-5-5', usage: { input: 1, output: 1 } };
+    },
+  });
+  assert.deepEqual((await events(await handler(post(good)))).map(e => e.type), ['tool_use_start', 'message']);
+});
+
+test('while a provider holds a long tool input and sends nothing, the relay says the call is alive, for a limited time', async () => {
+  const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+  const quiet = (ms: number): Adapter => async (_req, emit) => {
+    emit({ type: 'tool_use_start', id: 't', name: 'write_file' });
+    await wait(ms);
+    emit({ type: 'message', message: { role: 'assistant', blocks: [{ type: 'text', text: 'ok' }] }, stopReason: 'end' });
+    return { model: 'claude-opus-5-5', usage: { input: 1, output: 1 } };
+  };
+  const types = async (options: { progressEveryMs: number; maxQuietMs?: number }, ms: number) =>
+    (await events(await createRelay({ env: { ANTHROPIC_API_KEY: 'k' }, limits: createLimits(), adapter: () => quiet(ms), ...options })(post(good)))).map(e => e.type);
+  const alive = await types({ progressEveryMs: 10 }, 120);
+  assert.equal(alive[0], 'tool_use_start');
+  assert.equal(alive[alive.length - 1], 'message');
+  assert.ok(alive.filter(t => t === 'progress').length >= 3, alive.join(' '));
+  // A provider silent for longer than the relay vouches for gets no more progress: the browser's idle limit ends it.
+  const silent = await types({ progressEveryMs: 10, maxQuietMs: 30 }, 200);
+  const sent = silent.filter(t => t === 'progress').length;
+  assert.ok(sent >= 1 && sent <= 4, silent.join(' '));
+  // A provider that keeps streaming a tool's input is heard, so the relay goes on vouching past that limit.
+  const streaming: Adapter = async (_req, emit) => {
+    for (let k = 0; k < 20; k++) {
+      emit({ type: 'progress' });
+      await wait(10);
+    }
+    emit({ type: 'message', message: { role: 'assistant', blocks: [{ type: 'text', text: 'ok' }] }, stopReason: 'end' });
+    return { model: 'claude-opus-5-5', usage: { input: 1, output: 1 } };
+  };
+  const heard = (await events(await createRelay({ env: { ANTHROPIC_API_KEY: 'k' }, limits: createLimits(), adapter: () => streaming, progressEveryMs: 10, maxQuietMs: 30 })(post(good)))).map(e => e.type);
+  assert.ok(heard.filter(t => t === 'progress').length >= 8, heard.join(' '));
 });

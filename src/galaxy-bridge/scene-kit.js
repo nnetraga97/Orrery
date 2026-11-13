@@ -13,7 +13,8 @@ import { pickScene } from '../../galaxy/viewer/scene/scene-picking.js';
 import { applyDolly, applyOrbit } from '../core/orbit.ts';
 import { THEME } from '../core/theme.ts';
 import { loadFonts } from '../panels/fonts.ts';
-import { glowStroke, microLabel } from '../panels/paint.ts';
+import { glowStroke, microLabel, microLabelWidth } from '../panels/paint.ts';
+import { fileFacts } from './galaxy-session.js';
 
 // The virtual stage: the desktop stage was about 1600 × 1000 pixels. The virtual camera uses its aspect.
 const STAGE_WIDTH = 1600,
@@ -26,7 +27,7 @@ const MAX_DISTANCE = 2000;
 const noLabels = { setLabels() {}, addLabels: () => () => {}, update() {} };
 const noOverlays = { update() {} };
 
-export function createSceneKit({ camPos, host, renderer, anchor = null, labels = noLabels, overlays: overlayLayer = noOverlays }) {
+export function createSceneKit({ camPos, host, renderer, anchor = null, faceTilt = 0, labels = noLabels, overlays: overlayLayer = noOverlays }) {
   const errorNotice = host.dom('sceneError');
   errorNotice.hidden = true;
   errorNotice.querySelector('button').onclick = () => host.actions.render();
@@ -236,22 +237,34 @@ export function createSceneKit({ camPos, host, renderer, anchor = null, labels =
     markerHidden = false;
   // The marker over the selected file (docs/visual-style.md): its name in small capitals over a small glowing diamond.
   // No ring, no pointer triangle, no pulse.
-  const MARKER_W = 512,
-    MARKER_H = 128;
+  const MARKER_W = 768,
+    MARKER_H = 220,
+    MARKER_NOTE_PX = 36,
+    // The marker's width as a share of the camera's distance to it (its name is about as tall as a scene label).
+    MARKER_SCALE = 0.195;
   const markerCanvas = document.createElement('canvas');
   markerCanvas.width = MARKER_W;
   markerCanvas.height = MARKER_H;
   const markerTex = new THREE.CanvasTexture(markerCanvas);
   markerTex.colorSpace = THREE.SRGBColorSpace;
-  let markerText = null;
-  function drawMarker(text) {
+  let markerText = null,
+    markerNotes = [];
+  // The file's name, then what the file is in two short lines (its size and how tangled, and who depends on it): a
+  // file has no card in the room, so its marker is where those facts can be read.
+  function drawMarker(text, notes = []) {
     markerText = text;
+    markerNotes = notes;
     const x = markerCanvas.getContext('2d');
     x.clearRect(0, 0, MARKER_W, MARKER_H);
     microLabel(x, text, MARKER_W / 2, 52, 44, THEME.line, 'center');
+    notes.slice(0, 2).forEach((note, k) => {
+      // Shrunk to fit when a line is long, never below a size that still reads.
+      const px = Math.max(26, Math.min(MARKER_NOTE_PX, (MARKER_NOTE_PX * (MARKER_W - 24)) / microLabelWidth(x, note, MARKER_NOTE_PX)));
+      microLabel(x, note, MARKER_W / 2, 100 + k * 44, px, THEME.white, 'center');
+    });
     const d = new Path2D(),
       cx = MARKER_W / 2,
-      cy = 94,
+      cy = MARKER_H - 34,
       r = 15;
     d.moveTo(cx, cy - r);
     d.lineTo(cx + r, cy);
@@ -272,7 +285,7 @@ export function createSceneKit({ camPos, host, renderer, anchor = null, labels =
   scene.add(marker);
   const markerName = i => host.data.nodes()[i]?.name ?? '';
   void loadFonts().then(() => {
-    if (markerText != null) drawMarker(markerText);
+    if (markerText != null) drawMarker(markerText, markerNotes);
   });
   // flyTo(p, dist): keep the view direction. With { cam }, fly to that camera position; { arc } swings around the origin.
   // With { frame }, p / cam / dist are in a moving local frame (() => { origin, scale }) and the flight tracks it.
@@ -358,7 +371,7 @@ export function createSceneKit({ camPos, host, renderer, anchor = null, labels =
     followPrev = null;
     following = true;
     marker.visible = i != null && !markerHidden;
-    if (i != null) drawMarker(markerName(i));
+    if (i != null) drawMarker(markerName(i), fileFacts(host, i).lines);
     if (tint) tint(i);
     (customHighlight || highlight)(i, posOfSel);
     if (i != null && fly) flyTo(new THREE.Vector3(), flyDist, { frame: bodyFrame(i) });
@@ -499,8 +512,12 @@ export function createSceneKit({ camPos, host, renderer, anchor = null, labels =
     if (pinned != null) {
       marker.visible = !markerHidden;
       marker.position.copy(posOfSel(pinned));
-      const d = camera.position.distanceTo(marker.position);
-      marker.scale.set(d * 0.16, (d * 0.16 * MARKER_H) / MARKER_W, 1);
+      const d = camera.position.distanceTo(marker.position),
+        height = (d * MARKER_SCALE * MARKER_H) / MARKER_W;
+      marker.scale.set(d * MARKER_SCALE, height, 1);
+      // Above the selected body, clear of its disc: over its centre the name covered the star and its inner planets.
+      // A sprite's centre shifts it in its own plane, so "above" is up as the viewer sees it, however the model is turned.
+      marker.center.set(0.5, -((kit.bodySize?.(pinned) ?? 0) * 1.08) / height - 0.1);
     }
     if (pending) updatePick();
     if (pgeo) {
@@ -521,7 +538,25 @@ export function createSceneKit({ camPos, host, renderer, anchor = null, labels =
   }
 
   const uploadedTextures = new WeakMap();
-  return {
+  // renderer.compileAsync, safe against disposal: three's own version polls each material's program and throws from
+  // its timer when a material was disposed meanwhile (leaving one globe for another while its town still compiles),
+  // which also leaves its promise pending for good. Here a material without a program counts as done.
+  function compiled(object, camera, target) {
+    const materials = renderer.compile(object, camera, target);
+    return new Promise(resolve => {
+      const check = () => {
+        for (const material of [...materials]) {
+          const program = renderer.properties.get(material).currentProgram;
+          if (!program || program.isReady()) materials.delete(material);
+        }
+        if (!materials.size || stopped) resolve();
+        else setTimeout(check, 10);
+      };
+      setTimeout(check, 0);
+    });
+  }
+
+  const kit = {
     scene,
     camera,
     /** The galaxy's sky, for the room's background. */
@@ -555,7 +590,7 @@ export function createSceneKit({ camPos, host, renderer, anchor = null, labels =
         uploadedTextures.set(texture, texture.version);
       }
       await checkpoint();
-      await renderer.compileAsync(object, camera, target);
+      await compiled(object, camera, target);
       await checkpoint();
     },
     highlight,
@@ -630,6 +665,12 @@ export function createSceneKit({ camPos, host, renderer, anchor = null, labels =
       };
     },
     // XR additions.
+    /** A landed globe is seen whole from the seat, so its town is turned to face the viewer (town-landing.js): how
+     * far above the town's middle the virtual camera stands for that, in radians. Read at each landing, since the
+     * seat height setting changes it. */
+    get faceLanding() {
+      return typeof faceTilt === 'function' ? faceTilt() : faceTilt;
+    },
     tick,
     pointerMove,
     pointerLeave,
@@ -689,4 +730,5 @@ export function createSceneKit({ camPos, host, renderer, anchor = null, labels =
       pmat.dispose();
     },
   };
+  return kit;
 }

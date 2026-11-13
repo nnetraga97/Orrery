@@ -46,6 +46,7 @@ test('stream events', () => {
   assert.ok(isStreamEvent({ type: 'text', delta: 'a' }));
   assert.ok(isStreamEvent({ type: 'thinking', delta: 'a' }));
   assert.ok(isStreamEvent({ type: 'tool_use_start', id: 't', name: 'n' }));
+  assert.ok(isStreamEvent({ type: 'progress' }));
   assert.ok(isStreamEvent({ type: 'message', message: assistant, stopReason: 'tool_use' }));
   assert.ok(!isStreamEvent({ type: 'message', message: assistant, stopReason: 'done' }));
   assert.ok(!isStreamEvent({ type: 'message', message: user, stopReason: 'end' }));

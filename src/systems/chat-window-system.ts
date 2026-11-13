@@ -10,6 +10,8 @@ import type { ComposerView } from '../core/chat/composer-layout.ts';
 import { workingLabel } from '../core/chat/describe.ts';
 import { chatMetrics, clampScroll, layoutChat, layoutThreadList, stickToBottom } from '../core/chat/layout.ts';
 import type { ChatLayout, ChatMetrics } from '../core/chat/layout.ts';
+import { lookingLabel } from '../core/chat/context.ts';
+import { openQuestion } from '../core/chat/requests.ts';
 import { titleFor } from '../core/chat/threads.ts';
 import { CanvasPanel, STYLE_PX_PER_M } from '../panels/canvas-panel.ts';
 import { CHAT_WINDOW } from '../panels/draw-chat-shell.ts';
@@ -29,15 +31,19 @@ import {
   codeView,
   composer,
   dataset,
+  landedPath,
+  landedTown,
   layoutResets,
   paused,
   provider,
   scenario,
+  selectedPath,
   speech,
   thread,
   threads,
   voiceTarget,
 } from '../state/app-state.ts';
+import { whereNow } from '../state/where.ts';
 import { chatAction, goHome, hideChat, pressMic, releaseMic, showChatPage } from '../state/commands.ts';
 import { AgentSystem } from './agent-system.ts';
 import { headPosition } from './head.ts';
@@ -139,6 +145,10 @@ export class ChatWindowSystem extends createSystem({}) {
       threads.subscribe(touch),
       provider.subscribe(touch),
       codeView.subscribe(touch),
+      // The "What I'm looking at" chip follows the selection and the landing.
+      selectedPath.subscribe(touch),
+      landedPath.subscribe(touch),
+      landedTown.subscribe(touch),
       changedFiles.subscribe(touch),
       scenario.subscribe(touch),
       layoutResets.subscribe(n => {
@@ -204,7 +214,11 @@ export class ChatWindowSystem extends createSystem({}) {
   }
 
   private holdStart(id: string) {
-    if (id === 'mic') pressMic({ kind: 'composer' });
+    if (id === 'mic') {
+      // While a question card is open, the main microphone answers it: that is where the user looks to talk.
+      const q = openQuestion(thread.peek()?.requests ?? [], answers.peek());
+      pressMic(q ? { kind: 'answer', ...q } : { kind: 'composer' });
+    }
     else if (id === 'search:mic') pressMic({ kind: 'search' });
     else if (id.startsWith('say:')) {
       const [, requestId, ...q] = id.split(':');
@@ -230,8 +244,6 @@ export class ChatWindowSystem extends createSystem({}) {
 
   private composerView(): ComposerView {
     const p = provider.peek(),
-      view = codeView.peek(),
-      range = view?.selectedRange ?? (view && view.selectedRegion != null ? view.regions[view.selectedRegion] : null),
       s = speech.peek(),
       listening = s.phase === 'listening' && voiceTarget.peek().kind === 'composer';
     return {
@@ -239,7 +251,7 @@ export class ChatWindowSystem extends createSystem({}) {
       prompts: scenario.peek()?.prompts ?? ['Explain this project', 'Find a bug', 'Show me the main function'],
       project: dataset.peek() ?? '',
       changedFiles: changedFiles.peek().length,
-      looking: view && range ? `${view.file.split('/').pop()}:${range.start}–${range.end}` : null,
+      looking: lookingLabel(whereNow()),
       available: p.available,
       mic: s.phase === 'unavailable' ? 'unavailable' : listening ? 'listening' : 'idle',
       partial: listening ? s.text : '',
@@ -308,6 +320,8 @@ export class ChatWindowSystem extends createSystem({}) {
         notices: agent?.requestNotices,
         listening: listening && listening.kind === 'answer' ? `say:${listening.requestId}:${listening.questionId}` : null,
         messageActions: true,
+        undo: running ? null : (agent?.undoableDiff ?? null),
+        retry: t?.status === 'failed',
       },
       m,
       measure,

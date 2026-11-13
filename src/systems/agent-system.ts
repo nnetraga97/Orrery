@@ -2,15 +2,21 @@
 // (seeded with the scenario's bug), the open chat and its kept copies, and the requests waiting on the user. It carries
 // out the loop's effects: calling the model through the AgentPort, running tools on the workspace, raising approval
 // and question cards. It turns the conversation into the transcript's items, tells the scene what the agent does
-// (agent-events.ts), and handles every pinch on the chat window, by region id.
+// (agent-events.ts), and handles every pinch on the chat window, by region id. Each message goes to the model with a
+// note of where the user is (src/core/chat/context.ts). A chat is saved whenever its files change, so an approved edit
+// survives whatever ends the turn.
 import { createSystem } from '@iwsdk/core';
 import { initialLoop, loopStep } from '../core/agent/loop.ts';
 import type { LoopEffect, LoopEvent, LoopState, TurnOutcome } from '../core/agent/loop.ts';
+import { firstChangedLine } from '../core/diff.ts';
+import { createFunctionIndex } from '../core/agent/functions.ts';
+import type { FunctionIndex } from '../core/agent/functions.ts';
 import { previewEdit, runTool } from '../core/agent/run-tool.ts';
 import { systemPrompt } from '../core/agent/prompt.ts';
 import { TOOLS } from '../core/agent/tools.ts';
 import type { AgentRequest, Message, StreamEvent, ToolUseBlock } from '../core/agent/wire.ts';
 import { toolUses } from '../core/agent/wire.ts';
+import { contextNote, lookingLabel } from '../core/chat/context.ts';
 import * as composerOps from '../core/chat/composer.ts';
 import type { Effect as ComposerEffect, SlashCommand } from '../core/chat/composer.ts';
 import { textOf } from '../core/chat/describe.ts';
@@ -26,7 +32,7 @@ import { createWorkspace } from '../core/workspace.ts';
 import type { Workspace } from '../core/workspace.ts';
 import { createAgentEvents } from '../galaxy-bridge/agent-events.ts';
 import type { AgentEvents } from '../galaxy-bridge/agent-events.ts';
-import { galaxyState, setSourceOverride, sourceUrl } from '../galaxy-bridge/galaxy-session.js';
+import { functionIndexUrl, galaxyState, setSourceOverride, sourceUrl } from '../galaxy-bridge/galaxy-session.js';
 import type { AgentPort } from '../ports/agent.ts';
 import type { StoragePort } from '../ports/storage.ts';
 import {
@@ -34,11 +40,11 @@ import {
   answers,
   changedFiles,
   chatToggles,
-  codeView,
   composer,
   dataset,
   phase,
   provider,
+  replay,
   replayRequest,
   scenario as scenarioSignal,
   scenarioState,
@@ -46,8 +52,19 @@ import {
   threads,
 } from '../state/app-state.ts';
 import { connectChat, connectChatActions, playSound, pressMic, releaseMic, showChatPage, showCode } from '../state/commands.ts';
+import { whereNow } from '../state/where.ts';
 
 type Pending = { id: string; name: string; input: Record<string, unknown> };
+
+/** After the problem closes, the fixed run replays by itself once the rebuilt town has had this long to show. */
+const REPLAY_AFTER_FIX_MS = 1500;
+/** A model call with no event for this long is given up (the relay or the network went quiet). While a tool's input
+ * streams the relay sends progress events, so a long write_file is not mistaken for silence. */
+const IDLE_MS = 90_000;
+export const RECORDED_NOTICE = 'Recorded agent: it replays one prepared fix, whatever is asked.';
+export const NEW_CHAT_NOTICE = 'New chat: the files are back as they started. Your changes stay with the earlier chat.';
+export const CUT_OFF_NOTICE = 'The reply was cut off before it finished. Ask it to continue.';
+export const REFUSED_NOTICE = 'The model declined to answer that.';
 
 export class AgentSystem extends createSystem({}) {
   private port!: AgentPort;
@@ -69,6 +86,13 @@ export class AgentSystem extends createSystem({}) {
   private fixedAt = 0;
   private auto = false;
   private notices = new Map<string, string>();
+  private functions: FunctionIndex | null = null;
+  /** Edits the user approved on a card, so their result can tell the model so. */
+  private approved = new Set<string>();
+  /** The turn diff that Undo can still take back (the latest turn's, until the next message). */
+  private undoable: string | null = null;
+  /** The user undid a turn's changes and the model has not been told yet. */
+  private undone = false;
 
   init() {
     this.port = this.globals.agent as AgentPort;
@@ -87,7 +111,7 @@ export class AgentSystem extends createSystem({}) {
       provider.subscribe(p => {
         const t = thread.peek();
         if (this.opened && this.workspace && t && t.provider !== p.id) {
-          this.stopTurn();
+          this.leaveChat();
           this.restore(this.opened);
         }
       }),
@@ -100,11 +124,18 @@ export class AgentSystem extends createSystem({}) {
     return this.workspace;
   }
 
+  /** The turn diff whose changes can be undone, for the transcript's Undo. */
+  get undoableDiff() {
+    return this.undoable;
+  }
+
   // ---------- the project, its scenario and its chat ----------
 
   private async openProject(name: string) {
     this.opened = name;
-    this.stopTurn();
+    this.leaveChat();
+    this.functions = null;
+    void this.loadFunctions(name);
     const query = new URLSearchParams(location.search);
     const id = query.get('scenario') ?? (name === 'editor-core' ? 'range-edge' : null);
     const scenario = id ? await this.loadScenario(id, name) : null;
@@ -136,6 +167,17 @@ export class AgentSystem extends createSystem({}) {
     composer.value = composerOps.initialComposer({ notice: c.notice, mode: c.mode, permission: c.permission });
     this.restore(name);
     if (this.auto) this.startAuto();
+  }
+
+  /** The galaxy's function map, for find_function; a project without one leaves the tool saying so. */
+  private async loadFunctions(name: string) {
+    try {
+      const res = await fetch(functionIndexUrl(name));
+      const data = res.ok ? await res.json() : null;
+      if (data && this.opened === name) this.functions = createFunctionIndex(data);
+    } catch {
+      // No map: find_function says so.
+    }
   }
 
   private async loadScenario(id: string, name: string): Promise<Scenario | null> {
@@ -193,6 +235,8 @@ export class AgentSystem extends createSystem({}) {
     this.requests = [];
     answers.value = new Map();
     this.notices.clear();
+    this.undoable = null;
+    this.undone = false;
     chatToggles.value = new Map();
     this.turn = this.items.filter(i => i.type === 'userMessage').length;
     this.planTurn = this.turn;
@@ -200,19 +244,29 @@ export class AgentSystem extends createSystem({}) {
     this.events.session(t.id, this.port.label);
   }
 
-  private newChat() {
+  /** Before another chat takes this one's place: the turn stops and the chat is kept as it stands, edits included. */
+  private leaveChat() {
     this.stopTurn();
-    const name = this.opened;
-    if (!name) return;
-    this.workspace?.markTurn();
-    this.adopt(createThread(provider.peek().id, name));
+    this.publish();
     this.save();
   }
 
+  private newChat() {
+    const name = this.opened;
+    if (!name) return;
+    this.leaveChat();
+    const changed = (this.workspace?.changed().length ?? 0) > 0;
+    this.workspace?.markTurn();
+    this.adopt(createThread(provider.peek().id, name));
+    this.save();
+    if (changed) composer.value = { ...composer.peek(), notice: NEW_CHAT_NOTICE };
+  }
+
   private openThread(id: string) {
+    if (id === thread.peek()?.id) return;
+    this.leaveChat();
     const t = this.store.load(id);
     if (!t) return;
-    this.stopTurn();
     this.adopt(t);
   }
 
@@ -303,17 +357,36 @@ export class AgentSystem extends createSystem({}) {
     this.live.text = '';
     this.live.thinkingStart = 0;
     let ended = false;
+    // A relay or a network that goes quiet would leave the turn running for good: after IDLE_MS without an event the
+    // call is given up and the turn fails, with Retry.
+    let idle: ReturnType<typeof setTimeout> | undefined;
+    const giveUp = () => {
+      if (ended || abort.signal.aborted || call !== this.live.call) return;
+      ended = true;
+      this.onStream({ type: 'error', code: 'network', message: 'No answer came for a while.' });
+      abort.abort();
+    };
+    const watch = () => {
+      clearTimeout(idle);
+      idle = setTimeout(giveUp, IDLE_MS);
+    };
+    watch();
     try {
       await this.port.send(request, event => {
-        if (abort.signal.aborted || call !== this.live.call) return;
+        if (ended || abort.signal.aborted || call !== this.live.call) return;
         if (event.type === 'message' || event.type === 'error') ended = true;
+        watch();
+        // Progress only keeps the call alive (a long tool input streams with nothing to show).
+        if (event.type === 'progress') return;
         this.onStream(event);
       }, abort.signal);
       if (!ended && !abort.signal.aborted && call === this.live.call)
         this.onStream({ type: 'error', code: 'network', message: 'The answer stopped before it was complete.' });
     } catch (e) {
-      if (abort.signal.aborted || call !== this.live.call) return;
+      if (ended || abort.signal.aborted || call !== this.live.call) return;
       this.onStream({ type: 'error', code: 'network', message: e instanceof Error ? e.message : String(e) });
+    } finally {
+      clearTimeout(idle);
     }
   }
 
@@ -391,7 +464,7 @@ export class AgentSystem extends createSystem({}) {
       case 'write_file':
         return void this.items.push({ ...base, status: 'inProgress', type: 'fileChange', changes: [{ path: String(input.path ?? 'file') }] });
       case 'show_user':
-        return void this.items.push({ ...base, type: 'dynamicToolCall', tool: 'show_user', title: `Pointed at ${input.file}${input.line ? `:${input.line}` : ''}`, arguments: input });
+        return void this.items.push({ ...base, type: 'dynamicToolCall', tool: 'show_user', title: `Pointed at ${input.file}${input.line ? `:${input.line}` : ''}`, text: String(input.message ?? ''), arguments: input });
       case 'update_plan': {
         // One plan per request from the user: a steer adds to the same turn's plan.
         const id = `plan-${this.planTurn}`,
@@ -401,6 +474,8 @@ export class AgentSystem extends createSystem({}) {
         else this.items.push({ id, type: 'plan', plan });
         return;
       }
+      case 'find_function':
+        return void this.items.push({ ...base, type: 'commandExecution', command: `find function ${input.name}`, commandActions: [{ type: 'search', query: String(input.name ?? '') }] });
       case 'ask_user':
         return void this.items.push({ ...base, type: 'question', title: 'Asked a question' });
       case 'run_replay':
@@ -418,26 +493,52 @@ export class AgentSystem extends createSystem({}) {
   private async runTool(id: string, name: string, input: Record<string, unknown>) {
     const ws = this.workspace;
     if (!ws) return this.dispatch({ type: 'toolFinished', id, content: 'The project is not open yet.', isError: true });
-    this.events.toolStarted(id, name, input);
+    // A function lookup flies a ship to the first file it names.
+    const seen = name === 'find_function' ? { path: this.functions?.describe(String(input.name)).files[0] } : input;
+    this.events.toolStarted(id, name, seen);
+    const s = this.scenario,
+      wasOpen = scenarioState.peek() === 'broken';
     const out = await runTool(name, input, ws, {
       showUser: (file, line, message) => {
         agentPointer.value = { file, line, message };
         if ((this.globals.followAgent as (() => boolean) | undefined)?.()) showCode(file, line ?? 1);
       },
       runReplay: which => {
-        replayRequest.value = { which };
+        if (!s) return 'This project has no problem card, so there is no recorded run to replay.';
+        // The app cannot run code: it closes the problem only when the broken line is back to its original text.
+        if (which === 'fixed' && scenarioState.peek() === 'broken')
+          return `The problem card is still open. Nothing runs here, so the app closes it only when the broken line in ${s.file} again reads as it did before the bug; a different change, even a correct one, does not close it. An edit may also still be waiting for approval. Read the file again.`;
+        // Already on screen (the app starts the fixed run itself when the problem closes).
+        if (replay.peek()?.which !== which) replayRequest.value = { which };
+        return null;
       },
+      functions: this.functions,
     });
-    this.events.toolFinished(id, name, input, !out.isError);
+    this.events.toolFinished(id, name, seen, !out.isError);
     if (out.change && !out.isError) playSound('editAccepted');
     const status = out.isError ? 'failed' : 'completed';
     if (out.change) {
       this.changedThisTurn = true;
       this.updateItem(id, { status, changes: [{ path: out.change.path, diff: out.change.diff, kind: out.change.created ? 'add' : 'update' }] });
-    } else if (name === 'read_file' || name === 'search' || name === 'list_files') this.updateItem(id, { status, output: out.content, exitCode: out.isError ? 1 : 0 });
+    } else if (name === 'read_file' || name === 'search' || name === 'list_files' || name === 'find_function') this.updateItem(id, { status, output: out.content, exitCode: out.isError ? 1 : 0 });
     else this.updateItem(id, { status, result: out.content });
+    if (out.change && !out.isError) {
+      // Kept at once: whatever ends the turn (a failure, another chat), the chat holds the edit it shows.
+      await this.checkFixed();
+      this.publish();
+      this.save();
+      // This edit closed the problem: the payoff does not wait on the model remembering run_replay. The fixed run
+      // plays by itself (the model's own call, if it comes, finds it running). Only an edit made now does this; a
+      // restored chat that already holds the fix opens quietly.
+      if (s && wasOpen && scenarioState.peek() === 'fixed')
+        setTimeout(() => {
+          if (this.scenario === s && (scenarioState.peek() === 'fixed' || scenarioState.peek() === 'done') && !replay.peek()) replayRequest.value = { which: 'fixed' };
+        }, REPLAY_AFTER_FIX_MS);
+    }
     if (this.loop.status !== 'tools') return;
-    this.dispatch({ type: 'toolFinished', id, content: out.content, isError: out.isError });
+    // The model cannot see the approval card: a result that says the user approved stops it waiting for one.
+    const content = out.change && !out.isError && this.approved.delete(id) ? `${out.content} The user approved it: the change is in place.` : out.content;
+    this.dispatch({ type: 'toolFinished', id, content, isError: out.isError });
   }
 
   private async askApproval(id: string, name: string, input: Record<string, unknown>) {
@@ -446,6 +547,8 @@ export class AgentSystem extends createSystem({}) {
       if (!ws) throw new Error('The project is not open yet.');
       const preview = await previewEdit(name, input, ws);
       this.updateItem(id, { changes: [{ path: preview.path, diff: preview.diff }] });
+      // The user decides with the code in front of them, whether or not the agent pointed at it first.
+      this.showEdit(preview.path, firstChangedLine(preview.diff));
       this.requests.push({ id, type: 'fileChangeApproval', reason: `Change ${preview.path}`, changes: [{ path: preview.path, diff: preview.diff }] });
       this.publish();
       this.save();
@@ -455,6 +558,15 @@ export class AgentSystem extends createSystem({}) {
       this.updateItem(id, { status: 'failed' });
       if (this.loop.status === 'tools') this.dispatch({ type: 'toolFinished', id, content: e instanceof Error ? e.message : String(e), isError: true });
     }
+  }
+
+  /** Brings up the place an edit changes, when the scene follows the agent and is not already there. */
+  private showEdit(path: string, line: number | null) {
+    if (!(this.globals.followAgent as (() => boolean) | undefined)?.() || line == null || !galaxyState.nodes.some(n => n.path === path)) return;
+    const where = whereNow().code;
+    const shown = where?.fnRange ?? where?.range;
+    if (where?.file === path && shown && line >= shown.start && line <= shown.end) return;
+    showCode(path, line);
   }
 
   private askUser(id: string, input: Record<string, unknown>) {
@@ -494,12 +606,15 @@ export class AgentSystem extends createSystem({}) {
       const diff = await this.workspace.turnDiff();
       // Another chat was opened meanwhile: this turn's ending belongs to the old one, which was saved as it stopped.
       if (thread.peek()?.id !== chat) return;
-      if (diff) this.items.push({ id: `diff-${this.turn}`, type: 'turnDiff', diff });
+      if (diff) {
+        this.undoable = `diff-${this.turn}`;
+        this.items.push({ id: this.undoable, type: 'turnDiff', diff });
+      }
     }
     this.changedThisTurn = false;
     this.events.turnFinished(outcome === 'completed' ? 'completed' : outcome === 'stopped' ? 'interrupted' : 'failed');
     const step = composerOps.turnEnded(composer.peek());
-    composer.value = step.state;
+    composer.value = outcome === 'truncated' ? { ...step.state, notice: CUT_OFF_NOTICE } : outcome === 'refused' ? { ...step.state, notice: REFUSED_NOTICE } : step.state;
     this.publish({ title: thread.peek()?.title });
     this.save();
     if (step.effect) this.composerEffect(step.effect);
@@ -513,35 +628,55 @@ export class AgentSystem extends createSystem({}) {
 
   // ---------- what the user said ----------
 
-  /** The open file and lines the user is looking at, as a label and as text for the model. */
-  private looking(): { label: string; text: string } | null {
-    const view = codeView.peek();
-    if (!view) return null;
-    const range = view.selectedRange ?? (view.selectedRegion != null ? view.regions[view.selectedRegion] : null);
-    if (!range) return null;
-    const lines = view.lines
-      .slice(range.start - 1, range.end)
-      .map((segments, k) => `${range.start + k}\t${segments.map(s => s.text).join('')}`)
-      .join('\n');
-    const label = `${view.file.split('/').pop()}:${range.start}–${range.end}`;
-    return { label, text: `\n\n(The user is looking at ${view.file}, lines ${range.start}–${range.end}:)\n${lines}` };
-  }
-
   private say(text: string, attachContext: boolean, steer = false) {
     playSound('send');
     if (!steer) this.planTurn++;
-    const context = attachContext ? this.looking() : null;
+    // The note the model gets with the words: the open problem (a chat's first message) and where the user is.
+    const first = !steer && !this.loop.messages.length;
+    const note = contextNote(whereNow(true), { first, attach: attachContext, undone: this.undone });
+    this.undone = false;
+    const label = attachContext ? lookingLabel(whereNow()) : null;
     this.turn++;
-    this.items.push({ id: `u${Date.now().toString(36)}${this.turn}`, type: 'userMessage', text, attachmentNames: context ? [context.label] : [] });
+    this.items.push({ id: `u${Date.now().toString(36)}${this.turn}`, type: 'userMessage', text, attachmentNames: label ? [label] : [] });
     // A steer belongs to the running turn: the turn's diff keeps its starting point.
     if (!steer) {
       this.workspace?.markTurn();
+      this.undoable = null;
       this.events.turnStarted(text);
     }
     agentPointer.value = null;
     this.dispatch({ type: 'settings', permission: composer.peek().permission, mode: composer.peek().mode });
-    this.dispatch({ type: steer ? 'steer' : 'userSaid', text: text + (context?.text ?? '') });
+    this.dispatch({ type: steer ? 'steer' : 'userSaid', text: text + note });
+    if (first && provider.peek().id === 'recorded') composer.value = { ...composer.peek(), notice: RECORDED_NOTICE };
     this.save();
+  }
+
+  /** Calls the model again after a failed turn, with the conversation as it stands. */
+  private retry() {
+    if (this.loop.status !== 'failed') return;
+    playSound('send');
+    this.dispatch({ type: 'retry' });
+  }
+
+  /** Puts the files back as they were before the latest turn, and tells the model with the next message. */
+  private undo(id: string) {
+    const ws = this.workspace;
+    if (!ws || id !== this.undoable || this.loop.status === 'calling' || this.loop.status === 'tools') return;
+    ws.undoTurn();
+    this.undoable = null;
+    this.undone = true;
+    this.updateItem(id, { status: 'undone' });
+    void this.settleScenario();
+    this.publish();
+    this.save();
+  }
+
+  /** Shows a place the agent pointed at earlier, from its row in the transcript. */
+  private pointAgain(id: string) {
+    const a = this.items.find(i => i.id === id)?.arguments as { file?: string; line?: number; message?: string } | undefined;
+    if (!a?.file) return;
+    agentPointer.value = { file: a.file, line: a.line ?? null, message: a.message ?? '' };
+    showCode(a.file, a.line ?? 1);
   }
 
   private composerEffect(effect: ComposerEffect) {
@@ -648,6 +783,12 @@ export class AgentSystem extends createSystem({}) {
       case 'approve':
       case 'decline':
         return this.decide(arg, name === 'approve');
+      case 'retry':
+        return this.retry();
+      case 'undo':
+        return this.undo(arg);
+      case 'point':
+        return this.pointAgain(arg);
     }
   }
 
@@ -656,6 +797,7 @@ export class AgentSystem extends createSystem({}) {
     if (!request || isQuestionRequest(request)) return;
     this.requests = this.requests.filter(r => r.id !== id);
     if (!accept) this.updateItem(id, { status: 'declined' });
+    else this.approved.add(id);
     this.dispatch({ type: accept ? 'approved' : 'declined', id });
     this.save();
   }

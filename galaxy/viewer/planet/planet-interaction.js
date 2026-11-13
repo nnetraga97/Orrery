@@ -157,9 +157,9 @@ export function createPlanetInteraction(ctx, world, { selection }) {
       code.scrollTop = first.offsetTop - code.offsetTop - code.clientHeight / 3;
     }
   }
-  // Look obliquely across the selected region's town.
+  // Look across the selected region's town: obliquely on a screen, square on in the room (town-landing.js).
   function viewOf(k) {
-    if (ctx.towns) return townLandingView(ctx.towns, k, R);
+    if (ctx.towns) return townLandingView(ctx.towns, k, R, T.faceLanding);
     const target = surfacePoint(centerOf[k], k, 0);
     return { target, cam: target.clone().multiplyScalar(2) };
   }

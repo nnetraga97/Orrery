@@ -5,13 +5,18 @@ import { screenRoadMaterial } from '../country/country-road-scale.js';
 import { townRoadLayers, definitionLinkVisible } from './town-layout.js';
 import { STATEMENT_TYPES, statementType } from '../shared/town-flow.js';
 
+// The tint over a nested block's ground, by how deep it sits inside if / loop / switch / try (index = depth; null =
+// none): amber at three deep, orange at four, deep orange beyond. Red stays reserved for faults.
+const NEST_TINT = [null, null, null, new THREE.Color('#e9b949'), new THREE.Color('#f0963a'), new THREE.Color('#f06a2a')];
+
 export async function buildTownGround(build) {
   const { ctx, towns, group, disposables, checkpoint } = build;
   const { groundColorAt, groundMaterial } = ctx;
   // --- ground: plazas, terraces, roads (merged across all towns) ---
   const groundRanges = [],
     ground = { pos: [], col: [], idx: [] },
-    apron = { pos: [], col: [], idx: [] };
+    apron = { pos: [], col: [], idx: [] },
+    heat = { pos: [], col: [], idx: [] };
   const pushQuadGrid = (target, fr, fn, nx, ny, lift, color) => {
     const base = target.pos.length / 3;
     for (let i = 0; i <= nx; i++)
@@ -69,17 +74,28 @@ export async function buildTownGround(build) {
       0.016,
       new THREE.Color('#526370'),
     );
-    tw.out.terraces.forEach(t =>
+    tw.out.terraces.forEach(t => {
+      const at = (a, b) => [t.x0 + (t.x1 - t.x0) * a, t.y0 + (t.y1 - t.y0) * b],
+        lift = tw.s * 0.033 + t.depth * 0.1 * tw.s;
       pushQuadGrid(
         ground,
         tw.fr,
-        (a, b) => [t.x0 + (t.x1 - t.x0) * a, t.y0 + (t.y1 - t.y0) * b],
+        at,
         6,
         6,
-        tw.s * 0.033 + t.depth * 0.1 * tw.s,
+        lift,
         surface(tw, (t.x0 + t.x1) / 2, (t.y0 + t.y1) / 2).multiplyScalar(1 - 0.03 * Math.min(3, t.depth)),
-      ),
-    );
+      );
+      // Code nested three deep or more is where a function gets hard to follow: its ground is tinted, warmer with
+      // depth, so the deep part of a town shows from across the globe.
+      const tint = NEST_TINT[Math.min(t.depth, NEST_TINT.length - 1)];
+      if (tint) {
+        // A long function's lots are tiny, so its terraces lie almost on the ground and a wide one spans many of the
+        // terrain's own bumps: finer cells and a little air keep the relief from poking through the tint.
+        const cells = span => Math.min(40, Math.max(6, Math.ceil(Math.abs(span) / (ctx.R * 0.026))));
+        pushQuadGrid(heat, tw.fr, at, cells(t.x1 - t.x0), cells(t.y1 - t.y0), Math.max(lift, ctx.R * 0.004) + tw.s * 0.004, tint);
+      }
+    });
     groundRanges.push({ k: tw.k, mode: 'detail', start: groundStart, end: ground.idx.length });
   }
   const meshFrom = (g, mat) => {
@@ -117,6 +133,21 @@ export async function buildTownGround(build) {
       polygonOffsetUnits: -2,
     }),
   );
+  // The nesting tint is unlit, so it reads the same on the day and night sides of a globe.
+  if (heat.idx.length)
+    meshFrom(
+      heat,
+      new THREE.MeshBasicMaterial({
+        vertexColors: true,
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 0.4,
+        depthWrite: false,
+        polygonOffset: true,
+        polygonOffsetFactor: ctx.surface?.flat || ctx.surface?.planar ? 0 : -3,
+        polygonOffsetUnits: -3,
+      }),
+    ).name = 'nesting-tint';
 
   // A compressed flat town keeps its roads legible with screen-space minimum widths.
   const roadGeo = { pos: [], col: [], idx: [], screen: ctx.screenRoads ? [] : null },

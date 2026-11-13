@@ -100,3 +100,28 @@ test('listeners hear each change', async () => {
   ws.write('n.ts', 'n');
   assert.deepEqual(heard, ['core/range.ts', 'n.ts']);
 });
+
+test('search under a file path searches that file alone', async () => {
+  const ws = make();
+  assert.deepEqual((await ws.search('Range', 'core/range.ts')).map(h => `${h.path}:${h.line}`), ['core/range.ts:1']);
+  assert.deepEqual((await ws.search('Range', 'core')).map(h => h.path), ['core/range.ts']);
+  assert.deepEqual((await ws.search('Range', 'core/')).map(h => h.path), ['core/range.ts']);
+  assert.deepEqual(await ws.search('Range', 'core/rang'), []);
+});
+
+test('undoTurn puts every file back as it was at markTurn', async () => {
+  const ws = make();
+  await ws.replace('core/range.ts', 'a = 1', 'a = 5');
+  ws.markTurn();
+  assert.equal(ws.turnChanged(), false);
+  await ws.replace('core/range.ts', 'b = 2', 'b = 7');
+  ws.write('core/new.ts', 'x');
+  assert.equal(ws.turnChanged(), true);
+  const heard: string[] = [];
+  ws.onChange(p => heard.push(p));
+  ws.undoTurn();
+  assert.deepEqual(ws.changed(), ['core/range.ts']);
+  assert.match(await ws.read('core/range.ts'), /a = 5;\n {2}b = 2;/);
+  assert.deepEqual(heard.sort(), ['core/new.ts', 'core/range.ts']);
+  assert.equal(ws.turnChanged(), false);
+});

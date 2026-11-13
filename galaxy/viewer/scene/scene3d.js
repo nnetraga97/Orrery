@@ -312,6 +312,10 @@ export function scene3D(camPos, { space = false } = {}, host) {
     el.style.color = col;
     el.style.left = el.style.top = '0px';
     if (cls) el.className = cls;
+    // The page's style puts a label above its point, centred across it; a centred label sits on the point instead.
+    if (definition.centered) el.classList.add('label-centered');
+    // A label that matters more is written larger.
+    if (definition.scale && definition.scale !== 1) el.style.fontSize = `${definition.scale}em`;
     let textEl = el,
       button = null;
     if (action) {
@@ -609,6 +613,10 @@ export function scene3D(camPos, { space = false } = {}, host) {
       }
       v.copy(typeof l.pos === 'function' ? l.pos() : l.pos);
       if (l.xf) l.xf(v);
+      // A label that names a body sits just above it: lifted by the body's radius as drawn, plus a little air.
+      l.lift = l.definition.clear
+        ? ((l.definition.clear / Math.max(1e-6, v.distanceTo(camera.position) * Math.tan((camera.fov * Math.PI) / 360))) * H) / 2 + 4
+        : 0;
       v.project(camera);
       l.candidate = v.z < 1 && Math.abs(v.x) < 1.05 && Math.abs(v.y) < 1.05;
       l.x = ((v.x + 1) / 2) * W;
@@ -634,7 +642,8 @@ export function scene3D(camPos, { space = false } = {}, host) {
       const group = l.definition.group;
       if (group && (groupCounts.get(group) || 0) >= (l.definition.maxVisible ?? Infinity)) vis = false;
       if (vis) {
-        const { x, y } = l;
+        const { x } = l,
+          y = l.y - l.lift;
         const top = l.definition.centered ? y - l.height / 2 : y - l.height;
         const box = { x0: x - l.width / 2 - 3, x1: x + l.width / 2 + 3, y0: top - 3, y1: top + l.height + 3 };
         if (
