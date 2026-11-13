@@ -6,6 +6,7 @@ import type { LoopEffect, LoopEvent, LoopState } from './loop.ts';
 import { END_OF_RECORDING, recordedReply } from './recorded.ts';
 import type { RecordedSession } from './recorded.ts';
 import { previewEdit, runTool } from './run-tool.ts';
+import { createFunctionIndex } from './functions.ts';
 import { requestErrors } from './wire.ts';
 import { createWorkspace } from '../workspace.ts';
 import { applyBreak, isFixed, validateScenario } from '../scenario.ts';
@@ -29,7 +30,13 @@ async function play() {
   const ws = createWorkspace(async p => (p === scenario.file ? applyBreak(scenario, baked(p)!) : baked(p)), paths);
   const shown: string[] = [];
   const replays: string[] = [];
-  const scene = { showUser: (f: string, l: number | null) => shown.push(`${f}:${l}`), runReplay: (w: string) => replays.push(w) };
+  const scene = {
+    showUser: (f: string, l: number | null) => void shown.push(`${f}:${l}`),
+    runReplay: (w: string) => {
+      replays.push(w);
+      return null;
+    },
+  };
   let state: LoopState = initialLoop();
   const queue: LoopEvent[] = [{ type: 'userSaid', text: 'Fix it' }];
   let calls = 0;
@@ -78,7 +85,7 @@ test('after the recording ends, a further message gets the end-of-recording repl
 
 test('tools report problems as error results', async () => {
   const ws = createWorkspace(async () => 'a\nb', ['a.ts']);
-  const scene = { showUser: () => {}, runReplay: () => {} };
+  const scene = { showUser: () => {}, runReplay: () => null };
   assert.deepEqual(await runTool('read_file', { path: 'nope.ts' }, ws, scene), { content: 'No such file: nope.ts', isError: true });
   assert.deepEqual(await runTool('show_user', { file: 'a.ts', line: 9, message: 'x' }, ws, scene), { content: 'a.ts has 2 lines; line 9 is past its end.', isError: true });
   assert.equal((await runTool('read_file', { path: 'a.ts', start_line: 2 }, ws, scene)).content, '2\tb');
@@ -86,4 +93,21 @@ test('tools report problems as error results', async () => {
   await assert.rejects(previewEdit('replace_in_file', { path: 'a.ts', old_text: 'q', new_text: 'r' }, ws), /not found/);
   const made = await runTool('write_file', { path: 'n.ts', content: 'x' }, ws, scene);
   assert.equal(made.change?.created, true);
+});
+
+test('a replay that cannot run is an error the model reads, not a success', async () => {
+  const ws = createWorkspace(async () => 'a', ['a.ts']);
+  const refused = { showUser: () => {}, runReplay: () => 'The problem is still open.' };
+  assert.deepEqual(await runTool('run_replay', { which: 'fixed' }, ws, refused), { content: 'The problem is still open.', isError: true });
+  const ran = await runTool('run_replay', { which: 'fixed' }, ws, { showUser: () => {}, runReplay: () => null });
+  assert.equal(ran.isError, false);
+});
+
+test('find_function reads the galaxy map, and says so when the project has none', async () => {
+  const ws = createWorkspace(async () => 'a', ['a.ts']);
+  const none = await runTool('find_function', { name: 'lift' }, ws, { showUser: () => {}, runReplay: () => null });
+  assert.deepEqual(none, { content: 'This project has no function map. Use search.', isError: true });
+  const functions = createFunctionIndex({ files: [{ path: 'a.ts', planets: [{ id: 'a#lift', name: 'Range.lift', kind: 'method', start: 3, end: 9 }] }], calls: [] });
+  const found = await runTool('find_function', { name: 'lift' }, ws, { showUser: () => {}, runReplay: () => null, functions });
+  assert.match(found.content, /Range\.lift — a\.ts, lines 3–9 \(method\)/);
 });

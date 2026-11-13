@@ -203,15 +203,15 @@ test('a secret question is refused with an error row and no Send', () => {
   assert.deepEqual(layout.regions.map(r => r.id), []);
 });
 
-test('an approval card: Review changes opens the diff; Decline and Approve once', () => {
-  const closed = lay({ requests: [approval] });
-  assert.equal(text(closed.lines.find(l => l.kind === 'cardTitle')!), 'APPROVE FILE CHANGES');
-  assert.deepEqual(closed.regions.map(r => r.id), ['toggle:review:a1', 'button:decline:a1', 'button:approve:a1']);
-  const buttons = closed.lines.find(l => l.kind === 'buttons')!.buttons!;
+test('an approval card: the diff is in view until Review changes closes it; Decline and Approve once', () => {
+  const open = lay({ requests: [approval] });
+  assert.equal(text(open.lines.find(l => l.kind === 'cardTitle')!), 'APPROVE FILE CHANGES');
+  assert.deepEqual(open.regions.map(r => r.id), ['toggle:review:a1', 'button:decline:a1', 'button:approve:a1']);
+  const buttons = open.lines.find(l => l.kind === 'buttons')!.buttons!;
   assert.deepEqual(buttons.map(b => [b.label, b.tone]), [['Decline', undefined], ['Approve once', 'ok']]);
-  assert.ok(!closed.lines.some(l => l.kind === 'diffLine'));
-  const open = lay({ requests: [approval], open: new Map([['review:a1', true]]) });
   assert.equal(open.lines.filter(l => l.kind === 'diffLine').length, 3);
+  const closed = lay({ requests: [approval], open: new Map([['review:a1', false]]) });
+  assert.ok(!closed.lines.some(l => l.kind === 'diffLine'));
   const action = lay({ requests: [{ id: 'c', type: 'commandApproval', command: 'npm test' }] });
   assert.equal(text(action.lines.find(l => l.kind === 'cardTitle')!), 'APPROVE THIS ACTION');
 });
@@ -241,4 +241,34 @@ test("a plan step spins only while the turn runs", () => {
   const plan: ChatItem = { id: 'p', type: 'plan', plan: [{ step: 'Fix', status: 'inProgress' }] };
   assert.equal(lay({ items: [plan], live: true }).lines.find(l => l.kind === 'planStep')!.live, true);
   assert.equal(lay({ items: [plan], live: false }).lines.find(l => l.kind === 'planStep')!.live, undefined);
+});
+
+test('a turn diff offers Undo only while it can be undone, and reads Undone afterwards', () => {
+  const diff = 'diff --git a/a.ts b/a.ts\n--- a/a.ts\n+++ b/a.ts\n@@ -1 +1 @@\n-a\n+b\n';
+  const item: ChatItem = { id: 'diff-1', type: 'turnDiff', diff };
+  assert.ok(lay({ items: [item], undo: 'diff-1' }).regions.some(r => r.id === 'button:undo:diff-1'));
+  assert.ok(!lay({ items: [item] }).regions.some(r => r.id.startsWith('button:undo')));
+  assert.ok(!lay({ items: [item], undo: 'diff-2' }).regions.some(r => r.id.startsWith('button:undo')));
+  const undone = lay({ items: [{ ...item, status: 'undone' }], undo: 'diff-1' });
+  assert.ok(!undone.regions.some(r => r.id.startsWith('button:undo')));
+  assert.equal(text(undone.lines.find(l => l.kind === 'changes')!).startsWith('Undone: the changes to 1 file this turn'), true);
+});
+
+test('a failed turn offers Retry under its error', () => {
+  assert.ok(lay({ error: 'Turn failed: busy', retry: true }).regions.some(r => r.id === 'button:retry'));
+  assert.ok(!lay({ error: 'Turn failed: busy' }).regions.some(r => r.id === 'button:retry'));
+  assert.ok(!lay({ retry: true }).regions.some(r => r.id === 'button:retry'));
+});
+
+test("the agent's pointer stands alone with its message and Show me", () => {
+  const items: ChatItem[] = [
+    { id: 'r', type: 'commandExecution', status: 'completed', command: 'read a.ts', commandActions: [{ type: 'read', path: 'a.ts' }] },
+    { id: 'p', type: 'dynamicToolCall', tool: 'show_user', status: 'completed', title: 'Pointed at a.ts:9', text: 'Look at this check.', arguments: { file: 'a.ts', line: 9 } },
+  ];
+  const layout = lay({ items });
+  assert.ok(layout.lines.some(l => text(l) === 'Pointed at a.ts:9'));
+  assert.ok(layout.lines.some(l => text(l) === 'Look at this check.'));
+  assert.ok(layout.regions.some(r => r.id === 'button:point:p'));
+  // Not folded into a "called a tool" group.
+  assert.ok(!layout.regions.some(r => r.id.startsWith('toggle:group:')));
 });

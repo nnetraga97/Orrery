@@ -1,5 +1,7 @@
 // A bug scenario: a real function in a baked project, broken on purpose by a small patch applied to the in-memory
-// workspace when the scenario starts. The agent's job is to find and undo it. "Fixed" means the broken text is gone.
+// workspace when the scenario starts. The agent's job is to find and undo it. "Fixed" means the original text is back:
+// nothing runs in the browser, so that is the only fix the app can be sure of. A file that merely no longer holds the
+// broken text is "changed", not fixed.
 
 export type Scenario = {
   id: string;
@@ -43,5 +45,7 @@ export function applyBreak(scenario: Scenario, text: string): string {
   return text.replace(scenario.breakPatch.old, () => scenario.breakPatch.new);
 }
 
-/** True once the broken text is no longer in the file. */
-export const isFixed = (scenario: Scenario, text: string) => !text.includes(scenario.breakPatch.new);
+/** True once the original text is back and the broken text is gone. */
+export const isFixed = (scenario: Scenario, text: string) => text.includes(scenario.breakPatch.old) && !text.includes(scenario.breakPatch.new);
+/** True while the file still holds the broken text. */
+export const isBroken = (scenario: Scenario, text: string) => text.includes(scenario.breakPatch.new);

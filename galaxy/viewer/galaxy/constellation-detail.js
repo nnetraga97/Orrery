@@ -93,6 +93,9 @@ export function createDetail(ctx) {
     lod.i = i;
     const planetHost = makePlanetHost(T, frameOf(i, lod.fnKey)),
       panel = document.createElement('div');
+    // The rebuilt globe shows the function it showed (one function per globe): without its id the builder would pick
+    // the file's largest function, and an edit to the landed function would swap the globe for another one.
+    const shownTown = old.towns?.find(t => t.shown && !old.towns.every(x => x.shown)) ?? null;
     planetHost.interactive = false;
     panel.className = 'planet-status';
     const note = oldPanel.querySelector('#planetMatch') || oldPanel.appendChild(document.createElement('div'));
@@ -109,6 +112,7 @@ export function createDetail(ctx) {
         panel,
         bodyKind: model.orbit[i].kind,
         look: lod.fnKey,
+        townId: shownTown?.id ?? null,
         previous: old.inspection,
         selection: old.selection,
         publish: () => {
@@ -240,6 +244,8 @@ export function createDetail(ctx) {
   };
   Object.defineProperty(T, 'landed', { get: () => !!lod.detail });
   T.landedTowns = () => lod.detail?.towns ?? null;
+  /** For checks: how much of its globe the landed town covers (planet.js `fit`). */
+  T.landedFit = () => lod.detail?.fit?.() ?? null;
 
   return { openDetail, closeDetail, refreshDetail, bodyScale };
 }

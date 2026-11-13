@@ -2,6 +2,7 @@
 // that act on the scene (show_user, run_replay) or the transcript (update_plan) report through `effects`.
 import { unifiedDiff } from '../diff.ts';
 import type { Workspace } from '../workspace.ts';
+import type { FunctionIndex } from './functions.ts';
 import { checkShowUser, numbered } from './tools.ts';
 
 export type ToolOutcome = {
@@ -12,7 +13,10 @@ export type ToolOutcome = {
 };
 export type SceneEffects = {
   showUser(file: string, line: number | null, message: string): void;
-  runReplay(which: 'failing' | 'fixed'): void;
+  /** Starts the replay, or says why it cannot (no problem card; the problem is still open). */
+  runReplay(which: 'failing' | 'fixed'): string | null;
+  /** The galaxy's functions, when the project has them. */
+  functions?: FunctionIndex | null;
 };
 
 const MAX_READ_LINES = 400;
@@ -36,6 +40,10 @@ export async function runTool(name: string, input: Record<string, unknown>, ws: 
         const hits = await ws.search(String(input.pattern), input.path as string | undefined);
         if (!hits.length) return ok('No matches.');
         return ok(hits.map(h => `${h.path}:${h.line}: ${h.text.trim()}`).join('\n') + (hits.length >= 200 ? '\n… stopped at 200 matches.' : ''));
+      }
+      case 'find_function': {
+        if (!scene.functions) return { content: 'This project has no function map. Use search.', isError: true };
+        return ok(scene.functions.describe(String(input.name)).text);
       }
       case 'replace_in_file': {
         const path = String(input.path);
@@ -72,7 +80,8 @@ export async function runTool(name: string, input: Record<string, unknown>, ws: 
         return ok('Plan updated.');
       case 'run_replay': {
         const which = input.which === 'failing' ? 'failing' : 'fixed';
-        scene.runReplay(which);
+        const refused = scene.runReplay(which);
+        if (refused) return { content: refused, isError: true };
         return ok(`Replaying the ${which} run in the scene, one step at a time.`);
       }
       default:

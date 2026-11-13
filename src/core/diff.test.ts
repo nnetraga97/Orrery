@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { lineDiff, unifiedDiff } from './diff.ts';
+import { firstChangedLine, lineDiff, unifiedDiff } from './diff.ts';
 import { stat } from './chat/describe.ts';
 import { turnChanges } from './chat/layout.ts';
 
@@ -68,4 +68,13 @@ test('a very large rewrite is shown whole, quickly', () => {
   const hunks = lineDiff(before, after, 0);
   assert.ok(Date.now() - t < 500);
   assert.equal(hunks.flatMap(h => h.lines).filter(l => l.op === '-').length, 3000);
+});
+
+test('firstChangedLine is where the first added or removed line sits in the new text', () => {
+  const before = Array.from({ length: 30 }, (_, i) => `line ${i + 1}`).join('\n') + '\n';
+  const after = before.replace('line 20\n', 'line twenty\n');
+  assert.equal(firstChangedLine(unifiedDiff('a.ts', before, after)), 20);
+  assert.equal(firstChangedLine(unifiedDiff('a.ts', '', 'x\ny\n')), 1);
+  assert.equal(firstChangedLine(unifiedDiff('a.ts', before, before)), null);
+  assert.equal(firstChangedLine(''), null);
 });

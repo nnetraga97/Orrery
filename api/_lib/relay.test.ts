@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createLimits } from './limits.ts';
+import { RATE_LIMIT, createLimits } from './limits.ts';
 import { providerList } from './providers.ts';
 import { MAX_BODY_BYTES, createRelay } from './relay.ts';
 import type { Adapter } from './relay.ts';
@@ -44,14 +44,14 @@ test('a provider without a key answers with the unavailable error', async () => 
   assert.deepEqual((await events(await handler(post(good))))[0].code, 'unavailable');
 });
 
-test('over the rate limit or the budget, an error event (the browser falls back to the recorded agent)', async () => {
+test('over the rate limit or the budget, an error event (the turn fails with its message; a new chat on a spent budget gets the recorded agent)', async () => {
   const limits = createLimits({ budgetCents: 1 });
   limits.spend(5);
   const { handler } = relay({ ANTHROPIC_API_KEY: 'k' }, limits);
   assert.equal((await events(await handler(post(good))))[0].code, 'budget_spent');
   const { handler: h2 } = relay();
   let last: any = null;
-  for (let i = 0; i < 31; i++) last = await events(await h2(post(good, { 'x-forwarded-for': '9.9.9.9' })));
+  for (let i = 0; i < RATE_LIMIT.requests + 1; i++) last = await events(await h2(post(good, { 'x-forwarded-for': '9.9.9.9' })));
   assert.equal(last[0].code, 'rate_limited');
 });
 

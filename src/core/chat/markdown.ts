@@ -9,16 +9,26 @@ export type Block =
   | { kind: 'list'; ordered: boolean; items: Run[][] }
   | { kind: 'code'; language: string; lines: string[] };
 
+const codeRuns = (text: string, bold: boolean): Run[] =>
+  text
+    .split(/(`[^`\n]+`)/g)
+    .filter(Boolean)
+    .map(part => {
+      const code = part.length > 2 && part.startsWith('`') && part.endsWith('`');
+      return { text: code ? part.slice(1, -1) : part, ...(code ? { code: true } : {}), ...(bold ? { bold: true } : {}) };
+    });
+
 export function inline(text: string): Run[] {
   return String(text)
     .split(/(`[^`\n]+`|\*\*[^*\n]+\*\*)/g)
     .filter(Boolean)
-    .map(part =>
+    .flatMap(part =>
       part.length > 1 && part.startsWith('`') && part.endsWith('`')
-        ? { text: part.slice(1, -1), code: true }
+        ? [{ text: part.slice(1, -1), code: true }]
         : part.length > 4 && part.startsWith('**') && part.endsWith('**')
-          ? { text: part.slice(2, -2), bold: true }
-          : { text: part },
+          ? // Code inside bold ("**`file.ts:84`**", as models write list leads) is still code.
+            codeRuns(part.slice(2, -2), true)
+          : [{ text: part }],
     );
 }
 

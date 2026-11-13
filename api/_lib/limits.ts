@@ -1,10 +1,11 @@
-// Spending guards for the relay: a per-visitor rate limit (30 requests in 5 minutes, by a hash of the forwarded
+// Spending guards for the relay: a per-visitor rate limit (90 model calls in 5 minutes, by a hash of the forwarded
 // address, so no address is kept) and a daily budget in US cents (DAILY_BUDGET_CENTS, default 2500), counted from the
 // usage each adapter reports. Kept in memory: each server instance counts on its own, which errs toward allowing a
 // little more, never toward a leaked key.
 import { createHash } from 'node:crypto';
 
-export const RATE_LIMIT = { requests: 30, windowMs: 5 * 60 * 1000 };
+/** One request from the user is many model calls (one per round of tools), so the limit is counted in calls. */
+export const RATE_LIMIT = { requests: 90, windowMs: 5 * 60 * 1000 };
 export const DEFAULT_BUDGET_CENTS = 2500;
 
 export type Verdict = { ok: true } | { ok: false; code: 'rate_limited' | 'budget_spent'; message: string };
@@ -29,12 +30,12 @@ export function createLimits({ budgetCents = DEFAULT_BUDGET_CENTS, now = () => D
     /** Counts the request and says whether it may go to a provider. */
     check(visitor: string): Verdict {
       rollDay();
-      if (spent >= budgetCents) return { ok: false, code: 'budget_spent', message: "Today's budget for the live agent is spent. The recorded agent takes over." };
+      if (spent >= budgetCents) return { ok: false, code: 'budget_spent', message: "Today's budget for the live agent is spent. Start a new chat to watch the recorded agent." };
       const t = now(),
         recent = (visits.get(visitor) ?? []).filter(at => t - at < RATE_LIMIT.windowMs);
       if (recent.length >= RATE_LIMIT.requests) {
         visits.set(visitor, recent);
-        return { ok: false, code: 'rate_limited', message: 'Too many requests for now. The recorded agent takes over.' };
+        return { ok: false, code: 'rate_limited', message: 'Too many requests for now. Wait a minute, then pinch Retry.' };
       }
       recent.push(t);
       visits.set(visitor, recent);
@@ -58,6 +59,7 @@ export type Limits = ReturnType<typeof createLimits>;
  * on the high side; the provider's bill is the authority. */
 const PRICES: Record<string, [number, number, number, number]> = {
   'claude-opus-5-5': [500, 2500, 50, 625],
+  'claude-sonnet-5-5': [300, 1500, 30, 375],
   'gpt-6-astra': [500, 3000, 50, 500],
   'nvidia/nemotron-3-super-120b-a12b': [30, 90, 30, 30],
 };

@@ -47,6 +47,17 @@ export function answerOf(state: AnswerState, question: ChatQuestion, index: numb
   return option?.label || option?.value || String(choice);
 }
 
+/** The question the main microphone answers while a question card is open: the first without an answer, else the
+ * first. Null when no question is open. */
+export function openQuestion(requests: readonly ChatRequest[], answers: ReadonlyMap<string, AnswerState>): { requestId: string; questionId: string } | null {
+  const request = requests.find(r => isQuestionRequest(r) && r.questions?.length);
+  if (!request?.questions) return null;
+  const state = answers.get(request.id) ?? answerState(request);
+  const k = request.questions.findIndex((q, i) => !q.isSecret && answerOf(state, q, i) == null);
+  const index = k >= 0 ? k : request.questions.findIndex(q => !q.isSecret);
+  return index >= 0 ? { requestId: request.id, questionId: questionId(request.questions[index], index) } : null;
+}
+
 export function readyToSend(state: AnswerState): { ok: true } | { ok: false; message: string } {
   const questions = state.request.questions || [];
   return questions.every((q, i) => answerOf(state, q, i) != null) ? { ok: true } : { ok: false, message: ANSWER_EACH };

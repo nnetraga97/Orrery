@@ -20,7 +20,7 @@
     "smoke": "node tools/smoke-flat.mjs",
     "postinstall": "node tools/copy-runtime.mjs",
     "test:core": "node --experimental-strip-types --test \"src/core/**/*.test.ts\"",
-    "smoke:xr": "node tools/smoke-page.mjs --page=index.html",
+    "smoke:xr": "node tools/smoke-page.mjs --page=index.html --query=agent=recorded",
     "verify": "npm run typecheck && npm run check && npm run test:core && npm run test:api && npm run build && npm run smoke && npm run smoke:xr",
     "test:api": "node --experimental-strip-types --test \"api/**/*.test.ts\"",
     "dev:api": "node --experimental-strip-types tools/dev-api.mjs"

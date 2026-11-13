@@ -108,3 +108,16 @@ export function unifiedDiff(path: string, before: string, after: string, context
   }
   return out.join('\n') + '\n';
 }
+
+/** The first line a unified diff changes, numbered in the new text (where an added or removed line sits), or null. */
+export function firstChangedLine(diff: string): number | null {
+  let line = 0;
+  for (const text of diff.split('\n')) {
+    const hunk = text.match(/^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@/);
+    if (hunk) line = Number(hunk[1]);
+    else if (!line || text.startsWith('+++') || text.startsWith('---')) continue;
+    else if (text.startsWith('+') || text.startsWith('-')) return line;
+    else line++;
+  }
+  return null;
+}

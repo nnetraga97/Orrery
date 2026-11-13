@@ -176,10 +176,14 @@ export function describe(item: ChatItem): Action {
 }
 
 /** Messages, plans and turn diffs stand on their own; everything else is an action that folds into a group. */
+/** The agent pointing at code (show_user): it stands alone in the transcript, with its message and "Show me". */
+export const isPointer = (item: ChatItem) => item.type === 'dynamicToolCall' && item.tool === 'show_user';
+
 export const isAction = (item: ChatItem) =>
   !['userMessage', 'agentMessage', 'assistantMessage', 'plan', 'turnDiff', 'imageView', 'imageGeneration'].includes(
     item.type || '',
   ) &&
+  !isPointer(item) &&
   item.role !== 'user' &&
   item.role !== 'assistant';
 

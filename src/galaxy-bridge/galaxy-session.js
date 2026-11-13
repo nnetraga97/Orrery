@@ -24,7 +24,7 @@ export { STATEMENT_TYPES, statementType } from '../../galaxy/viewer/shared/town-
 export { languageOf } from '../../galaxy/source-model/languages.js';
 export { loadTypeScript } from '../../galaxy/viewer/towns/town-assets.js';
 export { UIIcons } from '../../galaxy/viewer/shared/ui-icons.js';
-export { readSource, setSourceOverride, sourceUrl } from '../../galaxy/viewer/app/static-data.js';
+export { functionIndexUrl, readSource, setSourceOverride, sourceUrl } from '../../galaxy/viewer/app/static-data.js';
 
 /** The copied code's shared state (files, links, the running view). */
 export const galaxyState = state;

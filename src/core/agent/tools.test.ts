@@ -9,8 +9,8 @@ const bad = (name: string, input: unknown, error: string) => {
   assert.equal(!r.ok && r.error, error);
 };
 
-test('the nine tools, each strict', () => {
-  assert.deepEqual(TOOL_NAMES, ['list_files', 'read_file', 'search', 'replace_in_file', 'write_file', 'show_user', 'ask_user', 'update_plan', 'run_replay']);
+test('the ten tools, each strict', () => {
+  assert.deepEqual(TOOL_NAMES, ['list_files', 'read_file', 'search', 'find_function', 'replace_in_file', 'write_file', 'show_user', 'ask_user', 'update_plan', 'run_replay']);
   for (const t of TOOLS) assert.equal((t.input_schema as { additionalProperties: unknown }).additionalProperties, false, t.name);
 });
 

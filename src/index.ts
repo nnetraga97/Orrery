@@ -13,7 +13,7 @@ import { createLocalStorage } from './adapters/local-storage.ts';
 import { PANELS } from './panels/canvas-panel.ts';
 import { createStaticDataset } from './adapters/static-dataset.ts';
 import { galaxyState } from './galaxy-bridge/galaxy-session.js';
-import { appState, composer, provider } from './state/app-state.ts';
+import { appState, composer, provider, settings, thread } from './state/app-state.ts';
 import { commands } from './state/commands.ts';
 import { AgentSystem } from './systems/agent-system.ts';
 import { CalloutSystem } from './systems/callout-system.ts';
@@ -43,10 +43,14 @@ World.create(document.getElementById('scene-container') as HTMLDivElement, proje
   // ?say=Fix%20it|Explain%20the%20fix makes each pinch of the microphone hear the next phrase (tests, demos).
   const say = query.get('say');
   world.globals.speech = say != null ? createFakeSpeech(say.split('|')) : createBrowserSpeech();
-  // The recorded agent by default; with ?agent=live, the server relay to a provider it holds a key for.
+  // The server relay to a provider it holds a key for; the recorded agent when there is none (a static host, no key)
+  // or with ?agent=recorded.
   const agents = createAgentSwitch(createFakeAgent(query.get('scenario') ?? 'range-edge'), message => {
     composer.value = { ...composer.peek(), notice: message };
-    provider.value = { ...provider.peek(), id: 'recorded', label: 'Recorded', available: true };
+    // The chat that was just started stays open, now the recorded agent's (a provider change would open another).
+    const t = thread.peek();
+    if (t) thread.value = { ...t, provider: 'recorded' };
+    provider.value = { ...provider.peek(), id: 'recorded', label: 'Recorded', available: true, models: [], model: '' };
   });
   // Usage per request (window.__orrery.usage) always; with ?record=1, the run in the recorded-session format.
   const recorder = withRecording(agents.port, { record: query.get('record') === '1', id: query.get('scenario') ?? 'range-edge' });
@@ -67,13 +71,19 @@ World.create(document.getElementById('scene-container') as HTMLDivElement, proje
     if (kind === 'provider') choose(value);
     else if (kind === 'model') provider.value = { ...provider.peek(), model: value };
   };
-  if (query.get('agent') === 'live')
+  if (query.get('agent') !== 'recorded')
     void fetchProviders().then(list => {
       // Only providers the server holds a key for are offered.
       known = (list ?? []).filter(p => p.available);
       provider.value = { ...provider.peek(), choices: [recorded, ...known.map(p => ({ id: p.id, label: p.label, available: true }))] };
-      if (known.length) choose(known[0].id);
-      else composer.value = { ...composer.peek(), notice: 'No live provider is set up on the server, so the recorded agent answers.' };
+      // A live provider answers by default: the one chosen in Settings if the server has it, else the first.
+      const wanted = known.find(p => p.id === settings.peek().provider) ?? known[0];
+      if (wanted) {
+        const model = wanted.id === settings.peek().provider && wanted.models.includes(settings.peek().model) ? settings.peek().model : '';
+        settings.value = { ...settings.peek(), provider: wanted.id, model };
+        choose(wanted.id);
+        if (model) provider.value = { ...provider.peek(), model };
+      } else if (query.get('agent') === 'live') composer.value = { ...composer.peek(), notice: 'No live provider is set up on the server, so the recorded agent answers.' };
     });
   // ?auto=1 (tests): say the first phrase, send it, choose the first option of every question, approve every edit.
   world.globals.auto = query.get('auto') === '1';
@@ -139,6 +149,10 @@ World.create(document.getElementById('scene-container') as HTMLDivElement, proje
     },
     get kit() {
       return galaxy.host.kit;
+    },
+    /** The agent cannon's counters (shots fired by action, impacts, misfires), or null before it joins the scene. */
+    get cannon() {
+      return (galaxyState.view as { cannon?: { stats(): unknown } } | null)?.cannon?.stats() ?? null;
     },
     /** Milliseconds from navigation to the first frame with the galaxy shown and taking input. */
     get startupMs() {

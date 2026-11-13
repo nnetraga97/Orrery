@@ -18,6 +18,9 @@ import { CalloutSystem } from './callout-system.ts';
 import { ChatWindowSystem } from './chat-window-system.ts';
 
 const KEY = 'settings';
+/** Bumped when a default changes in a way stored copies should pick up (2: the scene follows the agent). */
+const VERSION_KEY = 'settingsVersion',
+  VERSION = '2';
 /** Windows that grow with the text size (the chat relays out instead). */
 const SCALED = ['code-card', 'info-card', 'problem-card', 'pointer-card', 'debug-card', 'status-card'];
 
@@ -28,7 +31,12 @@ export class SettingsSystem extends createSystem({}) {
 
   init() {
     this.storage = (this.globals.storage as StoragePort | undefined) ?? null;
-    settings.value = loadSettings(this.storage?.get(KEY) ?? null);
+    const stored = loadSettings(this.storage?.get(KEY) ?? null);
+    // Settings are stored on first load, so a copy from before version 2 holds the old default for "Follow the agent"
+    // (off), not a choice: it is switched on once.
+    const current = this.storage?.get(VERSION_KEY) === VERSION;
+    if (!current) this.storage?.set(VERSION_KEY, VERSION);
+    settings.value = current ? stored : { ...stored, followAgent: true };
     void (this.globals.datasets as DatasetPort | undefined)
       ?.list()
       .then(list => {

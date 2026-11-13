@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { ANSWER_EACH, NO_SECRETS, answerState, approvalResponse, choose, isQuestionRequest, readyToSend, speak, toResponse } from './requests.ts';
+import { ANSWER_EACH, NO_SECRETS, answerState, approvalResponse, choose, isQuestionRequest, openQuestion, readyToSend, speak, toResponse } from './requests.ts';
 import type { ChatRequest } from './types.ts';
 
 const request: ChatRequest = {
@@ -75,4 +75,16 @@ test('question requests are told apart from approvals', () => {
   assert.equal(isQuestionRequest({ id: 'a', type: 'userInput' }), true);
   assert.equal(isQuestionRequest({ id: 'a', type: 'fileChangeApproval' }), false);
   assert.equal(isQuestionRequest({ id: 'a', type: 'commandApproval' }), false);
+});
+
+test('the main microphone answers the first open question without an answer', () => {
+  const approval: ChatRequest = { id: 'a1', type: 'fileChangeApproval' };
+  assert.equal(openQuestion([], new Map()), null);
+  assert.equal(openQuestion([approval], new Map()), null);
+  assert.deepEqual(openQuestion([approval, request], new Map()), { requestId: 'q1', questionId: 'scope' });
+  const first = choose(answerState(request), 'scope', 0);
+  assert.deepEqual(openQuestion([request], new Map([['q1', first]])), { requestId: 'q1', questionId: '1' });
+  // Every question answered: speaking again replaces the first answer.
+  const both = speak(first, '1', 'no');
+  assert.deepEqual(openQuestion([request], new Map([['q1', both]])), { requestId: 'q1', questionId: 'scope' });
 });

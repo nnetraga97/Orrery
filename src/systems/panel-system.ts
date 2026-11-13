@@ -4,6 +4,7 @@
 // only its marker. Windows redraw only when their signal or hover changes.
 import { Vector3, createSystem } from '@iwsdk/core';
 import { hasSelection, shownRange, visibleLines } from '../core/code-view.ts';
+import type { CodeView } from '../core/code-view.ts';
 import { DEFAULT_SEAT, panelPlacements } from '../core/layout.ts';
 import type { Placement, Seat } from '../core/layout.ts';
 import { dragScroll } from '../core/scroll.ts';
@@ -11,14 +12,14 @@ import { THEME } from '../core/theme.ts';
 import { cancelShip, cardMaxScroll, flowOf, hoverLine, pressFlow, pressLine, routesOf, shipStatus, startShip } from '../galaxy-bridge/inspector.ts';
 import type { ContextItem } from '../ports/host.ts';
 import { CanvasPanel } from '../panels/canvas-panel.ts';
-import { CODE_CARD, CODE_LAYOUT, codeCardSize, drawCodeCard, replayLines, shipLines } from '../panels/draw-code-card.ts';
+import { CODE_CARD, CODE_LAYOUT, codeCardSize, drawCodeCard, noteLines, replayLines, shipLines } from '../panels/draw-code-card.ts';
 import { INFO_CARD, drawInfoCard, infoCardTitle } from '../panels/draw-info-card.ts';
 import type { InfoCard } from '../panels/draw-info-card.ts';
 import { STATUS_CARD, drawStatusCard, statusTitle } from '../panels/draw-status-card.ts';
 import type { StatusCard } from '../panels/draw-status-card.ts';
 import { loadFonts } from '../panels/fonts.ts';
 import { cardFromItem } from '../panels/info-card-content.ts';
-import { codeCardOpen, codeCardRows, codeScroll, codeView, error, inspectorExtras, landedTown, layoutResets, loading, paused, pinned, replay } from '../state/app-state.ts';
+import { agentPointer, codeCardOpen, codeCardRows, codeScroll, codeView, error, inspectorExtras, landedTown, layoutResets, loading, paused, pinned, replay } from '../state/app-state.ts';
 import { closeCard, replayBack, replayPlay, replayStep, retry, stepTown } from '../state/commands.ts';
 import { GalaxySystem, TABLE_ANCHOR } from './galaxy-system.ts';
 import { headPosition } from './head.ts';
@@ -95,7 +96,11 @@ export class PanelSystem extends createSystem({}) {
     this.code.visible = false;
     this.code.eye = SEAT.eye;
     place(this.code, PLACEMENTS.codeCard);
-    this.code.onClose = () => (codeCardOpen.value = false);
+    this.code.onClose = () => {
+      // The agent's note leaves with the card it is written on.
+      if (this.agentNote(codeView.peek()).length) agentPointer.value = null;
+      codeCardOpen.value = false;
+    };
     this.code.onHover = id => {
       const line = id?.startsWith('line:') ? Number(id.slice(5)) : null;
       // A line hover publishes codeView, which redraws the card; other regions (More, the frame) redraw here.
@@ -145,6 +150,7 @@ export class PanelSystem extends createSystem({}) {
       codeScroll.subscribe(() => this.drawCode()),
       codeCardOpen.subscribe(() => this.drawCode()),
       replay.subscribe(() => this.drawCode()),
+      agentPointer.subscribe(() => this.drawCode()),
       landedTown.subscribe(() => this.drawCode()),
       // The transport's status reports (a flight's phases) redraw the ships list.
       inspectorExtras.subscribe(() => {
@@ -232,7 +238,7 @@ export class PanelSystem extends createSystem({}) {
 
   private setRows(rows: number) {
     codeCardRows.value = rows;
-    const size = codeCardSize(rows, replayLines(this.replayMeta()) + shipLines(this.shipsMeta().ships));
+    const size = codeCardSize(rows, replayLines(this.replayMeta()) + shipLines(this.shipsMeta().ships) + this.agentNote(codeView.peek()).length);
     this.code.resize(size.heightPx, size.heightM);
     codeScroll.value = Math.min(codeScroll.peek(), cardMaxScroll());
     this.drawCode();
@@ -268,7 +274,8 @@ export class PanelSystem extends createSystem({}) {
     // A replay's note and values lengthen the card; it shrinks back when the replay ends.
     const replayMeta = this.replayMeta();
     const ships = this.shipsMeta();
-    const size = codeCardSize(codeCardRows.peek(), replayLines(replayMeta) + shipLines(ships.ships));
+    const note = this.agentNote(view);
+    const size = codeCardSize(codeCardRows.peek(), replayLines(replayMeta) + shipLines(ships.ships) + note.length);
     this.code.resize(size.heightPx, size.heightM);
     if (show && !this.code.visible && !this.code.moved) place(this.code, PLACEMENTS.codeCard);
     this.code.visible = show;
@@ -291,10 +298,19 @@ export class PanelSystem extends createSystem({}) {
         ships: ships.ships,
         hasFlow: flow.has,
         flow: flow.rows,
-        // A long name is cut so the note stays clear of Flow and Ships.
-        towns: town ? { position: `${town.name.length > 20 ? town.name.slice(0, 19) + '…' : town.name} · ${town.index + 1} of ${town.count}` } : null,
+        note,
+        // The count first: the card cuts the note where Flow and Ships begin, and the name is what can go.
+        towns: town ? { position: `${town.index + 1} of ${town.count} · ${town.name}` } : null,
       }),
     );
+  }
+
+  /** What the agent said when it pointed at the code this card shows (show_user), as lines for the card. */
+  private agentNote(view: CodeView | null): string[] {
+    const p = agentPointer.peek();
+    if (!p || !view || !codeCardOpen.peek() || view.file !== p.file || replay.peek()) return [];
+    const shown = shownRange(view);
+    return p.line == null || (p.line >= shown.start && p.line <= shown.end) ? noteLines(p.message) : [];
   }
 
   private drawStatus() {

@@ -373,6 +373,32 @@ export function createPlanetDetail(
       return { key: detail.selectedKey, element: detail.selectedElement?.it.id ?? null };
     },
     cancelTransport: () => ctx.transport?.cancel(),
+    /** For checks: the shown town's footprint on the globe. `reach` is how far (degrees of arc) its lots and roads
+     * extend from the middle of the town, `width` and `height` its span across and along the main road, and `offset`
+     * how far the middle sits from the centre of the town's own frame. */
+    fit: () => {
+      const town = ctx.towns?.townOf(Math.max(0, detail.pinnedRegion ?? 0));
+      if (!town) return null;
+      const pts = [...town.out.lots.map(l => [l.x, l.y]), ...town.out.roads.flatMap(r => r.pts)];
+      if (!pts.length) return null;
+      const xs = pts.map(p => p[0]),
+        ys = pts.map(p => p[1]),
+        box = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)],
+        cx = (box[0] + box[1]) / 2,
+        cy = (box[2] + box[3]) / 2;
+      const dir = (x, y) => town.fr.world(x, y).normalize(),
+        mid = dir(cx, cy),
+        deg = (a, b) => (Math.acos(Math.min(1, Math.max(-1, a.dot(b)))) * 180) / Math.PI;
+      return {
+        radius: R,
+        scale: town.s / R,
+        lots: town.out.lots.length,
+        reach: Math.max(...pts.map(p => deg(mid, dir(p[0], p[1])))),
+        width: deg(dir(box[0], cy), dir(box[1], cy)),
+        height: deg(dir(cx, box[2]), dir(cx, box[3])),
+        offset: deg(mid, dir(0, 0)),
+      };
+    },
     stop: () => {
       detail.stopped = true;
       buildAbort.abort();

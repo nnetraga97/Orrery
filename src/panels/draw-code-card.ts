@@ -6,16 +6,17 @@
 // when the function has routes: a list above the code of the files its ships fly to, each with Preview
 // (`ship:preview:<i>`) and Travel (`ship:travel:<i>`), the flight's status, and Cancel (`ship:cancel`) during a flight.
 // The window frame, its title ("file · function"), the close mark and the grab bar come from CanvasPanel.
+import { CODE_COLUMNS } from '../core/code-view.ts';
 import type { CodeRow } from '../core/code-view.ts';
 import type { HitRegion } from '../core/panel-hit.ts';
 import { codeColor } from '../core/theme.ts';
-import { THEME, band, button, fit, font, microLabel, rule, stateOf } from './paint.ts';
+import { THEME, band, button, fit, fitMicroLabel, font, microLabel, rule, stateOf } from './paint.ts';
 
 export const CODE_CARD = { widthPx: 1380, heightPx: 1020, widthM: 0.46, heightM: 0.34 };
 export const CODE_LAYOUT = {
   rows: 12,
   moreRows: 24,
-  columns: 56,
+  columns: CODE_COLUMNS,
   fontPx: 26,
   header: 120,
   footer: 150,
@@ -49,6 +50,8 @@ export interface CodeCardMeta {
   towns?: { position: string } | null;
   /** Whether the function has statements to list (shows the Flow button). */
   hasFlow?: boolean;
+  /** What the agent said about this code when it pointed here (show_user), as lines under the header. */
+  note?: string[] | null;
   /** While Flow is on: its rows in place of the code, one per statement (`flow:<index>`). */
   flow?: FlowCardRow[] | null;
 }
@@ -69,6 +72,29 @@ export const MAX_SHIPS = 4;
 /** Lines the ships list adds above the code: a status line, then two lines per route (room for its buttons). */
 export const shipLines = (s: CodeCardMeta['ships']) => (s ? 1 + 2 * Math.min(MAX_SHIPS, s.routes.length) : 0);
 
+/** The most lines the agent's note takes, and the characters that fit on one. */
+export const MAX_NOTE_LINES = 3,
+  NOTE_COLUMNS = 84;
+
+/** The agent's note as lines for the card: wrapped at words, the last one cut with an ellipsis if there is more. */
+export function noteLines(text: string | null | undefined): string[] {
+  const words = String(text ?? '').split(/\s+/).filter(Boolean),
+    lines: string[] = [];
+  let line = '';
+  for (const word of words) {
+    if (!line || line.length + 1 + word.length <= NOTE_COLUMNS) line = line ? `${line} ${word}` : word;
+    else {
+      lines.push(line);
+      line = word;
+    }
+  }
+  if (line) lines.push(line);
+  if (lines.length <= MAX_NOTE_LINES) return lines;
+  const kept = lines.slice(0, MAX_NOTE_LINES);
+  kept[MAX_NOTE_LINES - 1] = kept[MAX_NOTE_LINES - 1].slice(0, NOTE_COLUMNS - 1).trimEnd() + '…';
+  return kept;
+}
+
 /** Lines a replay adds above the code: its note, then up to four `name = value` lines. */
 export const replayLines = (r: CodeCardMeta['replay']) => (r ? (r.note ? 1 : 0) + Math.min(4, r.variables.length) : 0);
 
@@ -85,6 +111,18 @@ export function drawCodeCard(
   const regions: HitRegion[] = [];
   rule(ctx, 1, L.header - 18, w - 2, u);
   let top = L.header;
+  // The agent's note about the code it pointed at: under the header, above everything else.
+  if (meta.note?.length) {
+    ctx.save();
+    ctx.font = font('body', L.fontPx);
+    ctx.fillStyle = THEME.white;
+    for (const line of meta.note) {
+      ctx.fillText(fit(ctx, line, w - L.pad * 2), L.pad, top + lineHeight / 2 + L.fontPx * 0.36);
+      top += lineHeight;
+    }
+    ctx.restore();
+    rule(ctx, 1, top - 2, w - 2, u);
+  }
   // A replay's note and values sit under the header and push the code down.
   if (meta.replay) {
     const r = meta.replay;
@@ -171,9 +209,11 @@ export function drawCodeCard(
     else if (row.highlight === 'hovered' || meta.hovered === `line:${row.number}`)
       band(ctx, 1, y, w - 2, lineHeight, 0, THEME.glow, 0.08);
     ctx.font = font('mono', L.fontPx);
-    ctx.textAlign = 'right';
-    ctx.fillStyle = row.highlight === 'selected' ? THEME.line : THEME.lineDim;
-    ctx.fillText(String(row.number), L.gutter - 24, baseline(y));
+    if (!row.continuation) {
+      ctx.textAlign = 'right';
+      ctx.fillStyle = row.highlight === 'selected' ? THEME.line : THEME.lineDim;
+      ctx.fillText(String(row.number), L.gutter - 24, baseline(y));
+    }
     ctx.textAlign = 'left';
     let x = L.gutter;
     for (const s of row.segments) {
@@ -197,6 +237,8 @@ export function drawCodeCard(
   const bh = 32 * u,
     by = fy + (L.footer - bh) / 2,
     bw = 84 * u;
+  // Where the buttons on the right begin (More, then Ships and Flow when shown): a note on the left stops short of it.
+  const buttonsLeft = w - L.pad - bw - 10 * u - (meta.shipCount && !meta.replay ? 106 * u : 0) - (meta.hasFlow && !meta.replay ? 80 * u : 0);
   if (meta.replay) {
     // During a replay: Back, Step, Play and the position, in place of the lines note.
     const sw = 70 * u;
@@ -223,7 +265,12 @@ export function drawCodeCard(
       if (r) regions.push(r);
       x += sw + 10 * u;
     }
-    microLabel(ctx, meta.towns.position, x + 6 * u, by + bh / 2 + 5 * u, 12 * u, THEME.lineDim);
+    // "3 of 11 · name": the name is cut where the buttons begin, and left out when only a letter or two would fit.
+    const room = buttonsLeft - (x + 6 * u) - 8 * u,
+      [count, name = ''] = meta.towns.position.split(' · '),
+      whole = fitMicroLabel(ctx, meta.towns.position, 12 * u, room);
+    const label = whole === meta.towns.position || whole.length >= count.length + 3 + Math.min(6, name.length) ? whole : fitMicroLabel(ctx, count, 12 * u, room);
+    microLabel(ctx, label, x + 6 * u, by + bh / 2 + 5 * u, 12 * u, THEME.lineDim);
   } else
     microLabel(
       ctx,

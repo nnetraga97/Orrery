@@ -34,16 +34,20 @@ const SCHEMAS: Record<string, { description: string; schema: Schema }> = {
     schema: obj({ path: str('The file, relative to the project root.'), start_line: int('First line to read.'), end_line: int('Last line to read.') }, ['path']),
   },
   search: {
-    description: 'Find lines containing some exact text in the project (plain text, matched as written; no regular expressions). At most 200 results.',
-    schema: obj({ pattern: str('The exact text to find.', { minLength: 1 }), path: str('A folder to search under.') }, ['pattern']),
+    description: 'Find lines containing some exact text in the project (plain text, matched as written, upper and lower case included; no regular expressions). At most 200 results.',
+    schema: obj({ pattern: str('The exact text to find.', { minLength: 1 }), path: str('A folder to search under, or one file.') }, ['pattern']),
+  },
+  find_function: {
+    description: "Look a function up in the galaxy's own map of the project: where it is, which functions call it and which it calls. The map holds each file's most important functions; use search for anything it does not have.",
+    schema: obj({ name: str('The function name, or part of it ("containsPosition", "Range.lift").', { minLength: 1 }) }),
   },
   replace_in_file: {
-    description: 'Replace text that occurs exactly once in a file. Include enough surrounding text to make old_text unique.',
+    description: 'Replace text that occurs exactly once in a file. Include enough surrounding text to make old_text unique. The user is shown the change as a diff and approves or declines it before this returns.',
     schema: obj({ path: str('The file.'), old_text: str('The exact text to replace.', { minLength: 1 }), new_text: str('The replacement.') }),
   },
-  write_file: { description: 'Write a whole file, creating it if needed.', schema: obj({ path: str('The file.'), content: str('Its full text.') }) },
+  write_file: { description: 'Write a whole file, creating it if needed. The user approves or declines it before this returns.', schema: obj({ path: str('The file.'), content: str('Its full text.') }) },
   show_user: {
-    description: "Point the user at a place in the code: the scene flies there and a card shows your message beside it. Use it before explaining code.",
+    description: "Point the user at a place in the code: the scene moves to the file, the function's code opens at the line and your message shows with it. Only the latest place stays open, so point at one place per step. Use it before explaining code.",
     schema: obj({ file: str('The file.'), line: int('The line to show.'), message: str('What to look at, in one or two sentences.', { minLength: 1, maxLength: 280 }) }, ['file', 'message']),
   },
   ask_user: {
@@ -77,7 +81,7 @@ const SCHEMAS: Record<string, { description: string; schema: Schema }> = {
     }),
   },
   run_replay: {
-    description: "Replay the scenario step by step in the scene: 'failing' before the fix, 'fixed' after it.",
+    description: "Replay the open problem's recorded run step by step in the scene: 'failing' while the problem is open, 'fixed' once an approved edit has closed it. It is refused when the project has no problem card, or when 'fixed' is asked while the problem is still open.",
     schema: obj({ which: { type: 'string', enum: ['failing', 'fixed'] } }),
   },
 };

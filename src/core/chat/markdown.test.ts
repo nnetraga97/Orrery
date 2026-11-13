@@ -66,3 +66,13 @@ test('tables and links stay literal', () => {
 test('empty text gives no blocks', () => {
   assert.deepEqual(parseMarkdown(''), []);
 });
+
+test('code inside bold is code, without its backticks', () => {
+  assert.deepEqual(inline('**`core/range.ts:84`**: the caller'), [{ text: 'core/range.ts:84', code: true, bold: true }, { text: ': the caller' }]);
+  assert.deepEqual(inline('**see `x` here**'), [
+    { text: 'see ', bold: true },
+    { text: 'x', code: true, bold: true },
+    { text: ' here', bold: true },
+  ]);
+  assert.deepEqual(inline('**plain**'), [{ text: 'plain', bold: true }]);
+});

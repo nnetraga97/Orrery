@@ -3,7 +3,7 @@
 // through a function passed in, so this stays pure: the panel passes the canvas's measureText, tests a fake.
 // Everything is in canvas pixels, top to bottom; the panel scrolls by drawing visibleSlice(layout, scrollTop, view).
 import { arrange } from './arrange.ts';
-import { describe, failures, isLive, pathOf, stat, summarize, textOf, thinkingLabel, total } from './describe.ts';
+import { describe, failures, isLive, isPointer, pathOf, stat, summarize, textOf, thinkingLabel, total } from './describe.ts';
 import { parseMarkdown } from './markdown.ts';
 import type { Block, Run } from './markdown.ts';
 import { NO_SECRETS, answerOf, answerState, isQuestionRequest, questionId } from './requests.ts';
@@ -131,6 +131,10 @@ export type ChatModel = {
   listening?: string | null;
   /** Reuse under the user's messages and Reply under the agent's (`button:reuse:<id>`, `button:reply:<id>`). */
   messageActions?: boolean;
+  /** The turn diff that can still be undone (`button:undo:<id>` under it), by item id. */
+  undo?: string | null;
+  /** A failed turn can be tried again (`button:retry` under the error). */
+  retry?: boolean;
   /** Rows after everything else (the composer's queue or follow-up rows may use it). */
   extras?: (b: Builder) => void;
 };
@@ -546,10 +550,12 @@ function turnDiff(b: Builder, item: ChatItem, key: string, model: ChatModel) {
   const changes = turnChanges(item.diff || '');
   if (!changes.length) return;
   const open = model.open?.get(item.id ?? key) ?? false,
+    undone = item.status === 'undone',
     sum = total(changes),
     textX = b.left + b.icon() + 14;
-  const label = `Changed ${changes.length} ${changes.length === 1 ? 'file' : 'files'} this turn`;
-  const spans: Span[] = [{ text: label, x: textX, font: 'body', tone: 'text' }];
+  const files = `${changes.length} ${changes.length === 1 ? 'file' : 'files'}`;
+  const label = undone ? `Undone: the changes to ${files} this turn` : `Changed ${files} this turn`;
+  const spans: Span[] = [{ text: label, x: textX, font: 'body', tone: undone ? 'dim' : 'text' }];
   let cx = textX + b.measure(label, 'body') + 14;
   if (sum.added) {
     spans.push({ text: `+${sum.added}`, x: cx, font: 'small', tone: 'added' });
@@ -559,6 +565,20 @@ function turnDiff(b: Builder, item: ChatItem, key: string, model: ChatModel) {
   const line = b.line('changes', spans, 'body', { icon: { name: 'diff', x: b.left, tone: 'line' }, chevron: { x: b.right - b.icon(), open } });
   b.region(`toggle:${item.id ?? key}`, b.left, line.y, b.right - b.left, line.height, open);
   if (open) diffs(b, changes, textX);
+  if (!undone && item.id && model.undo === item.id) messageAction(b, `button:undo:${item.id}`, 'Undo these changes', 'left');
+}
+
+/** The agent pointing at code: where, what to look at, and Show me (`button:point:<id>`), which shows the place again. */
+function pointer(b: Builder, item: ChatItem, key: string) {
+  const textX = b.left + b.icon() + 14,
+    failed = item.status === 'failed';
+  b.line('action', [{ text: item.title || 'Pointed at code', x: textX, font: 'body', tone: failed ? 'failed' : 'text' }], 'body', {
+    icon: { name: failed ? 'alert' : 'sparkles', x: b.left, tone: failed ? 'failed' : 'line' },
+    live: item.status === 'running',
+  });
+  const message = failed ? String(item.result ?? '') : item.text || '';
+  if (message) b.text('text', [{ text: message, font: 'body', tone: failed ? 'failed' : 'line' }], textX, b.right - textX);
+  if (!failed && item.id) messageAction(b, `button:point:${item.id}`, 'Show me', 'left');
 }
 
 /**
@@ -637,8 +657,9 @@ function requestCard(b: Builder, request: ChatRequest, model: ChatModel) {
     }
     if (request.cwd) b.text('notice', [{ text: request.cwd, font: 'small', tone: 'dim' }], x, inner);
     if (request.changes?.length) {
+      // Open until the reader closes it: an edit is approved with its diff in view.
       const id = `review:${request.id}`,
-        open = model.open?.get(id) ?? false;
+        open = model.open?.get(id) ?? true;
       b.gap(6);
       const line = b.line('changes', [{ text: 'Review changes', x: x + b.icon() + 14, font: 'body', tone: 'line' }], 'body', {
         icon: { name: 'diff', x, tone: 'line' },
@@ -695,6 +716,7 @@ export function layoutChat(model: ChatModel, metrics: ChatMetrics, measure: Meas
         if (model.messageActions) messageAction(b, `button:reuse:${item.id ?? entry.key}`, 'Reuse', 'right');
       } else if (item.type === 'plan') planCard(b, item, model.live);
       else if (item.type === 'turnDiff') turnDiff(b, item, entry.key, model);
+      else if (isPointer(item)) pointer(b, item, entry.key);
       else {
         markdown(b, parseMarkdown(textOf(item)), b.left);
         if (model.messageActions && textOf(item).trim()) messageAction(b, `button:reply:${item.id ?? entry.key}`, 'Reply', 'left');
@@ -725,6 +747,10 @@ export function layoutChat(model: ChatModel, metrics: ChatMetrics, measure: Meas
     b.lines[first].icon = { name: 'alert', x: b.left + 14, tone: 'failed' };
     b.gap(10);
     b.box('errorBar', b.left, top, b.right - b.left, b.y - top, { tone: 'failed' });
+    if (model.retry) {
+      b.gap(12);
+      b.buttons([{ id: 'button:retry', label: 'Retry' }]);
+    }
   }
   if (model.footer) {
     b.gap();

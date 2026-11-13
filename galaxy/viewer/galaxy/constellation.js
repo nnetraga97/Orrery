@@ -164,7 +164,11 @@ export function constellation(host) {
       else if (i !== lod.i || host.data.nodes()[i].path !== landedPath || refresh.has(landedPath)) {
         if (lod.detail.inspection) ctx.detail.refreshDetail(i);
         else {
+          // Not built yet: it opens again on the same function's planet and town.
+          const shown = lod.detail.towns?.find(t => t.shown && !lod.detail.towns.every(x => x.shown)) ?? null,
+            land = lod.fnKey ? { i, fnKey: lod.fnKey, townId: shown?.id ?? null, line: null, arrival: null } : null;
           ctx.detail.closeDetail();
+          lod.land = land;
           ctx.detail.openDetail(i);
         }
       }
