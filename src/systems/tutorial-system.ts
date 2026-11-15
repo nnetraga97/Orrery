@@ -1,7 +1,7 @@
 // The tutorial: four gestures taught once per device (src/core/tutorial.ts). A card above the model says what to do
-// and offers Skip; a steady glowing ring marks one planet during the first step. Steps advance on app state: a
-// selection, an orbit, a landing, the code card shown for a town. commands.restartTutorial starts it again (from the
-// Settings tab in the next plan).
+// and offers Skip; a steady glowing ring marks one planet while it is to be pinched (the first and third steps).
+// Steps advance on app state: a selection, an orbit, a landing, the code card shown for a town.
+// commands.restartTutorial starts it again (Settings, Restart tutorial).
 import { AdditiveBlending, DoubleSide, Mesh, MeshBasicMaterial, TorusGeometry, Vector3, createSystem } from '@iwsdk/core';
 import { hasSelection } from '../core/code-view.ts';
 import { THEME } from '../core/theme.ts';
@@ -11,7 +11,8 @@ import type { StoragePort } from '../ports/storage.ts';
 import { CanvasPanel } from '../panels/canvas-panel.ts';
 import { TUTORIAL_PANEL, drawTutorial, tutorialTitle } from '../panels/draw-tutorial.ts';
 import { loadFonts } from '../panels/fonts.ts';
-import { codeCardOpen, codeView, orbits, phase, selectedPath, tutorialRestarts, tutorialStep } from '../state/app-state.ts';
+import { fileIndex } from '../galaxy-bridge/galaxy-session.js';
+import { codeCardOpen, codeView, orbits, phase, scenario, selectedPath, tutorialRestarts, tutorialStep } from '../state/app-state.ts';
 import { GalaxySystem } from './galaxy-system.ts';
 import { headPosition } from './head.ts';
 import { PLACEMENTS, place } from './panel-system.ts';
@@ -24,6 +25,8 @@ export class TutorialSystem extends createSystem({}) {
   private ring!: Mesh;
   private storage: StoragePort | null = null;
   private target: number | null = null;
+  /** The planet the kit was last told to favour (-1 for none). */
+  private favoured = -1;
   private head!: Vector3;
   private at!: Vector3;
 
@@ -102,6 +105,10 @@ export class TutorialSystem extends createSystem({}) {
         lastRestarts = n;
         this.start();
       }),
+      // The project's problem may arrive after the galaxy: the first step then points at its planet instead.
+      scenario.subscribe(() => {
+        this.target = null;
+      }),
       tutorialStep.subscribe(() => this.draw()),
       () => this.panel.dispose(),
     );
@@ -134,10 +141,14 @@ export class TutorialSystem extends createSystem({}) {
     this.panel.redraw((ctx, w, h) => drawTutorial(ctx, w, h, this.panel.u, step, tutorialText(step, gaze), this.panel.hovered));
   }
 
-  /** The planet the first step points at: the largest one. */
+  /** The planet the first step points at: the one with the project's problem, so the four steps end on the code
+   * the problem card is about, with that card beside it; the largest one in a project with no problem. */
   private pickTarget(): number | null {
     const kit = this.world.getSystem(GalaxySystem)?.host.kit;
     if (!kit?.bodyPos || !kit.bodySize) return null;
+    const bug = scenario.peek()?.file;
+    const withBug = bug ? fileIndex(bug) : null;
+    if (withBug != null && withBug >= 0) return withBug;
     const kinds = kit.bodyKind as ((i: number) => string) | undefined;
     let best: number | null = null,
       size = -1;
@@ -160,10 +171,17 @@ export class TutorialSystem extends createSystem({}) {
     }
     const step: TutorialStep = tutorialStep.peek();
     const kit = this.world.getSystem(GalaxySystem)?.host.kit;
-    const marking = step === 'point' && phase.peek() === 'overview' && !!kit?.bodyPos;
+    // The ring marks the planet while it is to be pinched: to select it, and again to open it.
+    const marking = (step === 'point' || step === 'open') && phase.peek() === 'overview' && !!kit?.bodyPos;
     this.ring.visible = marking;
+    if (marking) this.target ??= this.pickTarget();
+    // A pinch anywhere inside the ring is a pinch on its planet, whatever else is near it.
+    const favoured = marking && this.target != null ? this.target : -1;
+    if (favoured !== this.favoured) {
+      this.favoured = favoured;
+      kit?.favour(favoured, RING_RADIUS);
+    }
     if (!marking || !kit?.bodyPos) return;
-    this.target ??= this.pickTarget();
     if (this.target == null) return;
     const p = kit.bodyPos(this.target);
     this.at.set(p.x, p.y, p.z).applyMatrix4(kit.scene.matrixWorld);

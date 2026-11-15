@@ -118,6 +118,9 @@ export function callRoutes(regions, { file = '' } = {}) {
         ...destination(call, region, byId, file),
         // What the call names, so a view can find the statement that makes it when the fact has no range.
         callee: { name: call.name ?? null, receiver: call.receiver ?? null },
+        // The compiler placed the target in a file outside the project (the language's own library, a dependency):
+        // the call is known, and only its destination is not part of what is drawn.
+        library: call.targetStatus === 'external',
         async: !!(
           call.awaited ||
           operation?.async ||

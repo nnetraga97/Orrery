@@ -25,6 +25,11 @@ import { smoothPath } from '../towns/towns.js';
 import { createRoadFleet, ROAD_CARS } from './road-vehicles.js';
 import { ROAD_LIFT } from '../towns/town-road-paint.js';
 
+// How many cars a town runs. With `perPath` on, each planned path has exactly one car, which drives it again and
+// again, so the number of cars on a town is the number of its planned paths (up to the town's cap, the rest taking
+// their turn). Off, roads are filled by their length. A host sets it before a planet is built (the XR app turns it on).
+export const TrafficRules = { perPath: false };
+
 export function createTraffic(T, towns) {
   const CIVIL = ROAD_CARS;
   const CAR_LENGTH = 0.8,
@@ -121,11 +126,11 @@ export function createTraffic(T, towns) {
       total: countStmts(items),
       trips: 0,
       seeded: false,
-      population: Math.min(
-        MAX_PER_TOWN,
-        Math.max(2, Math.ceil(Math.max(...paths.map(p => p.cum.at(-1))) / (tw.s * 14))),
-      ),
-      spawnEvery: 2.2 + (k % 7) * 0.23,
+      population: TrafficRules.perPath
+        ? Math.min(MAX_PER_TOWN, paths.length)
+        : Math.min(MAX_PER_TOWN, Math.max(2, Math.ceil(Math.max(...paths.map(p => p.cum.at(-1))) / (tw.s * 14)))),
+      spawnEvery: TrafficRules.perPath ? 0.6 : 2.2 + (k % 7) * 0.23,
+      nextPath: 0,
       sinceSpawn: Infinity,
     };
     runs.set(k, run);
@@ -183,6 +188,12 @@ export function createTraffic(T, towns) {
       .slice(0, MAX_TOWNS);
     active = candidates.map(c => prepare(c.k)).filter(Boolean);
     for (const run of active) {
+      // One car per path: nothing follows the view, so a turning globe neither drops a car nor adds a second.
+      if (TrafficRules.perPath) {
+        run.visiblePaths = [];
+        run.seedSlots = 0;
+        continue;
+      }
       const visiblePaths = [];
       run.paths.forEach((path, index) => {
         const samples = [],
@@ -267,6 +278,14 @@ export function createTraffic(T, towns) {
         if (spawn(run, fraction, index)) count++;
       }
     }
+    // One car per path starts spread along the paths, so a landing does not show every car queued at the entrance.
+    if (TrafficRules.perPath)
+      for (const run of active) {
+        if (run.seeded || paused.has(run.k)) continue;
+        for (let i = 0; i < run.population && count < MAX_VEHICLES; i++)
+          if (!run.vehicles.some(v => v.pathIndex === i) && spawn(run, i / run.population, i)) count++;
+        run.nextPath = run.population % run.paths.length;
+      }
     for (const run of active) {
       if (!run.seeded) run.sinceSpawn = 0;
       run.seeded = true;
@@ -281,6 +300,19 @@ export function createTraffic(T, towns) {
         run.vehicles.some(v => v.d < run.tw.s * 2)
       )
         continue;
+      if (TrafficRules.perPath) {
+        // The next path in turn that has no car on it.
+        let index = -1;
+        for (let j = 0; j < run.paths.length && index < 0; j++) {
+          const candidate = (run.nextPath + j) % run.paths.length;
+          if (!run.vehicles.some(v => v.pathIndex === candidate)) index = candidate;
+        }
+        if (index < 0) continue;
+        run.sinceSpawn = 0;
+        run.nextPath = (index + 1) % run.paths.length;
+        if (spawn(run, 0, index)) count++;
+        continue;
+      }
       run.sinceSpawn = 0;
       if (spawn(run)) count++;
     }
@@ -391,6 +423,7 @@ export function createTraffic(T, towns) {
           vehicles: r.vehicles.length,
           trips: r.trips,
           positions: r.vehicles.map(v => v.d),
+          pathIndexes: r.vehicles.map(v => v.pathIndex),
           paths: r.paths.length,
         })),
       vehicles: active.reduce((n, r) => n + r.vehicles.length, 0),

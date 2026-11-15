@@ -18,6 +18,11 @@ const GLOW = 1.8,
   // The least angle (its tangent) the most-used file's glow spans from its centre, however far away: about 1.4°.
   FAR_GLOW = 0.024;
 
+/** A host may shrink a star as it is placed: `shrink(matrix, scene)` answers the factor (1 to 0) to draw the star and
+ * its glow at, from the star's matrix in the scene's own space. The XR app keeps a star from filling the room beside a
+ * landed globe with it (src/galaxy-bridge/star-limit.js); null draws every star as placed. */
+export const StarLimits = { shrink: null };
+
 // Vertex: places the square at the star's centre, facing the camera, just large enough to hold its silhouette, and
 // hands the fragment the star's centre and radius in view space and its axes (to keep the pattern fixed to the star).
 const SURFACE_VERT = `
@@ -187,6 +192,8 @@ export class StarBodies {
     this.glow = null;
     this.matrix = new THREE.Matrix4();
     this.scale = new THREE.Matrix4();
+    this.shrunk = new THREE.Matrix4();
+    this.factor = new THREE.Vector3();
     /** Each slot's shine, 0 to 1 (shine()). */
     this.shines = new Float32Array(0);
   }
@@ -239,6 +246,9 @@ export class StarBodies {
   place(fileId, matrix) {
     const slot = this.slotOf.get(fileId);
     if (slot == null) return;
+    const shrink = StarLimits.shrink ? StarLimits.shrink(matrix, this.scene) : 1;
+    // Never quite zero: the surface shader divides by the star's radius.
+    if (shrink < 1) matrix = this.shrunk.copy(matrix).scale(this.factor.setScalar(Math.max(shrink, 1e-4)));
     this.mesh.setMatrixAt(slot, matrix);
     const glow = GLOW + GLOW_MORE * this.shines[slot];
     this.glow.setMatrixAt(slot, this.matrix.multiplyMatrices(matrix, this.scale.makeScale(glow, glow, glow)));

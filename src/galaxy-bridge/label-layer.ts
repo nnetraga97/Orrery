@@ -25,7 +25,8 @@ import type { LabelDefinition } from '../ports/scene-kit.ts';
 
 /** Labels shown at once (lowered from 32 for the headset's draw budget: each is a draw call). */
 const POOL = 24;
-const CANVAS_W = 512,
+// Wide enough for about 27 capitals: a file's name with its extension, or a function's name with what follows it.
+const CANVAS_W = 768,
   CANVAS_H = 96,
   PAD = 18,
   LABEL_PX = 46;

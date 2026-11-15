@@ -227,6 +227,40 @@ const routeRecords = (k: number | null): RouteRecord[] => {
 /** The routes leaving function `k` of the landed planet. */
 export const routesOf = (k: number | null): ShipRoute[] => routeRecords(k).map(r => ({ path: String(r.path ?? ''), canFly: !!r.canFly }));
 
+/** One call drawn on the landed globe: what it calls, where it leaves to, and whether it starts at its statement. */
+export interface CallExit {
+  name: string | null;
+  kind: string;
+  /** The exit it leaves through: a file's path or import, or 'unresolved'; null for a call to a function on the globe. */
+  exit: string | null;
+  mapped: boolean;
+}
+
+/** The landed globe's call routes (tests check where a function's calls are said to go). */
+export function callExits(): CallExit[] {
+  const routes = (current?.towns as { callRoutes?: Record<string, unknown>[] } | undefined)?.callRoutes ?? [];
+  return routes.map(r => ({
+    name: (r.callee as { name?: string | null } | undefined)?.name ?? null,
+    kind: String(r.kind ?? ''),
+    exit: (r.gate as { name?: string } | null | undefined)?.name ?? null,
+    mapped: !!r.mapped,
+  }));
+}
+
+/** One town's road cars: how many paths were planned through the function, and the path each car is driving. */
+export interface TownCars {
+  paths: number;
+  cars: number[];
+}
+
+/** The landed globe's road cars (tests check that each planned path has one car). */
+export function roadCars(): TownCars[] {
+  const traffic = current?.traffic as
+    | { snapshot(): { activeTowns: { paths: number; pathIndexes: number[] }[] } }
+    | undefined;
+  return (traffic?.snapshot().activeTowns ?? []).map(t => ({ paths: t.paths, cars: [...t.pathIndexes] }));
+}
+
 /** Flies route `i` of function `k`: a preview departure, or travel that lands on the destination file. */
 export function startShip(k: number, i: number, travel: boolean) {
   const route = routeRecords(k)[i];

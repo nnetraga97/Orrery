@@ -10,6 +10,7 @@ import { GalaxySky } from '../../galaxy/viewer/scene/galaxy-sky.js';
 import { dotTex } from '../../galaxy/viewer/scene/textures.js';
 import { cameraInput, dampingBlend } from '../../galaxy/viewer/scene/camera-input.js';
 import { pickScene } from '../../galaxy/viewer/scene/scene-picking.js';
+import { nearestToRay, rayPassesWithin } from '../core/aim-assist.ts';
 import { applyDolly, applyOrbit } from '../core/orbit.ts';
 import { THEME } from '../core/theme.ts';
 import { loadFonts } from '../panels/fonts.ts';
@@ -91,6 +92,12 @@ export function createSceneKit({ camPos, host, renderer, anchor = null, faceTilt
   // Other clickable things (black holes, ships, lanes, the cannon…): { objects() -> Object3D[], describe(hit) -> context-window spec | null }.
   const pickers = [];
   let hoverItem = null;
+  /** A file's body centre in the model's space (the constellation supplies it once it is built). */
+  const bodyAt = i => kit.bodyPos?.(i);
+  // A body that wins any ray passing within a radius of it, over whatever else the ray touches (kit.favour): the
+  // tutorial's ringed planet, which may sit in a crowd of others or beside a black hole.
+  let favoured = -1,
+    favouredRadius = 0;
   /** Picks along one model-space ray; no side effects. */
   function pickAlong(r) {
     ray.ray.copy(r).applyMatrix4(scene.matrixWorld);
@@ -99,7 +106,17 @@ export function createSceneKit({ camPos, host, renderer, anchor = null, faceTilt
     // Line and point hit thresholds are in world units and ignore parent scale; keep the desktop's one model unit.
     ray.params.Line.threshold = ray.params.Points.threshold = scene.scale.x;
     const isBlocked = !!pickBlock?.(ray);
-    const { id, item } = isBlocked ? { id: -1, item: null } : pickScene(ray, pickMesh, pickMap, pickers);
+    if (!isBlocked && favoured >= 0 && pickMesh) {
+      const p = kit.bodyPos?.(favoured);
+      // The radius is in room metres; the ray and the centre are in model units.
+      if (p && rayPassesWithin(r.origin, r.direction, p, favouredRadius / scene.scale.x))
+        return { id: favoured, item: null, isBlocked };
+    }
+    let { id, item } = isBlocked ? { id: -1, item: null } : pickScene(ray, pickMesh, pickMap, pickers);
+    // A body is millimetres across from the seat and a hand ray wanders: a ray that touches nothing takes the body
+    // nearest to it within a small angle (src/core/aim-assist.ts). The ray and the centres are both in model space.
+    if (id === -1 && !item && !isBlocked && pickMesh && kit.bodyPos)
+      id = nearestToRay(r.origin, r.direction, host.data.nodes().length, bodyAt, lastPick);
     return { id, item, isBlocked };
   }
   /** Picks for the frame; with `only`, along that pointer's ray alone (a click). */
@@ -670,6 +687,11 @@ export function createSceneKit({ camPos, host, renderer, anchor = null, faceTilt
      * seat height setting changes it. */
     get faceLanding() {
       return typeof faceTilt === 'function' ? faceTilt() : faceTilt;
+    },
+    /** Makes file `i` win any ray that passes within `metres` (room metres) of it; -1 for none. */
+    favour(i, metres = 0) {
+      favoured = i;
+      favouredRadius = metres;
     },
     tick,
     pointerMove,
