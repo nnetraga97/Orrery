@@ -17,7 +17,7 @@ import { bridgePointer } from '../galaxy-bridge/pointer-bridge.ts';
 import { createPointScaler } from '../galaxy-bridge/point-sizes.ts';
 import { attachCannon, fileIndex, galaxyState, installActions, openGalaxy } from '../galaxy-bridge/galaxy-session.js';
 import type { GalaxyView, LandedTown } from '../galaxy-bridge/galaxy-session.js';
-import { applyHeadsetBudget } from '../galaxy-bridge/budget.js';
+import { applyHeadsetBudget, limitStars, viewerEye } from '../galaxy-bridge/budget.js';
 import { outlinePinnedTown } from '../galaxy-bridge/town-outline.ts';
 import { preferWindowsForGaze } from '../galaxy-bridge/gaze-priority.ts';
 import { flushXrFrames, installXrFrames } from '../galaxy-bridge/xr-frames.ts';
@@ -117,6 +117,7 @@ export class GalaxySystem extends createSystem({}) {
   init() {
     // Light rigs, a few ship hulls and light road cars, and a still island while the agent is idle.
     applyHeadsetBudget();
+    limitStars();
     this.head = new Vector3();
     this.gaze = new Vector3();
     this.headTurn = new Quaternion();
@@ -372,6 +373,7 @@ export class GalaxySystem extends createSystem({}) {
     this.points?.update(pose.scale, delta);
     const head = headObject(this.renderer, this.player, this.camera);
     head.getWorldPosition(this.head);
+    viewerEye.copy(this.head);
     this.gaze.set(0, 0, -1).applyQuaternion(head.getWorldQuaternion(this.headTurn));
     this.labels.update(this.head, this.gaze, pose);
     if (this.outlineFrames > 0) {

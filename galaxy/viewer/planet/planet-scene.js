@@ -8,7 +8,7 @@ import { createTownPlan } from '../towns/town-plan.js';
 import { createTraffic } from '../traffic/traffic.js';
 import { createSpaceportTransport, transportRoutes } from '../traffic/transport.js';
 import { createCallRoutes } from '../traffic/call-routes.js';
-import { createPortTraffic } from '../traffic/port-traffic.js';
+import { createPortTraffic, PortShips } from '../traffic/port-traffic.js';
 import { planetLandMaterial, planetOceanMaterial } from './planet-appearance.js';
 import { planetGroundSample } from '../galaxy/planet-library.js';
 import { buildIncrementalTowns } from '../towns/incremental-towns.js';
@@ -16,6 +16,19 @@ import { buildIncrementalTowns } from '../towns/incremental-towns.js';
 // One function per globe: when enabled, a landed planet holds only one town (a function, or the group the semantic
 // layout made), so its buildings are drawn large. The host turns it off to see the whole file.
 export const OneTown = { enabled: true };
+
+/** The project paths an import specifier written in `from` may mean: '../model.js' in 'cursor/cursor.ts' is 'model.ts'. */
+export function importedPaths(from, specifier) {
+  if (!/^\.\.?\//.test(specifier)) return [];
+  const parts = from.split('/').slice(0, -1);
+  for (const part of specifier.split('/')) {
+    if (part === '..') parts.pop();
+    else if (part && part !== '.') parts.push(part);
+  }
+  const path = parts.join('/'),
+    bare = path.replace(/\.[cm]?jsx?$/, '');
+  return [path, ...['.ts', '.tsx', '.js', '.jsx', '/index.ts', '/index.js'].map(ext => bare + ext)];
+}
 // The largest a statement's lot may be on a one-function globe, as a share of the globe's radius. A long function's
 // town shrinks below this until it fits its land (planet-terrain.js ONE_TOWN_REACH); a function of a few statements
 // stops here and leaves land spare, which the room answers by showing a smaller globe (the XR app reads `fit().scale`).
@@ -300,9 +313,14 @@ export async function buildPlanetSurface(ctx, sym, source, model, options) {
     // Route and gate labels jump to what they name: a town on this planet, or a method on another file's planet.
     const navigate = {
       toTown: k => ctx.goToTown?.(k),
-      toFile: async (path, method) => {
-        const i = host.data.nodes().findIndex(x => x.path === path);
+      toFile: async (target, method, townId = null) => {
+        const nodes = host.data.nodes();
+        // A gate may be named by the import that reaches its file ('../model.js'), not by the file's path.
+        const wanted = new Set([target, ...importedPaths(n.path, target)]),
+          i = nodes.findIndex(x => wanted.has(x.path));
         if (i < 0) return;
+        const path = nodes[i].path;
+        if (townId != null) return host.actions.enterPlanet(i, { townId });
         const symbols = (await ctx.loadSymbols?.([path]).catch(() => null)) || window.SYMBOLS?.[host.data.dataset()],
           member = (symbols?.[path]?.decls || []).flatMap(d => d.members || []).find(m => m.name === method);
         host.actions.enterPlanet(i, member ? { line: member.start } : {});
@@ -335,13 +353,14 @@ export async function buildPlanetSurface(ctx, sym, source, model, options) {
       buildAbort.signal,
       navigate,
       incoming,
+      allRegions,
     );
     ctx.towns.callRoutes = ctx.callLayer.routes;
   }
   const routes = transportRoutes(fileIdx, regions, host.data.nodes(), window.SYMBOLS?.[host.data.dataset()]);
   if (ctx.towns)
     ctx.transport = createSpaceportTransport(T, ctx.towns, status => ctx.inspector?.transportStatus(status));
-  if (ctx.towns?.docksOf(0).length) ctx.portTraffic = createPortTraffic(T, ctx.towns, routes);
+  if (PortShips.scheduled && ctx.towns?.docksOf(0).length) ctx.portTraffic = createPortTraffic(T, ctx.towns, routes);
   // ---- labels: regions facing the camera, moons ----
   const facing = p => () => p.clone().normalize().dot(T.camera.position.clone().sub(p).normalize()) > 0.15;
   if (ctx.towns) ctx.traffic = createTraffic(T, ctx.towns);

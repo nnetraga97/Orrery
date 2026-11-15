@@ -29,6 +29,8 @@ export interface XrSceneKit extends SceneKitPort {
   dolly(factor: number): void;
   home(): void;
   readonly pointing: boolean;
+  /** Makes file `i` win any ray that passes within `metres` (room metres) of it; -1 for none. */
+  favour(i: number, metres?: number): void;
   swallowClick(on: boolean): void;
   // Added to T by the constellation once it is built.
   bodyPos?(i: number): Vector3;

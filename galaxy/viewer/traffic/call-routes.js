@@ -31,7 +31,19 @@ export function surfaceFlight(from, to, groundAt, extent, unit) {
     },
   };
 }
-export async function createCallRoutes(T, towns, regions, groundAt, file, signal, navigate = {}, incoming = []) {
+// `siblings` is every function of the file when the globe shows only some of them (one function per globe): a call to
+// a function that is not on the globe still has a known destination, and leaves through a gate named for this file.
+export async function createCallRoutes(
+  T,
+  towns,
+  regions,
+  groundAt,
+  file,
+  signal,
+  navigate = {},
+  incoming = [],
+  siblings = regions,
+) {
   const checkpoint = planetBuildBudget(signal),
     group = new THREE.Group(),
     unit = markerUnit(towns),
@@ -50,8 +62,15 @@ export async function createCallRoutes(T, towns, regions, groundAt, file, signal
     elapsed = 0,
     last = null,
     ships = null;
-  const all = callRoutes(regions, { file }),
-    targetOf = r => (r.kind === 'external' ? r.to.external || 'unknown file' : 'unresolved'),
+  // A library call is no route: its target is nowhere in the project. Counting it with the calls nobody could
+  // resolve made a plain `list.push()` read as a mystery.
+  const all = callRoutes(siblings, { file }).filter(
+      route => byId.has(route.from.town) && !(route.kind === 'unresolved' && route.library),
+    ),
+    // A resolved call to a function of this file that the globe does not show.
+    elsewhereHere = r => r.kind === 'local' && !byId.has(r.to.town),
+    targetOf = r =>
+      r.kind === 'external' ? r.to.external || 'unknown file' : elsewhereHere(r) && file ? file : 'unresolved',
     groups = new Map(),
     gateTargets = new Map(),
     navigation = new Map();
@@ -72,7 +91,12 @@ export async function createCallRoutes(T, towns, regions, groundAt, file, signal
   const gateNames = new Map(
     [...gateTargets].map(([k, counts]) => {
       const names = [...counts].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).map(([name]) => name);
-      return [k, names.length > 4 ? [...names.slice(0, 3), 'Other external files'] : names];
+      if (names.length <= 4) return [k, names];
+      // This file's own functions always keep their gate: folded into the overflow they would be named as other
+      // files, and a pinch there leads nowhere.
+      const kept = names.slice(0, 3);
+      if (names.includes(file) && !kept.includes(file)) kept[2] = file;
+      return [k, [...kept, 'Other external files']];
     }),
   );
   const gateName = (a, route) => {
@@ -257,8 +281,11 @@ export async function createCallRoutes(T, towns, regions, groundAt, file, signal
         ? `? ${listed(called)} · ${candidates} overloads`
         : `? ${sites} unresolved call${sites === 1 ? '' : 's'}`;
     }
-    const file = gate.name.split('/').pop();
-    return called.length ? `${file} · ${listed(called)}` : file;
+    // Functions of this same file need no file name: the arrow says the call leaves this function. One name and a
+    // count, so the label is short enough to be read whole.
+    if (gate.name === file) return `→ ${called[0]}()` + (called.length > 1 ? ` +${called.length - 1}` : '');
+    const name = gate.name.split('/').pop();
+    return called.length ? `${name} · ${listed(called)}` : name;
   };
   for (const gate of gateEnds.values())
     labels.push({
@@ -276,7 +303,14 @@ export async function createCallRoutes(T, towns, regions, groundAt, file, signal
       // first candidate town.
       onClick:
         gate.name !== 'unresolved'
-          ? navigate.toFile && (() => navigate.toFile(gate.name, calledThrough(gate)[0]))
+          ? navigate.toFile &&
+            (() =>
+              navigate.toFile(
+                gate.name,
+                calledThrough(gate)[0],
+                // A gate to this file's own functions lands on the first one called, by its id.
+                gate.name === file ? (routes.find(r => r.gate === gate)?.to.town ?? null) : null,
+              ))
           : navigate.toTown && candidatesOf(gate).length
             ? () => navigate.toTown(candidatesOf(gate)[0])
             : undefined,

@@ -9,7 +9,9 @@ import { dotTex } from '../scene/textures.js';
 import { keyHash } from './constellation-orbits.js';
 
 // How many ship hulls are drawn at once; a host may lower it (the XR app does, for a headset's budget).
-export const FleetLimits = { visible: 900 };
+// `background` off leaves only the ships of the selected file's lanes, flown while those lanes are drawn, one ship to
+// a lane before any lane gets a second, the lanes with the most references first.
+export const FleetLimits = { visible: 900, background: true };
 
 // ---------- shared assets ----------
 let shipGeometryPromise = null;
@@ -299,9 +301,10 @@ export function createFleet(ctx) {
     }
     // Prioritize the followed ship and selected lanes, then use the remaining budget
     // for the background fleet. Selecting a file no longer empties the rest of the galaxy.
+    const focus = !frameState.journeyFlight && (FleetLimits.background || visibility > 0.5) ? focusRoutes : [];
     const list = [
       ...(frameState.journeyFlight ? [frameState.journeyFlight.route] : []),
-      ...(frameState.traffic ? [...(!frameState.journeyFlight ? focusRoutes : []), ...ambient.routes] : []),
+      ...(frameState.traffic ? [...focus, ...(FleetLimits.background ? ambient.routes : [])] : []),
     ];
     frameState.fleetFrame++;
     // A hull under ~1.5 px is all engine glint: skip its instance (about 25k triangles) and
@@ -455,6 +458,7 @@ export function createFleet(ctx) {
           b,
           kind,
           use: u?.kind || 'unknown',
+          refs: u?.refs || 0,
           ships: !u || u.kind === 'unknown' ? 1 : u.kind === 'runtime' ? Math.min(6, u.refs) : 0,
         };
       };
@@ -465,8 +469,17 @@ export function createFleet(ctx) {
       // A hub's lanes would bury it: past two dozen they thin out together. A type-only import carries nothing at
       // run time, so its dashed lane is the faintest; a lane that carries values is the plainest.
       const crowd = Math.min(1, Math.sqrt(24 / Math.max(1, focusLanes.length)));
+      if (!FleetLimits.background) {
+        // Few hulls: the lanes with the most references first, and round by round, so each ship marks one lane.
+        const convoys = focusLanes
+          .filter(r => r.ships)
+          .sort((a, b) => b.refs - a.refs)
+          .map(r => convoy(r.a, r.b, r.ships, r.kind, 0.22));
+        for (let round = 0; convoys.some(c => c.length > round); round++)
+          for (const c of convoys) if (c.length > round) focusRoutes.push(c[round]);
+      }
       focusLanes.forEach(r => {
-        focusRoutes.push(...convoy(r.a, r.b, r.ships, r.kind, 0.22));
+        if (FleetLimits.background) focusRoutes.push(...convoy(r.a, r.b, r.ships, r.kind, 0.22));
         const typeOnly = r.use === 'type',
           mat = typeOnly
             ? new THREE.LineDashedMaterial({

@@ -2,6 +2,10 @@
 // schedule visits. A service visit is not evidence of a reverse import or execution.
 import { createSpaceportTransport } from './transport.js';
 
+// Whether ships visit a town's port on a timetable. Off, a ship flies only when one is asked for by name (a route
+// chosen from the function's list), so every ship seen at a port stands for a file the user picked.
+export const PortShips = { scheduled: true };
+
 export function createPortTraffic(T, towns, routes) {
   let disposed = false,
     last = null,

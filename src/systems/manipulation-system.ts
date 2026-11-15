@@ -1,6 +1,6 @@
 // Hands turn and zoom the model by moving the virtual camera (src/core/orbit.ts); the model's pose follows from it.
-// One pinch dragged in the air over empty space orbits; two pinches moving apart or together dolly. A pinch that moves
-// less than 2 cm in all is a click, which the pointer bridge already handles. In a browser tab the mouse does the
+// One pinch dragged in the air (anywhere but on a window) orbits; two pinches moving apart or together dolly. A pinch
+// that ends within 2 cm of where it began is a click, which the pointer bridge already handles. In a browser tab the mouse does the
 // same: drag on empty space orbits, the wheel dollies.
 import { Hovered, Vector3, createSystem } from '@iwsdk/core';
 import { Panel } from '../components/panel.ts';
@@ -20,10 +20,12 @@ const SIDES: readonly Side[] = ['left', 'right'];
 
 interface HandDrag {
   active: boolean;
-  /** The pinch began over something pickable: it is a click, never an orbit. */
+  /** The pinch began over a window: it belongs to the window, never an orbit. */
   onTarget: boolean;
   orbiting: boolean;
-  travel: number;
+  /** Where the hand was when the pinch began: a drag is judged by how far the hand has gone from here, not by the
+   * path it took, so a hand that trembles in place through a pinch still clicks. */
+  start: Vector3;
   last: Vector3;
 }
 
@@ -35,7 +37,7 @@ export class ManipulationSystem extends createSystem({ hoveredPanels: { required
   private dollying = false;
 
   init() {
-    const hand = (): HandDrag => ({ active: false, onTarget: false, orbiting: false, travel: 0, last: new Vector3() });
+    const hand = (): HandDrag => ({ active: false, onTarget: false, orbiting: false, start: new Vector3(), last: new Vector3() });
     this.hands = { left: hand(), right: hand() };
     this.position = new Vector3();
     this.other = new Vector3();
@@ -46,19 +48,18 @@ export class ManipulationSystem extends createSystem({ hoveredPanels: { required
     return this.world.getSystem(GalaxySystem)?.host.kit ?? null;
   }
 
-  /** The ray is over a panel or something the scene picks: the pinch belongs to it, not to the model. In a headset
-   * only the pinching hand's own ray counts, so an idle hand resting on a window does not block the other's orbit. */
+  /** The ray is over a window: the pinch belongs to it, not to the model. In a headset only the pinching hand's own
+   * ray counts, so an idle hand resting on a window does not block the other's orbit. A pinch over a body of the
+   * model is not held back: still, it is a click on the body; dragged past CLICK_METRES, it turns the model and the
+   * click is swallowed. (With aim assist most of the model's middle is near some body, so a drag must work there.) */
   private overTarget(side?: Side) {
-    if (!side) return !!this.kit?.pointing || this.queries.hoveredPanels.entities.size > 0;
+    if (!side) return this.queries.hoveredPanels.entities.size > 0;
     // While gaze owns far targeting (the glasses), hand far rays are off: what a pinch is on is what the eyes are on.
     const xr = this.input.xr;
     const gazing = xr.gazeEnabled && xr.gazePointer.canTarget();
     const pointer = gazing ? xr.gazePointer.pointer : xr.multiPointers[side].getPointer('ray');
     const hit = pointer.getIntersection()?.object;
-    if (!hit) return false;
-    if (hit.name.startsWith('panel-')) return true;
-    // On the model: only if this hand's own ray picks something there.
-    return hit.name === 'galaxy-hit-volume' && !!this.kit?.pointingBy(pointer.id);
+    return !!hit && hit.name.startsWith('panel-');
   }
 
   private handPosition(side: Side, out: Vector3) {
@@ -80,9 +81,9 @@ export class ManipulationSystem extends createSystem({ hoveredPanels: { required
         drag.active = true;
         drag.onTarget = this.overTarget(side);
         drag.orbiting = false;
-        drag.travel = 0;
         kit.swallowClick(false);
         this.handPosition(side, drag.last);
+        drag.start.copy(drag.last);
       } else if (drag.active && !(side === 'left' ? leftOn : rightOn)) drag.active = false;
     }
     const zoomable = !this.hands.left.onTarget && !this.hands.right.onTarget;
@@ -112,9 +113,8 @@ export class ManipulationSystem extends createSystem({ hoveredPanels: { required
       this.handPosition(side, this.position);
       const dx = this.position.x - drag.last.x,
         dy = this.position.y - drag.last.y;
-      drag.travel += Math.hypot(dx, dy, this.position.z - drag.last.z);
       drag.last.copy(this.position);
-      if (!drag.orbiting && drag.travel < CLICK_METRES) continue;
+      if (!drag.orbiting && this.position.distanceTo(drag.start) < CLICK_METRES) continue;
       if (!drag.orbiting) {
         drag.orbiting = true;
         kit.swallowClick(true);

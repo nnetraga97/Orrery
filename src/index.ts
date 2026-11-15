@@ -6,7 +6,7 @@ import { createBrowserSpeech } from './adapters/browser-speech.ts';
 import { createAgentSwitch } from './adapters/agent-switch.ts';
 import { createFakeAgent } from './adapters/fake-agent.ts';
 import { withRecording } from './adapters/recording-agent.ts';
-import { routesOf } from './galaxy-bridge/inspector.ts';
+import { callExits, roadCars, routesOf } from './galaxy-bridge/inspector.ts';
 import { fetchProviders } from './adapters/http-agent.ts';
 import { createFakeSpeech } from './adapters/fake-speech.ts';
 import { createLocalStorage } from './adapters/local-storage.ts';
@@ -138,6 +138,9 @@ World.create(document.getElementById('scene-container') as HTMLDivElement, proje
     recording: recorder.recording,
     /** The ship routes leaving function k of the landed planet (tests find a function with ships with it). */
     routes: (k: number) => routesOf(k),
+    /** The calls drawn on the landed globe, each with the exit it leaves through. */
+    callExits: () => callExits(),
+    roadCars: () => roadCars(),
     regions: (panel: string) => PANELS.get(panel)?.regions.map(r => r.id) ?? [],
     /** The chat transcript's scroll position (tests drag it with an emulated hand). */
     get chatScroll() {
